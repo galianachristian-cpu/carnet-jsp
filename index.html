@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Carnet JSP — CIS Cruzy-Quarante</title>
+<meta name="theme-color" content="#1a3c6e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Carnet JSP">
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
   :root {
@@ -21,6 +26,38 @@
     --orange: #b45309;
     --orange-pale: #fef3c7;
   }
+  [data-theme="dark"] {
+    --bleu: #3b82f6;
+    --bleu-clair: #60a5fa;
+    --bleu-pale: #1e3a5f;
+    --rouge: #f87171;
+    --rouge-pale: #3b1c1c;
+    --blanc: #1f2937;
+    --gris-bg: #111827;
+    --gris-bord: #374151;
+    --gris-txt: #9ca3af;
+    --vert: #4ade80;
+    --vert-pale: #14532d;
+    --orange: #fb923c;
+    --orange-pale: #431407;
+  }
+  [data-theme="dark"] body { background: #111827; color: #f9fafb; }
+  [data-theme="dark"] .sidebar { background: #1f2937; }
+  [data-theme="dark"] .header { background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); }
+  [data-theme="dark"] .tabs { background: #1f2937; }
+  [data-theme="dark"] .card { background: #1f2937; border-color: #374151; }
+  [data-theme="dark"] table tbody tr:hover { background: #374151; }
+  [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea {
+    background: #374151; color: #f9fafb; border-color: #4b5563;
+  }
+  [data-theme="dark"] .login-card { background: #1f2937; border-color: #374151; }
+  [data-theme="dark"] .modal { background: #1f2937; }
+  [data-theme="dark"] .table-card { background: #1f2937; }
+  [data-theme="dark"] thead { background: #1e3a5f; }
+  [data-theme="dark"] tbody td { color: #f9fafb; }
+  [data-theme="dark"] .nav-item { color: #d1d5db; }
+  [data-theme="dark"] .nav-item.active { background: #1e3a5f; color: #60a5fa; }
+  [data-theme="dark"] .stat-card { background: #1f2937; border-color: #374151; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, sans-serif; background: var(--gris-bg); color: #1f2937; min-height: 100vh; }
 
@@ -296,7 +333,15 @@
     .nav-item span, .nav-item .badge-nav, .sidebar-section { display: none; }
     .nav-item { justify-content: center; padding: 12px; }
   }
+
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(10px); }
+  to { opacity:1; transform:translateY(0); }
+}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -328,6 +373,7 @@
         <p>CIS Cruzy-Quarante</p>
       </div>
       <div class="header-user">
+        <button onclick="toggleDarkMode()" id="btn-dark" title="Mode sombre" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:16px;margin-right:4px">🌙</button>
         <i class="ti ti-user-circle" style="font-size:20px"></i>
         <span id="headerUserName"></span>
         <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
@@ -365,6 +411,23 @@
         <div class="nav-item" onclick="showSection('jsps')">
           <i class="ti ti-users"></i><span>JSP</span>
         </div>
+        <div class="nav-item" onclick="showSection('admin-mdp')">
+          <i class="ti ti-lock"></i><span>Mots de passe</span>
+        </div>
+        <div class="nav-item" onclick="showSection('historique')">
+          <i class="ti ti-history"></i><span>Historique</span>
+        </div>
+        <div class="nav-item" onclick="showSection('export')">
+          <i class="ti ti-file-spreadsheet"></i><span>Export Excel</span>
+        </div>
+        <div class="nav-item" onclick="showSection('feuille-appel')">
+          <i class="ti ti-printer"></i><span>Feuille d'appel</span>
+        </div>
+        <div class="nav-item" onclick="showSection('messagerie')">
+          <i class="ti ti-message"></i><span>Messagerie</span>
+        </div>
+        
+        
       </div>
       <div id="sidebarParent" class="hidden">
         <div class="sidebar-section">Mon enfant</div>
@@ -389,6 +452,14 @@
         <div class="nav-item" onclick="showSection('parent-bilan')">
           <i class="ti ti-clipboard-list"></i><span>Bilan annuel</span>
         </div>
+        <div class="nav-item" onclick="showSection('parent-messages')">
+          <i class="ti ti-message"></i><span>Messages</span>
+          <span id="badge-msgs" class="badge-nav" style="display:none">0</span>
+        </div>
+        <div class="sidebar-section">Mon compte</div>
+        <div class="nav-item" onclick="showSection('parent-mdp')">
+          <i class="ti ti-lock"></i><span>Mot de passe</span>
+        </div>
       </div>
     </div>
 
@@ -408,7 +479,7 @@
 // ══════════════════════════════════════════
 
 function loadData() {
-  const d = localStorage.getItem('carnet_jsp_v4');
+  const d = localStorage.getItem('carnet_jsp_v5');
   if (d) {
     const parsed = JSON.parse(d);
     if (!parsed.saison) parsed.saison = '2025-2026';
@@ -1265,6 +1336,7 @@ function loadData() {
     saison: '2025-2026',
     allSaisons: ['2025-2026'],
     bilans: [],
+    messages: [],
     planning: [
       { id: 1, date: "2025-09-07", titre: "Réunion avec les parents et découverte", type: "formation", lieu: "CIS Cruzy" },
       { id: 2, date: "2025-09-19", titre: "Réunion bureau ADRIZ", type: "formation", lieu: "CIS Cruzy" },
@@ -1304,11 +1376,27 @@ function loadData() {
 }
 
 function saveData() {
-  localStorage.setItem('carnet_jsp_v4', JSON.stringify(DB));
+  localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
   localStorage.setItem('carnet_jsp_planning_'+DB.saison, JSON.stringify(DB.planning));
 }
 
 let DB = loadData();
+
+// ══════════════════════════════════════════
+//  CONFIG EMAILJS
+// ══════════════════════════════════════════
+const EMAILJS_PUBLIC_KEY = 'bTc14Vd-hNQkzxP_G';
+const EMAILJS_SERVICE_ID = 'service_1srhrfc';
+const EMAILJS_TEMPLATE_ID = 'template_bkl93qe';
+
+function initEmailJS() {
+  if (window.emailjs) {
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    console.log('EmailJS initialisé');
+  }
+}
+setTimeout(initEmailJS, 1000);
+
 let currentUser = null;
 let currentSection = '';
 
@@ -1421,6 +1509,12 @@ function doLogin() {
     showSection('dashboard');
   } else {
     document.getElementById('sidebarParent').classList.remove('hidden');
+    // Badge messages non lus
+    setTimeout(() => {
+      const nb = countUnreadMessages();
+      const badge = document.getElementById('badge-msgs');
+      if (badge && nb > 0) { badge.textContent = nb; badge.style.display = 'inline'; }
+    }, 100);
     showSection('parent-accueil');
   }
 }
@@ -1465,6 +1559,16 @@ function showSection(sec) {
     case 'parent-resultats': c.innerHTML = renderParentResultats(); break;
     case 'parent-planning': c.innerHTML = renderParentPlanning(window._planningParentMois||null); break;
     case 'parent-bilan': c.innerHTML = renderParentBilan(); break;
+    case 'parent-mdp': c.innerHTML = renderChangeMdp(); break;
+    case 'admin-mdp': c.innerHTML = renderAdminMdp(); break;
+    case 'export': c.innerHTML = renderExport(); break;
+    case 'historique': c.innerHTML = renderHistorique(); break;
+    case 'feuille-appel': c.innerHTML = renderFeuilleAppel(); break;
+    case 'messagerie': c.innerHTML = renderMessagerie(); break;
+    case 'parent-messages': c.innerHTML = renderParentMessages(); break;
+    case 'feuille-appel': c.innerHTML = renderFeuilleAppel(); break;
+    case 'messagerie': c.innerHTML = renderMessagerie(); break;
+    case 'parent-messages': c.innerHTML = renderParentMessages(); break;
   }
 }
 
@@ -1538,7 +1642,10 @@ function renderDashboard() {
             const res = DB.resultats.filter(r=>r.jspId==j.id);
             const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
             return `<tr>
-              <td><strong>${j.prenom} ${j.nom}</strong></td>
+              <td style="display:flex;align-items:center;gap:10px">
+          ${j.photo ? '<img src="'+j.photo+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--bleu)">' : '<div style="width:36px;height:36px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+j.prenom[0]+j.nom[0]+'</div>'}
+          <strong>${j.prenom} ${j.nom}</strong>
+          </td>
               <td><span class="badge badge-bleu">${j.promotion}</span></td>
               <td><span class="badge ${abs>0?'badge-rouge':'badge-vert'}">${abs}</span></td>
               <td><span class="badge ${ret>0?'badge-orange':'badge-vert'}">${ret}</span></td>
@@ -1621,23 +1728,80 @@ function saveJSP() {
 
 function modalEditJSP(id) {
   const j = DB.jsps.find(x=>x.id==id);
-  openModal(`<h3>✏️ Modifier JSP</h3>
-    <div class="form-group"><label>Prénom</label><input id="f_prenom" type="text" value="${j.prenom}"></div>
-    <div class="form-group"><label>Nom</label><input id="f_nom" type="text" value="${j.nom}"></div>
-    <div class="form-group"><label>Promotion</label><input id="f_prom" type="text" value="${j.promotion}"></div>
-    <div class="form-group"><label>Date de naissance</label><input id="f_dob" type="date" value="${j.dateNaissance}"></div>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
-      <button class="btn-save" onclick="updateJSP(${id})">Enregistrer</button>
-    </div>`);
+  const photoHTML = j.photo
+    ? '<img src="'+j.photo+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--bleu);display:block;margin:0 auto 10px">'
+    : '<div style="width:80px;height:80px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 10px">'+j.prenom[0]+j.nom[0]+'</div>';
+  openModal('<h3>✏️ Modifier JSP</h3>'
+    +'<div style="text-align:center;margin-bottom:16px">'+photoHTML
+    +'<label style="cursor:pointer;display:inline-block;background:var(--gris-bg);border:1px solid var(--gris-bord);border-radius:6px;padding:5px 12px;font-size:12px">'
+    +'<i class="ti ti-camera"></i> Changer la photo'
+    +'<input type="file" accept="image/*" id="f_photo" style="display:none" onchange="previewPhoto(this,'+id+')"></label></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div class="form-group"><label>Prénom</label><input id="f_prenom" type="text" value="'+j.prenom+'"></div>'
+    +'<div class="form-group"><label>Nom</label><input id="f_nom" type="text" value="'+j.nom+'"></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +'<div class="form-group"><label>Grade</label>'
+    +'<select id="f_prom"><option '+(j.promotion=="JSP 1"?"selected":"")+'>JSP 1</option><option '+(j.promotion=="JSP 2"?"selected":"")+'>JSP 2</option><option '+(j.promotion=="JSP 3"?"selected":"")+'>JSP 3</option><option '+(j.promotion=="JSP 4"?"selected":"")+'>JSP 4</option></select>'
+    +'</div>'
+    +'<div class="form-group"><label>Ville</label><input id="f_ville" type="text" value="'+(j.ville||'')+'"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Date de naissance</label><input id="f_dob" type="date" value="'+j.dateNaissance+'"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+    +'<div class="form-group"><label>Tél. père</label><input id="f_telp" type="text" value="'+(j.telPere||'')+'"></div>'
+    +'<div class="form-group"><label>Tél. mère</label><input id="f_telm" type="text" value="'+(j.telMere||'')+'"></div>'
+    +'<div class="form-group"><label>Tél. JSP</label><input id="f_telj" type="text" value="'+(j.telJSP||'')+'"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Email</label><input id="f_email" type="email" value="'+(j.email||'')+'"></div>'
+    +'<div class="modal-btns">'
+    +'<button class="btn-cancel" onclick="closeModal()">Annuler</button>'
+    +'<button class="btn-save" onclick="updateJSP('+id+')">Enregistrer</button>'
+    +'</div>');
 }
+
+function previewPhoto(input, jspId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Réduire la taille de l'image
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX = 200;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = h*(MAX/w); w = MAX; } }
+      else { if (h > MAX) { w = w*(MAX/h); h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      // Stocker temporairement
+      window._tempPhoto = canvas.toDataURL('image/jpeg', 0.8);
+      // Mettre à jour l'aperçu
+      const preview = document.querySelector('#modalContent img');
+      if (preview) { preview.src = window._tempPhoto; }
+      else {
+        const div = document.querySelector('#modalContent div[style*="border-radius:50%"]');
+        if (div) div.outerHTML = '<img src="'+window._tempPhoto+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--bleu);display:block;margin:0 auto 10px">';
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 
 function updateJSP(id) {
   const j = DB.jsps.find(x=>x.id==id);
   j.prenom = document.getElementById('f_prenom').value.trim();
   j.nom = document.getElementById('f_nom').value.trim();
   j.promotion = document.getElementById('f_prom').value;
+  j.ville = document.getElementById('f_ville') ? document.getElementById('f_ville').value : (j.ville||'');
   j.dateNaissance = document.getElementById('f_dob').value;
+  j.telPere = document.getElementById('f_telp') ? document.getElementById('f_telp').value : (j.telPere||'');
+  j.telMere = document.getElementById('f_telm') ? document.getElementById('f_telm').value : (j.telMere||'');
+  j.telJSP = document.getElementById('f_telj') ? document.getElementById('f_telj').value : (j.telJSP||'');
+  j.email = document.getElementById('f_email') ? document.getElementById('f_email').value : (j.email||'');
+  if (window._tempPhoto) { j.photo = window._tempPhoto; window._tempPhoto = null; }
   saveData(); closeModal(); showSection('jsps');
 }
 
@@ -1708,7 +1872,17 @@ function saveAbsence() {
     motif: document.getElementById('f_motif').value,
     excusee: document.getElementById('f_exc').value==='1',
     remarque: document.getElementById('f_rem').value });
-  saveData(); closeModal(); showSection('absences');
+  saveData();
+  // Proposer l'envoi d'un email
+  const jspId = parseInt(document.getElementById('f_jsp').value);
+  const date = document.getElementById('f_date').value;
+  const motif = document.getElementById('f_motif').value;
+  const excusee = document.getElementById('f_exc').value === '1';
+  closeModal();
+  showSection('absences');
+  if (confirm('Envoyer un email de notification à la famille ?')) {
+    notifierAbsence(jspId, date, motif, excusee);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1805,7 +1979,16 @@ function saveComportement() {
     type: document.getElementById('f_type').value,
     gravite: document.getElementById('f_grav').value,
     description: document.getElementById('f_desc').value });
-  saveData(); closeModal(); showSection('comportement');
+  saveData();
+  const jspId2 = parseInt(document.getElementById('f_jsp').value);
+  const date2 = document.getElementById('f_date').value;
+  const type2 = document.getElementById('f_type').value;
+  const desc2 = document.getElementById('f_desc').value;
+  closeModal();
+  showSection('comportement');
+  if (confirm('Envoyer un email de notification à la famille ?')) {
+    notifierComportement(jspId2, date2, type2, desc2);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1861,7 +2044,18 @@ function saveResultat() {
     note: parseFloat(document.getElementById('f_note').value),
     sur: parseInt(document.getElementById('f_sur').value),
     appreciation: document.getElementById('f_app').value });
-  saveData(); closeModal(); showSection('resultats');
+  saveData();
+  const jspId3 = parseInt(document.getElementById('f_jsp').value);
+  const date3 = document.getElementById('f_date').value;
+  const mat3 = document.getElementById('f_mat').value;
+  const note3 = parseFloat(document.getElementById('f_note').value);
+  const sur3 = parseInt(document.getElementById('f_sur').value);
+  const app3 = document.getElementById('f_app').value;
+  closeModal();
+  showSection('resultats');
+  if (confirm('Envoyer un email de notification à la famille ?')) {
+    notifierResultat(jspId3, date3, mat3, note3, sur3, app3);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1877,6 +2071,10 @@ function getSaisonMois(saison) {
   for (let m = 9; m <= 12; m++) mois.push({num: String(m).padStart(2,'0'), an: String(y1), label: labels[m]+' '+y1});
   for (let m = 1; m <= 8; m++) mois.push({num: String(m).padStart(2,'0'), an: String(y2), label: labels[m]+' '+y2});
   return mois;
+}
+
+function changerSaisonHisto(btn) {
+  changerSaison(btn.dataset.s);
 }
 
 function changerSaison(saison) {
@@ -2053,46 +2251,121 @@ function getMyJSP() { return DB.jsps.find(j=>j.id===currentUser.jspId); }
 function renderParentAccueil() {
   const j = getMyJSP();
   if (!j) return '<p>Aucun JSP associé à ce compte.</p>';
-  const abs = DB.absences.filter(a=>a.jspId==j.id);
-  const ret = DB.retards.filter(r=>r.jspId==j.id);
-  const comp = DB.comportements.filter(c=>c.jspId==j.id);
-  const res = DB.resultats.filter(r=>r.jspId==j.id);
-  const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : null;
+  const saison = DB.saison;
+  const abs = DB.absences.filter(a => a.jspId == j.id);
+  const absNE = abs.filter(a => !a.excusee).length;
+  const absE = abs.filter(a => a.excusee).length;
+  const ret = DB.retards.filter(r => r.jspId == j.id);
+  const comp = DB.comportements.filter(c => c.jspId == j.id);
+  const res = DB.resultats.filter(r => r.jspId == j.id);
+  const moy = res.length ? (res.reduce((s,r) => s+r.note/r.sur*20, 0)/res.length).toFixed(1) : null;
   const initiales = j.prenom[0]+j.nom[0];
-  const prochains = DB.planning.filter(p=>p.date>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
-  return `
-    <div class="enfant-card">
-      <div class="enfant-avatar">${initiales}</div>
-      <div>
-        <h2>${j.prenom} ${j.nom}</h2>
-        <p>Promotion ${j.promotion} — JSP CIS Cruzy-Quarante</p>
-      </div>
-    </div>
-    <div class="stats-grid">
-      <div class="stat-card ${abs.filter(a=>!a.excusee).length>0?'rouge':'vert'}">
-        <div class="stat-val">${abs.length}</div>
-        <div class="stat-lbl">Absences (${abs.filter(a=>!a.excusee).length} non excusées)</div>
-      </div>
-      <div class="stat-card ${ret.length>0?'orange':'vert'}">
-        <div class="stat-val">${ret.length}</div><div class="stat-lbl">Retards</div>
-      </div>
-      <div class="stat-card ${comp.length>0?'rouge':'vert'}">
-        <div class="stat-val">${comp.length}</div><div class="stat-lbl">Comportements</div>
-      </div>
-      <div class="stat-card bleu">
-        <div class="stat-val">${moy ? moy+'/20' : '—'}</div><div class="stat-lbl">Moyenne générale</div>
-      </div>
-    </div>
-    ${prochains.length ? `
-    <div class="section-header"><h2><i class="ti ti-calendar" aria-hidden="true"></i> Prochains événements</h2></div>
-    <div class="planning-grid">
-      ${prochains.map(p=>`<div class="planning-item">
-        <div class="planning-date">${fmtDate(p.date)}</div>
-        <div><div class="planning-titre">${p.titre}</div><div class="planning-type">${p.lieu}</div></div>
-        ${planningTypeBadge(p.type)}
-      </div>`).join('')}
-    </div>` : ''}`;
+  const avatarHTML = j.photo
+    ? '<img src="'+j.photo+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.5)">'
+    : '<div class="enfant-avatar">'+initiales+'</div>';
+  const prochains = DB.planning.filter(p => p.date >= new Date().toISOString().slice(0,10))
+    .sort((a,b) => a.date.localeCompare(b.date)).slice(0,3);
+
+  // Calcul assiduité %
+  const totalSeances = abs.length || 1;
+  const tauxPresence = Math.max(0, Math.round((1 - absNE/Math.max(totalSeances,1))*100));
+
+  // Graphique barres résultats (SVG inline)
+  function genGraphResultats() {
+    if (!res.length) return '<p style="color:var(--gris-txt);font-size:13px;text-align:center;padding:20px">Aucun résultat enregistré</p>';
+    const sorted = [...res].sort((a,b) => a.date.localeCompare(b.date)).slice(-8);
+    const W = 340, H = 120, pad = 30, barW = Math.min(30, (W-pad*2)/sorted.length - 4);
+    let svg = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:'+W+'px">';
+    // Grille
+    [0,25,50,75,100].forEach(v => {
+      const y = H - pad - (v/100)*(H-pad*1.5);
+      svg += '<line x1="'+pad+'" y1="'+y+'" x2="'+(W-10)+'" y2="'+y+'" stroke="#e5e7eb" stroke-width="0.5"/>';
+      svg += '<text x="'+(pad-4)+'" y="'+(y+4)+'" font-size="8" fill="#9ca3af" text-anchor="end">'+v+'%</text>';
+    });
+    sorted.forEach((r, i) => {
+      const pct = r.note/r.sur;
+      const barH = pct * (H-pad*1.5);
+      const x = pad + i*(barW+4) + (W-pad*2-sorted.length*(barW+4))/2;
+      const y = H - pad - barH;
+      const col = pct >= 0.8 ? '#166534' : pct >= 0.5 ? '#b45309' : '#b91c1c';
+      svg += '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+barH+'" rx="3" fill="'+col+'" opacity="0.85"/>';
+      svg += '<text x="'+(x+barW/2)+'" y="'+(y-3)+'" font-size="9" fill="'+col+'" text-anchor="middle" font-weight="bold">'+r.note+'/'+r.sur+'</text>';
+      const label = r.matiere.length > 5 ? r.matiere.slice(0,5)+'.' : r.matiere;
+      svg += '<text x="'+(x+barW/2)+'" y="'+(H-10)+'" font-size="8" fill="#6b7280" text-anchor="middle">'+label+'</text>';
+    });
+    svg += '</svg>';
+    return svg;
+  }
+
+  // Graphique assiduité (donut SVG)
+  function genDonut(pct, color, bg) {
+    const r = 28, cx = 36, cy = 36, circ = 2*Math.PI*r;
+    const dash = (pct/100)*circ;
+    return '<svg viewBox="0 0 72 72" width="72" height="72">'
+      +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+bg+'" stroke-width="8"/>'
+      +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="8"'
+      +' stroke-dasharray="'+dash+' '+circ+'" stroke-dashoffset="'+(circ/4)+'" stroke-linecap="round"/>'
+      +'<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="13" font-weight="bold" fill="'+color+'">'+pct+'%</text>'
+      +'</svg>';
+  }
+
+  let html2 = '';
+
+  // Card JSP
+  html2 += '<div class="enfant-card">'
+    +'<div class="enfant-avatar">'+initiales+'</div>'
+    +'<div><h2>'+j.prenom+' '+j.nom+'</h2>'
+    +'<p>'+j.promotion+' — Saison '+saison+'</p></div></div>';
+
+  // Stats cards
+  html2 += '<div class="stats-grid" style="margin-bottom:20px">';
+  html2 += '<div class="stat-card '+(absNE>0?'rouge':'vert')+'"><div class="stat-val">'+abs.length+'</div><div class="stat-lbl">Absences ('+absNE+' non excusées)</div></div>';
+  html2 += '<div class="stat-card '+(ret.length>0?'orange':'vert')+'"><div class="stat-val">'+ret.length+'</div><div class="stat-lbl">Retards</div></div>';
+  html2 += '<div class="stat-card '+(comp.length>0?'rouge':'vert')+'"><div class="stat-val">'+comp.length+'</div><div class="stat-lbl">Comportements</div></div>';
+  html2 += '<div class="stat-card bleu"><div class="stat-val">'+(moy ? moy+'/20' : '—')+'</div><div class="stat-lbl">Moyenne générale</div></div>';
+  html2 += '</div>';
+
+  // Graphiques côte à côte
+  html2 += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">';
+
+  // Graphique assiduité
+  html2 += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">';
+  html2 += '<div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:12px"><i class="ti ti-chart-pie" aria-hidden="true"></i> Assiduité</div>';
+  html2 += '<div style="display:flex;align-items:center;gap:16px">';
+  html2 += genDonut(tauxPresence, tauxPresence >= 80 ? '#166534' : tauxPresence >= 60 ? '#b45309' : '#b91c1c', '#e5e7eb');
+  html2 += '<div>';
+  html2 += '<div style="font-size:12px;color:var(--gris-txt);margin-bottom:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#166534;margin-right:4px"></span>Présent(e) : '+(abs.length > 0 ? abs.length - absNE : '—')+'</div>';
+  html2 += '<div style="font-size:12px;color:var(--gris-txt);margin-bottom:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#b91c1c;margin-right:4px"></span>Absent(e) : '+absNE+'</div>';
+  html2 += '<div style="font-size:12px;color:var(--gris-txt)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2563b0;margin-right:4px"></span>Excusé(e) : '+absE+'</div>';
+  html2 += '</div></div></div>';
+
+  // Graphique résultats
+  html2 += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">';
+  html2 += '<div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:12px"><i class="ti ti-chart-bar" aria-hidden="true"></i> Résultats de contrôles</div>';
+  html2 += genGraphResultats();
+  html2 += '</div>';
+  html2 += '</div>';
+
+  // Prochains événements
+  if (prochains.length) {
+    html2 += '<div class="section-header"><h2><i class="ti ti-calendar" aria-hidden="true"></i> Prochains événements</h2></div>';
+    html2 += '<div class="planning-grid">';
+    prochains.forEach(p => {
+      const typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c'};
+      const typeBg = {formation:'#dbeafe',exercice:'#fef3c7',ceremonie:'#dcfce7',controle:'#fee2e2'};
+      html2 += '<div class="planning-item">'
+        +'<div class="planning-date">'+fmtDate(p.date)+'</div>'
+        +'<div style="flex:1"><div class="planning-titre">'+p.titre+'</div>'
+        +'<div class="planning-type"><i class="ti ti-map-pin" style="font-size:11px"></i> '+p.lieu+'</div></div>'
+        +'<span class="badge badge-bleu" style="background:'+(typeBg[p.type]||'#f3f4f6')+';color:'+(typeColors[p.type]||'#374151')+'">'+p.type+'</span>'
+        +'</div>';
+    });
+    html2 += '</div>';
+  }
+
+  return html2;
 }
+
 
 function renderParentAbsences() {
   const j = getMyJSP();
@@ -2340,6 +2613,7 @@ function renderBilanForm(j, bilan, saison) {
   html += '<div style="font-size:13px;color:var(--gris-txt)"><span style="background:var(--bleu-pale);color:var(--bleu);padding:2px 10px;border-radius:20px;font-weight:700;font-size:12px">'+j.promotion+'</span> — Saison '+saison+'</div></div>';
   html += '<div style="margin-left:auto;display:flex;gap:8px">';
   html += '<button class="btn-add" onclick="saveBilan('+j.id+',\''+saison+'\')"><i class="ti ti-device-floppy"></i> Sauvegarder</button>';
+  html += '<button class="btn-add" style="background:#b91c1c;margin-left:8px" onclick="genererPDFJSP('+j.id+')"><i class="ti ti-file-type-pdf"></i> Générer PDF</button>';
   html += '</div></div>';
 
   // Sections évaluation
@@ -2394,7 +2668,7 @@ function renderBilanForm(j, bilan, saison) {
 
   // Bouton final
   html += '<div style="text-align:center;margin-top:16px">';
-  html += '<button class="btn-add" style="padding:12px 30px;font-size:15px" onclick="saveBilan('+j.id+',\''+saison+'\')"><i class="ti ti-device-floppy"></i> Sauvegarder le bilan</button>';
+  html += '<button class="btn-add" style="padding:12px 30px;font-size:15px" onclick="saveBilan('+j.id+',\''+saison+'\')"><i class="ti ti-device-floppy"></i> Sauvegarder le bilan</button> '+'<button class="btn-add" style="padding:12px 30px;font-size:15px;background:#b91c1c" onclick="genererPDFJSP('+j.id+')"><i class="ti ti-file-type-pdf"></i> Générer PDF complet</button>';
   html += '</div>';
   html += '</div>';
   return html;
@@ -2500,6 +2774,1226 @@ function renderParentBilan() {
 
   html += '</div>';
   return html;
+}
+
+
+// ══════════════════════════════════════════
+//  NOTIFICATIONS EMAIL
+// ══════════════════════════════════════════
+async function sendEmailParent(jspId, sujet, message) {
+  const j = DB.jsps.find(x => x.id == jspId);
+  if (!j || !j.email) {
+    alert('Aucun email enregistré pour ce JSP.');
+    return false;
+  }
+  if (!window.emailjs) {
+    alert('EmailJS non chargé. Vérifiez la connexion internet.');
+    return false;
+  }
+  try {
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      email_destinataire: j.email,
+      sujet: sujet,
+      message: message,
+      name: 'Chef Galiana — JSP Cruzy-Quarante',
+      email: 'galiana.christian@gmail.com'
+    });
+    return true;
+  } catch(e) {
+    console.error('EmailJS error:', e);
+    return false;
+  }
+}
+
+async function notifierAbsence(jspId, date, motif, excusee) {
+  const j = DB.jsps.find(x => x.id == jspId);
+  if (!j) return;
+  const statut = excusee ? 'excusée' : 'non excusée';
+  const msg = `Bonjour,
+
+Nous vous informons que ${j.prenom} ${j.nom} a été absent(e) lors de la séance JSP du ${fmtDate(date)}.
+Motif : ${motif || 'Non précisé'}
+Statut : Absence ${statut}
+
+Si vous souhaitez contacter l'encadrant, répondez directement à cet email.
+
+Cordialement,
+Chef Galiana
+Section JSP CIS Cruzy-Quarante`;
+
+  const ok = await sendEmailParent(jspId, `Absence du ${fmtDate(date)}`, msg);
+  if (ok) {
+    showNotifToast('✅ Email envoyé à la famille ' + j.nom);
+  } else {
+    showNotifToast('❌ Échec envoi email', true);
+  }
+}
+
+async function notifierComportement(jspId, date, type, description) {
+  const j = DB.jsps.find(x => x.id == jspId);
+  if (!j) return;
+  const msg = `Bonjour,
+
+Nous souhaitons vous informer d'un signalement concernant ${j.prenom} ${j.nom} lors de la séance du ${fmtDate(date)}.
+
+Type : ${type}
+Détail : ${description}
+
+Nous restons disponibles pour en discuter si nécessaire.
+
+Cordialement,
+Chef Galiana
+Section JSP CIS Cruzy-Quarante`;
+
+  const ok = await sendEmailParent(jspId, `Signalement — ${type}`, msg);
+  if (ok) {
+    showNotifToast('✅ Email envoyé à la famille ' + j.nom);
+  } else {
+    showNotifToast('❌ Échec envoi email', true);
+  }
+}
+
+async function notifierResultat(jspId, date, matiere, note, sur, appreciation) {
+  const j = DB.jsps.find(x => x.id == jspId);
+  if (!j) return;
+  const msg = `Bonjour,
+
+Un nouveau résultat de contrôle a été enregistré pour ${j.prenom} ${j.nom} :
+
+Matière : ${matiere}
+Date : ${fmtDate(date)}
+Note : ${note}/${sur}${appreciation ? '\nAppréciation : ' + appreciation : ''}
+
+Retrouvez tous les résultats sur le Carnet JSP : galianachristian-cpu.github.io/carnet-jsp/
+
+Cordialement,
+Chef Galiana
+Section JSP CIS Cruzy-Quarante`;
+
+  const ok = await sendEmailParent(jspId, `Résultat ${matiere} — ${note}/${sur}`, msg);
+  if (ok) {
+    showNotifToast('✅ Email envoyé à la famille ' + j.nom);
+  } else {
+    showNotifToast('❌ Échec envoi email', true);
+  }
+}
+
+function showNotifToast(msg, isError) {
+  const existing = document.getElementById('notif-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'notif-toast';
+  toast.style.cssText = `
+    position:fixed;bottom:24px;right:24px;z-index:9999;
+    background:${isError ? '#b91c1c' : '#166534'};color:white;
+    padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);font-family:Arial,sans-serif;
+    animation:fadeIn .3s ease;
+  `;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+// ══════════════════════════════════════════
+//  GÉNÉRATION PDF JSP
+// ══════════════════════════════════════════
+function genererPDFJSP(jspId) {
+  const j = DB.jsps.find(x => x.id == jspId);
+  if (!j) return;
+  const saison = DB.saison;
+  const bilan = getBilan(jspId, saison) || {};
+  const notes = bilan.notes || {};
+
+  // Sauvegarder d'abord
+  saveBilan(jspId, saison);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const BLEU = [26, 60, 110];
+  const BLEU_CLAIR = [37, 99, 176];
+  const ROUGE = [185, 28, 28];
+  const GRIS = [107, 114, 128];
+  const GRIS_BG = [243, 244, 246];
+  const VERT = [22, 101, 52];
+  const ORANGE = [180, 83, 9];
+  const VIOLET = [124, 58, 237];
+
+  const W = 210, H = 297;
+  const ML = 15, MR = 15, MT = 15;
+  let y = MT;
+
+  // ── HEADER ──
+  doc.setFillColor(...BLEU);
+  doc.rect(0, 0, W, 28, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(18);
+  doc.text('Bilan Annuel JSP — ' + saison, W/2, 12, {align:'center'});
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(11);
+  doc.text('CIS Cruzy-Quarante', W/2, 20, {align:'center'});
+  y = 35;
+
+  // ── FICHE JSP ──
+  doc.setFillColor(...BLEU_CLAIR);
+  doc.roundedRect(ML, y, W-ML-MR, 28, 3, 3, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(16);
+  doc.text(j.prenom + ' ' + j.nom, ML+5, y+10);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.text(j.promotion + ' — ' + (j.ville||''), ML+5, y+18);
+  if (j.dateNaissance) doc.text('Né(e) le : ' + fmtDate(j.dateNaissance), ML+5, y+24);
+  y += 34;
+
+  // ── STATS ABSENCES ──
+  const absJSP = DB.absences.filter(a => a.jspId == jspId);
+  const absNE = absJSP.filter(a => !a.excusee).length;
+  const absE = absJSP.filter(a => a.excusee).length;
+  const retards = DB.retards.filter(r => r.jspId == jspId).length;
+  const resultats = DB.resultats.filter(r => r.jspId == jspId);
+  const moy = resultats.length ? (resultats.reduce((s,r) => s+r.note/r.sur*20, 0)/resultats.length).toFixed(1) : null;
+
+  // Boîtes stats
+  const statW = (W-ML-MR-9)/4;
+  const stats = [
+    { label: 'Absences', val: absNE, color: ROUGE },
+    { label: 'Excusées', val: absE, color: ORANGE },
+    { label: 'Retards', val: retards, color: [107,114,128] },
+    { label: 'Moy. générale', val: moy ? moy+'/20' : '—', color: VERT },
+  ];
+  stats.forEach((s, i) => {
+    const x = ML + i*(statW+3);
+    doc.setFillColor(245,245,245);
+    doc.roundedRect(x, y, statW, 16, 2, 2, 'F');
+    doc.setDrawColor(...s.color);
+    doc.setLineWidth(0.8);
+    doc.line(x, y, x+statW, y);
+    doc.setTextColor(...s.color);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(14);
+    doc.text(String(s.val), x+statW/2, y+9, {align:'center'});
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...GRIS);
+    doc.text(s.label, x+statW/2, y+14, {align:'center'});
+  });
+  y += 22;
+
+  // ── NOTE COLORS ──
+  const noteColors = {
+    'Insuffisant': ROUGE,
+    'A ameliorer': ORANGE,
+    'Satisfaisant': BLEU_CLAIR,
+    'Bien': VERT,
+    'Excellent': VIOLET
+  };
+  function getNoteColor(n) {
+    if (!n) return GRIS;
+    if (n.includes('Insuffisant')) return ROUGE;
+    if (n.includes('ameliorer') || n.includes('améliorer')) return ORANGE;
+    if (n.includes('Satisfaisant')) return BLEU_CLAIR;
+    if (n.includes('Bien')) return VERT;
+    if (n.includes('Excellent')) return VIOLET;
+    return GRIS;
+  }
+
+  // ── SECTIONS BILAN ──
+  function addSectionHeader(txt) {
+    if (y > H - 40) { doc.addPage(); y = MT; }
+    doc.setFillColor(...BLEU);
+    doc.roundedRect(ML, y, W-ML-MR, 8, 2, 2, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text(txt, ML+3, y+5.5);
+    y += 11;
+  }
+
+  function addItem(label, note) {
+    if (y > H - 15) { doc.addPage(); y = MT; }
+    doc.setFillColor(...GRIS_BG);
+    doc.rect(ML, y, W-ML-MR, 7, 'F');
+    doc.setTextColor(50,50,50);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.text(label, ML+3, y+5);
+    if (note) {
+      const col = getNoteColor(note);
+      doc.setFillColor(col[0]+40 > 255 ? 255 : col[0]+40, col[1]+40 > 255 ? 255 : col[1]+40, col[2]+40 > 255 ? 255 : col[2]+40);
+      const nw = doc.getTextWidth(note) + 8;
+      doc.roundedRect(W-MR-nw-2, y+1, nw, 5, 1.5, 1.5, 'F');
+      doc.setTextColor(...col);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8);
+      doc.text(note, W-MR-nw/2-2, y+5, {align:'center'});
+    }
+    y += 8;
+  }
+
+  BILAN_SECTIONS.forEach(sec => {
+    const hasNotes = sec.items.some(item => notes[sec.id+'__'+item]);
+    addSectionHeader(sec.label);
+    sec.items.forEach(item => {
+      const val = notes[sec.id+'__'+item] || '';
+      addItem(item, val);
+    });
+    y += 2;
+  });
+
+  // ── COMMENTAIRES ──
+  function addTextBlock(titre, texte) {
+    if (!texte) return;
+    if (y > H - 30) { doc.addPage(); y = MT; }
+    doc.setFillColor(...BLEU);
+    doc.roundedRect(ML, y, W-ML-MR, 7, 2, 2, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.text(titre, ML+3, y+5);
+    y += 9;
+    doc.setFillColor(...GRIS_BG);
+    const lines = doc.splitTextToSize(texte, W-ML-MR-6);
+    const bh = lines.length * 5 + 4;
+    doc.rect(ML, y, W-ML-MR, bh, 'F');
+    doc.setTextColor(50,50,50);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.text(lines, ML+3, y+4);
+    y += bh + 4;
+  }
+
+  if (y > H - 60) { doc.addPage(); y = MT; }
+  doc.setFillColor(...BLEU);
+  doc.roundedRect(ML, y, W-ML-MR, 8, 2, 2, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(9);
+  doc.text('8. Commentaires des encadrants', ML+3, y+5.5);
+  y += 11;
+
+  addTextBlock('Bilan général :', bilan.bilanGeneral);
+  addTextBlock('Points particuliers :', bilan.pointsSouligner);
+  addTextBlock('Ce qui a le plus progresse :', bilan.plusProgresse);
+  addTextBlock('Ce qui reste à consolider :', bilan.aConsolider);
+
+  // ── OBJECTIFS ──
+  if (bilan.obj1 || bilan.obj2 || bilan.obj3) {
+    if (y > H - 40) { doc.addPage(); y = MT; }
+    doc.setFillColor(...BLEU);
+    doc.roundedRect(ML, y, W-ML-MR, 8, 2, 2, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text('9. Objectifs pour l\'annee prochaine', ML+3, y+5.5);
+    y += 11;
+    [1,2,3].forEach(n => {
+      if (!bilan['obj'+n]) return;
+      doc.setFillColor(...GRIS_BG);
+      doc.rect(ML, y, W-ML-MR, 8, 'F');
+      doc.setTextColor(...BLEU_CLAIR);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(9);
+      doc.text('Objectif '+n+' :', ML+3, y+5.5);
+      doc.setTextColor(50,50,50);
+      doc.setFont('helvetica','normal');
+      doc.text(bilan['obj'+n], ML+30, y+5.5);
+      y += 9;
+    });
+  }
+
+  // ── RÉSULTATS ──
+  if (resultats.length) {
+    if (y > H - 50) { doc.addPage(); y = MT; }
+    doc.setFillColor(...BLEU);
+    doc.roundedRect(ML, y, W-ML-MR, 8, 2, 2, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text('Résultats de contrôles', ML+3, y+5.5);
+    y += 11;
+    resultats.sort((a,b) => b.date.localeCompare(a.date)).forEach(r => {
+      if (y > H - 15) { doc.addPage(); y = MT; }
+      doc.setFillColor(...GRIS_BG);
+      doc.rect(ML, y, W-ML-MR, 7, 'F');
+      doc.setTextColor(50,50,50);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(9);
+      doc.text(fmtDate(r.date) + ' — ' + r.matiere, ML+3, y+5);
+      const noteCol = r.note/r.sur >= 0.8 ? VERT : r.note/r.sur >= 0.5 ? ORANGE : ROUGE;
+      doc.setTextColor(...noteCol);
+      doc.setFont('helvetica','bold');
+      doc.text(r.note+'/'+r.sur, W-MR-15, y+5, {align:'center'});
+      y += 8;
+    });
+  }
+
+  // ── FOOTER ──
+  const pages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(...BLEU);
+    doc.rect(0, H-10, W, 10, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.text('CIS Cruzy-Quarante — Section JSP — ' + saison, ML, H-4);
+    doc.text('Page '+i+'/'+pages, W-MR, H-4, {align:'right'});
+  }
+
+  // Télécharger
+  doc.save('Bilan_JSP_' + j.nom + '_' + j.prenom + '_' + saison + '.pdf');
+}
+
+
+// ══════════════════════════════════════════
+//  GESTION MOTS DE PASSE
+// ══════════════════════════════════════════
+function renderChangeMdp() {
+  return '<div class="section-header"><h2><i class="ti ti-lock" aria-hidden="true"></i> Changer mon mot de passe</h2></div>'
+    +'<div style="max-width:420px">'
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:24px">'
+    +'<div class="form-group" style="margin-bottom:14px"><label>Mot de passe actuel</label>'
+    +'<input type="password" id="mdp_actuel" placeholder="••••••" style="width:100%;padding:10px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div class="form-group" style="margin-bottom:14px"><label>Nouveau mot de passe</label>'
+    +'<input type="password" id="mdp_nouveau" placeholder="••••••" style="width:100%;padding:10px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div class="form-group" style="margin-bottom:20px"><label>Confirmer le nouveau mot de passe</label>'
+    +'<input type="password" id="mdp_confirm" placeholder="••••••" style="width:100%;padding:10px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div id="mdp_erreur" style="color:var(--rouge);font-size:13px;margin-bottom:12px;display:none"></div>'
+    +'<button class="btn-add" style="width:100%;padding:12px;font-size:15px;justify-content:center" onclick="changerMdpParent()"><i class="ti ti-lock-check"></i> Changer le mot de passe</button>'
+    +'</div></div>';
+}
+
+function changerMdpParent() {
+  const actuel = document.getElementById('mdp_actuel').value;
+  const nouveau = document.getElementById('mdp_nouveau').value;
+  const confirm = document.getElementById('mdp_confirm').value;
+  const errDiv = document.getElementById('mdp_erreur');
+
+  if (!actuel || !nouveau || !confirm) {
+    errDiv.textContent = 'Tous les champs sont obligatoires.';
+    errDiv.style.display = 'block'; return;
+  }
+  if (actuel !== currentUser.pass) {
+    errDiv.textContent = 'Mot de passe actuel incorrect.';
+    errDiv.style.display = 'block'; return;
+  }
+  if (nouveau.length < 4) {
+    errDiv.textContent = 'Le nouveau mot de passe doit faire au moins 4 caractères.';
+    errDiv.style.display = 'block'; return;
+  }
+  if (nouveau !== confirm) {
+    errDiv.textContent = 'Les mots de passe ne correspondent pas.';
+    errDiv.style.display = 'block'; return;
+  }
+
+  // Modifier dans la base
+  const user = DB.users.find(u => u.login === currentUser.login);
+  if (user) {
+    user.pass = nouveau;
+    currentUser.pass = nouveau;
+    saveData();
+    errDiv.style.display = 'none';
+    showNotifToast('✅ Mot de passe modifié avec succès !');
+    document.getElementById('mdp_actuel').value = '';
+    document.getElementById('mdp_nouveau').value = '';
+    document.getElementById('mdp_confirm').value = '';
+  }
+}
+
+function renderAdminMdp() {
+  const parents = DB.users.filter(u => u.role === 'parent');
+  return '<div class="section-header"><h2><i class="ti ti-lock" aria-hidden="true"></i> Gestion des mots de passe</h2></div>'
+    +'<div style="margin-bottom:20px">'
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;margin-bottom:16px">'
+    +'<h3 style="font-size:15px;color:var(--bleu);margin-bottom:14px"><i class="ti ti-shield-lock"></i> Changer mon mot de passe admin</h3>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">'
+    +'<div class="form-group"><label>Actuel</label><input type="password" id="adm_actuel" placeholder="••••••" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div class="form-group"><label>Nouveau</label><input type="password" id="adm_nouveau" placeholder="••••••" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div class="form-group"><label>Confirmer</label><input type="password" id="adm_confirm" placeholder="••••••" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'</div>'
+    +'<div id="adm_erreur" style="color:var(--rouge);font-size:13px;margin-bottom:8px;display:none"></div>'
+    +'<button class="btn-add" onclick="changerMdpAdmin()"><i class="ti ti-lock-check"></i> Modifier</button>'
+    +'</div>'
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden">'
+    +'<div style="background:var(--bleu);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-users"></i> Mots de passe des parents</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:14px">'
+    +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Famille</th><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
+    +'<tbody>'
+    + parents.map((u,i) => '<tr style="border-bottom:.5px solid var(--gris-bord);background:'+(i%2?'var(--gris-bg)':'white')+'">'
+      +'<td style="padding:9px 14px;font-weight:600">'+u.nom+'</td>'
+      +'<td style="padding:9px 14px;color:var(--bleu)">'+u.login+'</td>'
+      +'<td style="padding:9px 14px"><input type="text" id="mdp_parent_'+u.login+'" value="'+u.pass+'" style="border:1px solid var(--gris-bord);border-radius:6px;padding:5px 8px;font-size:13px;width:140px"></td>'
+      +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+u.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
+      +'</tr>'
+    ).join('')
+    +'</tbody></table></div></div>';
+}
+
+function changerMdpAdmin() {
+  const actuel = document.getElementById('adm_actuel').value;
+  const nouveau = document.getElementById('adm_nouveau').value;
+  const confirm = document.getElementById('adm_confirm').value;
+  const errDiv = document.getElementById('adm_erreur');
+
+  if (!actuel || !nouveau || !confirm) {
+    errDiv.textContent = 'Tous les champs sont obligatoires.';
+    errDiv.style.display = 'block'; return;
+  }
+  if (actuel !== currentUser.pass) {
+    errDiv.textContent = 'Mot de passe actuel incorrect.';
+    errDiv.style.display = 'block'; return;
+  }
+  if (nouveau.length < 4) {
+    errDiv.textContent = 'Minimum 4 caractères.';
+    errDiv.style.display = 'block'; return;
+  }
+  if (nouveau !== confirm) {
+    errDiv.textContent = 'Les mots de passe ne correspondent pas.';
+    errDiv.style.display = 'block'; return;
+  }
+  const user = DB.users.find(u => u.login === currentUser.login);
+  if (user) { user.pass = nouveau; currentUser.pass = nouveau; saveData(); }
+  errDiv.style.display = 'none';
+  showNotifToast('✅ Mot de passe admin modifié !');
+}
+
+function resetMdpParent_go(btn) { const login = btn ? btn.dataset.login : '';
+  const nouveau = document.getElementById('mdp_parent_'+login).value;
+  if (!nouveau || nouveau.length < 4) {
+    alert('Minimum 4 caractères.'); return;
+  }
+  const user = DB.users.find(u => u.login === login);
+  if (user) { user.pass = nouveau; saveData(); }
+  showNotifToast('✅ Mot de passe de ' + login + ' modifié !');
+}
+
+
+// ══════════════════════════════════════════
+//  EXPORT EXCEL
+// ══════════════════════════════════════════
+function renderExport() {
+  return '<div class="section-header"><h2><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Export Excel</h2></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+
+    // Card Listing JSP
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px">'
+    +'<div style="font-size:16px;font-weight:700;color:var(--bleu);margin-bottom:8px"><i class="ti ti-users"></i> Listing JSP</div>'
+    +'<p style="font-size:13px;color:var(--gris-txt);margin-bottom:16px">Liste complète des JSP avec coordonnées, téléphones et emails.</p>'
+    +'<button class="btn-add" style="width:100%;justify-content:center" onclick="exportListingJSP()"><i class="ti ti-download"></i> Télécharger</button>'
+    +'</div>'
+
+    // Card Absences
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px">'
+    +'<div style="font-size:16px;font-weight:700;color:var(--rouge);margin-bottom:8px"><i class="ti ti-calendar-x"></i> Absences</div>'
+    +'<p style="font-size:13px;color:var(--gris-txt);margin-bottom:16px">Toutes les absences de la saison avec statut excusé/non excusé.</p>'
+    +'<button class="btn-add" style="width:100%;justify-content:center;background:var(--rouge)" onclick="exportAbsences()"><i class="ti ti-download"></i> Télécharger</button>'
+    +'</div>'
+
+    // Card Résultats
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px">'
+    +'<div style="font-size:16px;font-weight:700;color:var(--vert);margin-bottom:8px"><i class="ti ti-school"></i> Résultats</div>'
+    +'<p style="font-size:13px;color:var(--gris-txt);margin-bottom:16px">Tous les résultats de contrôles par JSP et par matière.</p>'
+    +'<button class="btn-add" style="width:100%;justify-content:center;background:var(--vert)" onclick="exportResultats()"><i class="ti ti-download"></i> Télécharger</button>'
+    +'</div>'
+
+    // Card Bilan complet
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px">'
+    +'<div style="font-size:16px;font-weight:700;color:var(--orange);margin-bottom:8px"><i class="ti ti-clipboard-list"></i> Bilan complet</div>'
+    +'<p style="font-size:13px;color:var(--gris-txt);margin-bottom:16px">Export multi-feuilles : JSP, absences, retards, résultats, comportements.</p>'
+    +'<button class="btn-add" style="width:100%;justify-content:center;background:var(--orange)" onclick="exportBilanComplet()"><i class="ti ti-download"></i> Télécharger</button>'
+    +'</div>'
+
+    +'</div>';
+}
+
+function downloadXLSX(wb, filename) {
+  XLSX.writeFile(wb, filename);
+  showNotifToast('✅ Export téléchargé : ' + filename);
+}
+
+function exportListingJSP() {
+  const wb = XLSX.utils.book_new();
+  const headers = ['Prénom', 'Nom', 'Grade', 'Date naissance', 'Ville', 'Adresse', 'Tél. père', 'Tél. mère', 'Tél. JSP', 'Email'];
+  const rows = DB.jsps.map(j => [
+    j.prenom, j.nom, j.promotion, fmtDate(j.dateNaissance),
+    j.ville||'', j.adresse||'',
+    j.telPere||'', j.telMere||'', j.telJSP||'', j.email||''
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  // Style largeurs colonnes
+  ws['!cols'] = [
+    {wch:12},{wch:20},{wch:8},{wch:14},{wch:12},{wch:25},
+    {wch:16},{wch:16},{wch:16},{wch:28}
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'JSP ' + DB.saison);
+  downloadXLSX(wb, 'Listing_JSP_' + DB.saison + '.xlsx');
+}
+
+function exportAbsences() {
+  const wb = XLSX.utils.book_new();
+  const headers = ['Prénom', 'Nom', 'Grade', 'Date', 'Motif', 'Excusée', 'Remarque'];
+  const rows = [...DB.absences]
+    .sort((a,b) => b.date.localeCompare(a.date))
+    .map(a => {
+      const j = DB.jsps.find(x => x.id == a.jspId);
+      return [
+        j ? j.prenom : '—', j ? j.nom : '—', j ? j.promotion : '—',
+        fmtDate(a.date), a.motif||'', a.excusee ? 'Oui' : 'Non', a.remarque||''
+      ];
+    });
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:12},{wch:16},{wch:8},{wch:12},{wch:20},{wch:10},{wch:25}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Absences');
+
+  // Stats par JSP
+  const statsHeaders = ['Prénom', 'Nom', 'Grade', 'Total absences', 'Non excusées', 'Excusées'];
+  const statsRows = DB.jsps.map(j => {
+    const abs = DB.absences.filter(a => a.jspId == j.id);
+    return [j.prenom, j.nom, j.promotion, abs.length,
+      abs.filter(a => !a.excusee).length, abs.filter(a => a.excusee).length];
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet([statsHeaders, ...statsRows]);
+  ws2['!cols'] = [{wch:12},{wch:16},{wch:8},{wch:14},{wch:14},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Stats absences');
+
+  downloadXLSX(wb, 'Absences_JSP_' + DB.saison + '.xlsx');
+}
+
+function exportResultats() {
+  const wb = XLSX.utils.book_new();
+  const headers = ['Prénom', 'Nom', 'Grade', 'Date', 'Matière', 'Note', 'Sur', 'Note /20', 'Appréciation'];
+  const rows = [...DB.resultats]
+    .sort((a,b) => b.date.localeCompare(a.date))
+    .map(r => {
+      const j = DB.jsps.find(x => x.id == r.jspId);
+      const sur20 = r.sur ? Math.round(r.note/r.sur*20*10)/10 : r.note;
+      return [
+        j ? j.prenom : '—', j ? j.nom : '—', j ? j.promotion : '—',
+        fmtDate(r.date), r.matiere||'', r.note, r.sur||20, sur20, r.appreciation||''
+      ];
+    });
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:12},{wch:16},{wch:8},{wch:12},{wch:16},{wch:8},{wch:6},{wch:10},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Résultats');
+
+  // Moyennes par JSP
+  const moyHeaders = ['Prénom', 'Nom', 'Grade', 'Nb contrôles', 'Moyenne /20'];
+  const moyRows = DB.jsps.map(j => {
+    const res = DB.resultats.filter(r => r.jspId == j.id);
+    const moy = res.length ? (res.reduce((s,r) => s+r.note/r.sur*20, 0)/res.length).toFixed(1) : '—';
+    return [j.prenom, j.nom, j.promotion, res.length, moy];
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet([moyHeaders, ...moyRows]);
+  ws2['!cols'] = [{wch:12},{wch:16},{wch:8},{wch:14},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Moyennes');
+
+  downloadXLSX(wb, 'Resultats_JSP_' + DB.saison + '.xlsx');
+}
+
+function exportBilanComplet() {
+  const wb = XLSX.utils.book_new();
+
+  // Feuille 1 : JSP
+  const h1 = ['Prénom','Nom','Grade','Ville','Tél. père','Tél. mère','Tél. JSP','Email'];
+  const r1 = DB.jsps.map(j => [j.prenom,j.nom,j.promotion,j.ville||'',j.telPere||'',j.telMere||'',j.telJSP||'',j.email||'']);
+  const ws1 = XLSX.utils.aoa_to_sheet([h1,...r1]);
+  ws1['!cols'] = [{wch:12},{wch:16},{wch:8},{wch:12},{wch:14},{wch:14},{wch:14},{wch:26}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'JSP');
+
+  // Feuille 2 : Absences
+  const h2 = ['Prénom','Nom','Grade','Date','Motif','Excusée'];
+  const r2 = [...DB.absences].sort((a,b)=>b.date.localeCompare(a.date)).map(a => {
+    const j = DB.jsps.find(x=>x.id==a.jspId);
+    return [j?j.prenom:'—',j?j.nom:'—',j?j.promotion:'—',fmtDate(a.date),a.motif||'',a.excusee?'Oui':'Non'];
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet([h2,...r2]);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Absences');
+
+  // Feuille 3 : Retards
+  const h3 = ['Prénom','Nom','Grade','Date','Durée','Motif'];
+  const r3 = [...DB.retards].sort((a,b)=>b.date.localeCompare(a.date)).map(r => {
+    const j = DB.jsps.find(x=>x.id==r.jspId);
+    return [j?j.prenom:'—',j?j.nom:'—',j?j.promotion:'—',fmtDate(r.date),r.duree||'',r.motif||''];
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet([h3,...r3]);
+  XLSX.utils.book_append_sheet(wb, ws3, 'Retards');
+
+  // Feuille 4 : Comportements
+  const h4 = ['Prénom','Nom','Grade','Date','Type','Gravité','Description'];
+  const r4 = [...DB.comportements].sort((a,b)=>b.date.localeCompare(a.date)).map(c => {
+    const j = DB.jsps.find(x=>x.id==c.jspId);
+    return [j?j.prenom:'—',j?j.nom:'—',j?j.promotion:'—',fmtDate(c.date),c.type||'',c.gravite||'',c.description||''];
+  });
+  const ws4 = XLSX.utils.aoa_to_sheet([h4,...r4]);
+  XLSX.utils.book_append_sheet(wb, ws4, 'Comportements');
+
+  // Feuille 5 : Résultats
+  const h5 = ['Prénom','Nom','Grade','Date','Matière','Note','Sur','Note /20'];
+  const r5 = [...DB.resultats].sort((a,b)=>b.date.localeCompare(a.date)).map(r => {
+    const j = DB.jsps.find(x=>x.id==r.jspId);
+    return [j?j.prenom:'—',j?j.nom:'—',j?j.promotion:'—',fmtDate(r.date),r.matiere||'',r.note,r.sur||20,Math.round(r.note/(r.sur||20)*20*10)/10];
+  });
+  const ws5 = XLSX.utils.aoa_to_sheet([h5,...r5]);
+  XLSX.utils.book_append_sheet(wb, ws5, 'Résultats');
+
+  // Feuille 6 : Récap par JSP
+  const h6 = ['Prénom','Nom','Grade','Absences total','Non excusées','Retards','Comportements','Moy. générale'];
+  const r6 = DB.jsps.map(j => {
+    const abs = DB.absences.filter(a=>a.jspId==j.id);
+    const ret = DB.retards.filter(r=>r.jspId==j.id);
+    const comp = DB.comportements.filter(c=>c.jspId==j.id);
+    const res = DB.resultats.filter(r=>r.jspId==j.id);
+    const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
+    return [j.prenom,j.nom,j.promotion,abs.length,abs.filter(a=>!a.excusee).length,ret.length,comp.length,moy];
+  });
+  const ws6 = XLSX.utils.aoa_to_sheet([h6,...r6]);
+  ws6['!cols'] = [{wch:12},{wch:16},{wch:8},{wch:14},{wch:14},{wch:10},{wch:16},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws6, 'Récap');
+
+  downloadXLSX(wb, 'Bilan_Complet_JSP_' + DB.saison + '.xlsx');
+}
+
+
+// ══════════════════════════════════════════
+//  FEUILLE D'APPEL PDF
+// ══════════════════════════════════════════
+function renderFeuilleAppel() {
+  const today = new Date().toISOString().slice(0,10);
+  return '<div class="section-header"><h2><i class="ti ti-printer" aria-hidden="true"></i> Feuille d\'appel</h2></div>'
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;max-width:500px">'
+    +'<div class="form-group" style="margin-bottom:14px"><label>Date de la séance</label>'
+    +'<input type="date" id="fa_date" value="'+today+'" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div class="form-group" style="margin-bottom:14px"><label>Heure</label>'
+    +'<input type="time" id="fa_heure" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div class="form-group" style="margin-bottom:20px"><label>Thème de la séance</label>'
+    +'<input type="text" id="fa_theme" placeholder="ex: Secourisme, Manoeuvre incendie..." style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<button class="btn-add" style="width:100%;justify-content:center;padding:12px;font-size:15px" onclick="genererFeuilleAppelPDF()"><i class="ti ti-file-type-pdf"></i> Générer la feuille d\'appel PDF</button>'
+    +'</div>';
+}
+
+function genererFeuilleAppelPDF() {
+  const date = document.getElementById('fa_date').value;
+  const heure = document.getElementById('fa_heure').value;
+  const theme = document.getElementById('fa_theme').value;
+
+  if (!date) { alert('Veuillez saisir une date.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const W = 210, H = 297;
+  const ML = 12, MR = 12, MT = 12;
+  const BLEU = [26, 60, 110];
+  const BLEU_CLAIR = [37, 99, 176];
+  const GRIS = [107, 114, 128];
+  const GRIS_BG = [243, 244, 246];
+  const ROUGE = [185, 28, 28];
+
+  let y = MT;
+
+  // ── HEADER ──
+  doc.setFillColor(...BLEU);
+  doc.rect(0, 0, W, 24, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(16);
+  doc.text('FEUILLE D\'APPEL — JSP Cruzy-Quarante', W/2, 10, {align:'center'});
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.text('CIS Cruzy-Quarante', W/2, 17, {align:'center'});
+  y = 30;
+
+  // ── INFOS SÉANCE ──
+  doc.setFillColor(...GRIS_BG);
+  doc.roundedRect(ML, y, W-ML-MR, 18, 3, 3, 'F');
+  doc.setTextColor(...BLEU);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(10);
+  const dateStr = date ? fmtDate(date) : '___/___/______';
+  doc.text('Date : ' + dateStr, ML+5, y+7);
+  doc.text('Heure : ' + (heure||'_____'), ML+5, y+14);
+  doc.text('Thème : ' + (theme||'________________________________'), W/2+5, y+7);
+  doc.text('Encadrant : Chef Galiana', W/2+5, y+14);
+  y += 24;
+
+  // ── LÉGENDE STATUTS ──
+  doc.setFontSize(8);
+  doc.setTextColor(...GRIS);
+  doc.setFont('helvetica','normal');
+  const statuts = [
+    {s:'P', label:'Présent', c:[21,87,36]},
+    {s:'A', label:'Absent', c:[185,28,28]},
+    {s:'R', label:'Retard', c:[133,100,9]},
+    {s:'E', label:'Excusé', c:[0,64,133]},
+    {s:'ER', label:'Excusé retard', c:[60,26,120]},
+  ];
+  const sw = (W-ML-MR)/5;
+  statuts.forEach((st, i) => {
+    const x = ML + i*sw;
+    doc.setFillColor(st.c[0], st.c[1], st.c[2]);
+    doc.roundedRect(x, y, sw-2, 7, 2, 2, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.text(st.s + ' = ' + st.label, x + (sw-2)/2, y+5, {align:'center'});
+  });
+  y += 11;
+
+  // ── TABLEAU ──
+  const cols = {
+    nom: {x: ML, w: 52, label: 'NOM Prénom'},
+    grade: {x: ML+52, w: 16, label: 'Grade'},
+    p: {x: ML+68, w: 16, label: 'P'},
+    a: {x: ML+84, w: 16, label: 'A'},
+    r: {x: ML+100, w: 16, label: 'R'},
+    e: {x: ML+116, w: 16, label: 'E'},
+    er: {x: ML+132, w: 18, label: 'ER'},
+    obs: {x: ML+150, w: W-ML-MR-150, label: 'Observation'},
+  };
+
+  // En-tête tableau
+  doc.setFillColor(...BLEU);
+  doc.rect(ML, y, W-ML-MR, 8, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8);
+  Object.values(cols).forEach(col => {
+    doc.text(col.label, col.x + col.w/2, y+5.5, {align:'center'});
+  });
+  y += 8;
+
+  // Lignes JSP par niveau
+  const NIV_COLORS = {
+    'JSP 1': [219, 234, 254],
+    'JSP 2': [254, 243, 199],
+    'JSP 3': [255, 224, 204],
+    'JSP 4': [204, 240, 224],
+  };
+  const NIV_TEXT = {
+    'JSP 1': [30, 64, 175],
+    'JSP 2': [120, 53, 15],
+    'JSP 3': [154, 52, 18],
+    'JSP 4': [6, 95, 70],
+  };
+
+  ['JSP 1','JSP 2','JSP 3','JSP 4'].forEach(niv => {
+    const list = DB.jsps.filter(j => j.promotion === niv);
+    if (!list.length) return;
+
+    // Barre de niveau
+    const nc = NIV_COLORS[niv] || GRIS_BG;
+    const nt = NIV_TEXT[niv] || BLEU;
+    doc.setFillColor(...nc);
+    doc.rect(ML, y, W-ML-MR, 6, 'F');
+    doc.setTextColor(...nt);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.text(niv + ' — ' + list.length + ' JSP', ML+3, y+4.5);
+    y += 6;
+
+    list.forEach((j, idx) => {
+      if (y > H - 20) {
+        doc.addPage();
+        y = MT;
+      }
+      const rowBg = idx % 2 === 0 ? [255,255,255] : [249,250,251];
+      doc.setFillColor(...rowBg);
+      doc.rect(ML, y, W-ML-MR, 9, 'F');
+
+      // Bordures légères
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.2);
+      doc.rect(ML, y, W-ML-MR, 9);
+
+      // Nom
+      doc.setTextColor(30,30,30);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(8);
+      doc.text(j.nom + ' ' + j.prenom, cols.nom.x+2, y+6);
+
+      // Grade
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...(NIV_TEXT[niv] || BLEU));
+      doc.text(niv, cols.grade.x + cols.grade.w/2, y+6, {align:'center'});
+
+      // Cases à cocher P/A/R/E/ER
+      ['p','a','r','e','er'].forEach(k => {
+        const col = cols[k];
+        doc.setDrawColor(150,150,150);
+        doc.setLineWidth(0.4);
+        const bx = col.x + col.w/2 - 3;
+        const by = y + 1.5;
+        doc.rect(bx, by, 6, 6);
+      });
+
+      y += 9;
+    });
+  });
+
+  // ── SIGNATURES ──
+  if (y > H - 35) { doc.addPage(); y = MT; }
+  y += 8;
+  doc.setDrawColor(...GRIS);
+  doc.setLineWidth(0.3);
+  // Ligne signature encadrant
+  doc.line(ML, y+15, ML+70, y+15);
+  doc.setTextColor(...GRIS);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8);
+  doc.text('Signature encadrant', ML, y+20);
+  // Ligne date + nb présents
+  doc.line(W/2, y+15, W/2+70, y+15);
+  doc.text('Nb présents : _____ / ' + DB.jsps.length, W/2, y+20);
+
+  // ── FOOTER ──
+  const pages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(...BLEU);
+    doc.rect(0, H-8, W, 8, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7);
+    doc.text('CIS Cruzy-Quarante — Section JSP — ' + DB.saison, ML, H-3);
+    doc.text('Page '+i+'/'+pages, W-MR, H-3, {align:'right'});
+  }
+
+  const fname = 'Feuille_Appel_' + (date||'') + (theme ? '_'+theme.replace(/[^a-zA-Z0-9]/g,'_') : '') + '.pdf';
+  doc.save(fname);
+  showNotifToast('✅ Feuille d\'appel générée !');
+}
+
+
+// ══════════════════════════════════════════
+//  FEUILLE D'APPEL IMPRIMABLE
+// ══════════════════════════════════════════
+function renderFeuilleAppel() {
+  const today = new Date().toISOString().slice(0,10);
+  return '<div class="section-header"><h2><i class="ti ti-printer" aria-hidden="true"></i> Feuille d\'appel imprimable</h2></div>'
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;margin-bottom:16px">'
+    +'<div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">'
+    +'<div class="form-group"><label>Date de la séance</label>'
+    +'<input type="date" id="fa_date" value="'+today+'" style="padding:9px 12px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div class="form-group"><label>Heure</label>'
+    +'<input type="time" id="fa_heure" value="09:00" style="padding:9px 12px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'<div class="form-group"><label>Thème de la séance</label>'
+    +'<input type="text" id="fa_theme" placeholder="ex: Secourisme, Incendie..." style="padding:9px 12px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px;width:220px"></div>'
+    +'<button class="btn-add" onclick="imprimerFeuilleAppel()"><i class="ti ti-printer"></i> Imprimer / PDF</button>'
+    +'</div></div>'
+    +'<div id="apercu-feuille">'+ genererApercu(today, '09:00', '') +'</div>';
+}
+
+function genererApercu(date, heure, theme) {
+  const niv_colors = { "JSP 1": "#1a3c6e", "JSP 2": "#c8a800", "JSP 3": "#c05000", "JSP 4": "#006633" };
+  let html = '<div id="feuille-print" style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:20px;background:white;border:1px solid #dde2ec;border-radius:8px">';
+
+  // Header
+  html += '<div style="display:flex;align-items:center;gap:16px;border-bottom:3px solid #1a3c6e;padding-bottom:12px;margin-bottom:16px">';
+  html += '<div style="flex:1"><div style="font-size:20px;font-weight:700;color:#1a3c6e">FEUILLE D\'APPEL JSP</div>';
+  html += '<div style="font-size:13px;color:#6b7280">CIS Cruzy-Quarante — Saison '+DB.saison+'</div></div>';
+  html += '<div style="text-align:right;font-size:13px">';
+  html += '<div><strong>Date :</strong> '+fmtDate(date)+'</div>';
+  html += '<div><strong>Heure :</strong> '+(heure||'—')+'</div>';
+  html += '<div><strong>Thème :</strong> '+(theme||'—')+'</div></div></div>';
+
+  // Bandeau tricolore
+  html += '<div style="display:flex;height:4px;margin-bottom:16px"><div style="flex:1;background:#1a3c6e"></div><div style="flex:1;background:white;border:1px solid #dde2ec"></div><div style="flex:1;background:#b91c1c"></div></div>';
+
+  // Légende statuts
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;font-size:11px">';
+  [['P','Présent','#155724','#d4edda'],['A','Absent','#721c24','#f8d7da'],['R','Retard','#856404','#fff3cd'],['E','Excusé','#004085','#cce5ff'],['ER','Excusé retard','#3c1a78','#e2d9f3']].forEach(function(s) {
+    html += '<span style="background:'+s[3]+';color:'+s[2]+';padding:3px 10px;border-radius:4px;font-weight:700;border:1.5px solid '+s[2]+'">'+s[0]+' = '+s[1]+'</span>';
+  });
+  html += '</div>';
+
+  // Tableau par niveau
+  const nivs = ['JSP 1','JSP 2','JSP 3','JSP 4'];
+  nivs.forEach(function(niv) {
+    const list = DB.jsps.filter(j => j.promotion === niv);
+    if (!list.length) return;
+    html += '<div style="margin-bottom:16px">';
+    html += '<div style="background:'+(niv_colors[niv]||'#1a3c6e')+';color:white;padding:6px 12px;font-size:12px;font-weight:700;border-radius:4px 4px 0 0">'+niv+' — '+list.length+' JSP</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html += '<thead><tr style="background:#f3f4f6">'
+      +'<th style="padding:8px;text-align:left;border:1px solid #dde2ec;width:40px">#</th>'
+      +'<th style="padding:8px;text-align:left;border:1px solid #dde2ec">Nom Prénom</th>'
+      +'<th style="padding:8px;text-align:center;border:1px solid #dde2ec;width:40px">P</th>'
+      +'<th style="padding:8px;text-align:center;border:1px solid #dde2ec;width:40px">A</th>'
+      +'<th style="padding:8px;text-align:center;border:1px solid #dde2ec;width:40px">R</th>'
+      +'<th style="padding:8px;text-align:center;border:1px solid #dde2ec;width:40px">E</th>'
+      +'<th style="padding:8px;text-align:center;border:1px solid #dde2ec;width:40px">ER</th>'
+      +'<th style="padding:8px;text-align:left;border:1px solid #dde2ec">Remarque</th>'
+      +'</tr></thead><tbody>';
+    list.forEach(function(j, i) {
+      html += '<tr style="background:'+(i%2?'#f8f9fd':'white')+'">'
+        +'<td style="padding:8px;border:1px solid #dde2ec;text-align:center;color:#6b7280">'+(i+1)+'</td>'
+        +'<td style="padding:8px;border:1px solid #dde2ec;font-weight:600">'+j.nom+' '+j.prenom+'</td>'
+        +'<td style="padding:8px;border:1px solid #dde2ec;text-align:center">☐</td>'
+        +'<td style="padding:8px;border:1px solid #dde2ec;text-align:center">☐</td>'
+        +'<td style="padding:8px;border:1px solid #dde2ec;text-align:center">☐</td>'
+        +'<td style="padding:8px;border:1px solid #dde2ec;text-align:center">☐</td>'
+        +'<td style="padding:8px;border:1px solid #dde2ec;text-align:center">☐</td>'
+        +'<td style="padding:8px;border:1px solid #dde2ec;min-width:120px"></td>'
+        +'</tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+
+  // Signature
+  html += '<div style="display:flex;justify-content:space-between;margin-top:24px;padding-top:16px;border-top:1px solid #dde2ec">';
+  html += '<div style="font-size:12px"><strong>Encadrant :</strong><div style="margin-top:24px;border-top:1px solid #333;width:200px;padding-top:4px;font-size:11px;color:#6b7280">Signature</div></div>';
+  html += '<div style="font-size:12px;text-align:right"><strong>Total présents :</strong> _____ / '+DB.jsps.length+'</div>';
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+function imprimerFeuilleAppel() {
+  const date = document.getElementById('fa_date').value;
+  const heure = document.getElementById('fa_heure').value;
+  const theme = document.getElementById('fa_theme').value;
+  const apercu = document.getElementById('apercu-feuille');
+  apercu.innerHTML = genererApercu(date, heure, theme);
+
+  // Imprimer
+  const contenu = document.getElementById('feuille-print').outerHTML;
+  const win = window.open('', '_blank');
+  win.document.write('<html><head><title>Feuille d\'appel JSP</title>'
+    +'<style>body{font-family:Arial,sans-serif;margin:20px}@media print{body{margin:10mm}}</style>'
+    +'</head><body>'+contenu+'<scr'+'ipt>window.onload=function(){window.print()}</scr'+'ipt></body></html>');
+  win.document.close();
+}
+
+
+// ══════════════════════════════════════════
+//  MESSAGERIE
+// ══════════════════════════════════════════
+function getMessages() {
+  if (!DB.messages) DB.messages = [];
+  return DB.messages;
+}
+
+function renderMessagerie() {
+  const msgs = getMessages();
+  const jspOpts = '<option value="tous">Tous les parents</option>'
+    + DB.jsps.map(j => '<option value="'+j.id+'">'+j.prenom+' '+j.nom+' ('+j.promotion+')</option>').join('');
+
+  // Trier par date desc
+  const sorted = [...msgs].sort((a,b) => b.ts - a.ts);
+
+  return '<div class="section-header"><h2><i class="ti ti-message" aria-hidden="true"></i> Messagerie</h2></div>'
+    // Formulaire envoi
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;margin-bottom:16px">'
+    +'<div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:14px"><i class="ti ti-send"></i> Nouveau message</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
+    +'<div class="form-group"><label>Destinataire</label>'
+    +'<select id="msg_dest" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px">'+jspOpts+'</select></div>'
+    +'<div class="form-group"><label>Sujet</label>'
+    +'<input type="text" id="msg_sujet" placeholder="Ex: Rappel séance..." style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
+    +'</div>'
+    +'<div class="form-group" style="margin-bottom:12px"><label>Message</label>'
+    +'<textarea id="msg_corps" rows="4" placeholder="Votre message..." style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-family:Arial,sans-serif;font-size:14px;resize:vertical"></textarea></div>'
+    +'<div style="display:flex;gap:10px">'
+    +'<button class="btn-add" onclick="envoyerMessage()"><i class="ti ti-send"></i> Envoyer dans l\'appli</button>'
+    +'<button class="btn-add" style="background:#166534" onclick="envoyerMessageEmail()"><i class="ti ti-mail"></i> Envoyer par email</button>'
+    +'</div></div>'
+
+    // Historique
+    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden">'
+    +'<div style="background:var(--bleu);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-history"></i> Messages envoyés ('+msgs.length+')</div>'
+    +(sorted.length ? sorted.map(m => {
+      const dest = m.jspId === 'tous' ? 'Tous les parents'
+        : (DB.jsps.find(j=>j.id==m.jspId) ? 'Famille '+DB.jsps.find(j=>j.id==m.jspId).nom : '—');
+      const d = new Date(m.ts);
+      const dateStr = d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      return '<div style="padding:14px 16px;border-bottom:.5px solid var(--gris-bord)">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+        +'<div><span style="font-weight:700;color:var(--bleu)">'+m.sujet+'</span>'
+        +' <span style="background:var(--bleu-pale);color:var(--bleu);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600">'+dest+'</span></div>'
+        +'<div style="font-size:11px;color:var(--gris-txt)">'+dateStr+'</div></div>'
+        +'<div style="font-size:13px;color:#374151;white-space:pre-wrap">'+m.corps+'</div>'
+        +'</div>';
+    }).join('')
+    : '<div style="text-align:center;color:var(--gris-txt);padding:32px;font-size:14px"><i class="ti ti-message-off" style="font-size:32px;display:block;margin-bottom:8px"></i>Aucun message envoyé</div>')
+    +'</div>';
+}
+
+function envoyerMessage() {
+  const dest = document.getElementById('msg_dest').value;
+  const sujet = document.getElementById('msg_sujet').value.trim();
+  const corps = document.getElementById('msg_corps').value.trim();
+  if (!sujet || !corps) { alert('Sujet et message obligatoires.'); return; }
+  if (!DB.messages) DB.messages = [];
+  DB.messages.push({ id: Date.now(), jspId: dest, sujet, corps, ts: Date.now(), lu: false });
+  saveData();
+  showNotifToast('✅ Message envoyé dans l\'appli !');
+  document.getElementById('msg_sujet').value = '';
+  document.getElementById('msg_corps').value = '';
+  showSection('messagerie');
+}
+
+async function envoyerMessageEmail() {
+  const dest = document.getElementById('msg_dest').value;
+  const sujet = document.getElementById('msg_sujet').value.trim();
+  const corps = document.getElementById('msg_corps').value.trim();
+  if (!sujet || !corps) { alert('Sujet et message obligatoires.'); return; }
+
+  // Sauvegarder dans l'appli aussi
+  if (!DB.messages) DB.messages = [];
+  DB.messages.push({ id: Date.now(), jspId: dest, sujet, corps, ts: Date.now(), lu: false });
+  saveData();
+
+  if (dest === 'tous') {
+    // Envoyer à tous les JSP qui ont un email
+    const jspsAvecEmail = DB.jsps.filter(j => j.email);
+    let envoyes = 0;
+    for (const j of jspsAvecEmail) {
+      const ok = await sendEmailParent(j.id, sujet, corps);
+      if (ok) envoyes++;
+    }
+    showNotifToast('✅ '+envoyes+' emails envoyés !');
+  } else {
+    const ok = await sendEmailParent(parseInt(dest), sujet, corps);
+    if (ok) showNotifToast('✅ Email envoyé !');
+    else showNotifToast('❌ Échec envoi email', true);
+  }
+  showSection('messagerie');
+}
+
+function renderParentMessages() {
+  const j = getMyJSP();
+  if (!j) return '<p>Aucun JSP associé.</p>';
+  const msgs = (DB.messages||[]).filter(m => m.jspId == j.id || m.jspId === 'tous')
+    .sort((a,b) => b.ts - a.ts);
+
+  // Marquer comme lus
+  msgs.forEach(m => { m.lu = true; });
+  saveData();
+
+  const initiales = j.prenom[0]+j.nom[0];
+  let html2 = '<div class="enfant-card"><div class="enfant-avatar">'+initiales+'</div>'
+    +'<div><h2>Messages de la section</h2><p>'+j.prenom+' '+j.nom+' — '+j.promotion+'</p></div></div>';
+
+  if (!msgs.length) {
+    html2 += '<div style="text-align:center;background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:40px;color:var(--gris-txt)">'
+      +'<i class="ti ti-message-off" style="font-size:40px;display:block;margin-bottom:12px"></i>'
+      +'<p style="font-size:15px">Aucun message pour le moment.</p></div>';
+    return html2;
+  }
+
+  html2 += '<div style="display:flex;flex-direction:column;gap:12px">';
+  msgs.forEach(m => {
+    const d = new Date(m.ts);
+    const dateStr = d.toLocaleDateString("fr-FR")+' à '+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+    html2 += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;border-left:4px solid var(--bleu)">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:8px">'
+      +'<div style="font-size:15px;font-weight:700;color:var(--bleu)">'+m.sujet+'</div>'
+      +'<div style="font-size:11px;color:var(--gris-txt)">'+dateStr+'</div></div>'
+      +'<div style="font-size:14px;color:#374151;white-space:pre-wrap;line-height:1.6">'+m.corps+'</div>'
+      +'<div style="margin-top:10px;font-size:12px;color:var(--gris-txt)"><i class="ti ti-user"></i> Chef Galiana — Section JSP CIS Cruzy-Quarante</div>'
+      +'</div>';
+  });
+  html2 += '</div>';
+  return html2;
+}
+
+// Badge non-lus dans sidebar parent
+function countUnreadMessages() {
+  const j = getMyJSP();
+  if (!j || !DB.messages) return 0;
+  return DB.messages.filter(m => (m.jspId == j.id || m.jspId === 'tous') && !m.lu).length;
+}
+
+
+// ══════════════════════════════════════════
+//  MODE SOMBRE
+// ══════════════════════════════════════════
+function toggleDarkMode() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  localStorage.setItem('darkMode', isDark ? '0' : '1');
+  const btn = document.getElementById('btn-dark');
+  if (btn) btn.textContent = isDark ? '🌙' : '☀️';
+}
+
+function initDarkMode() {
+  if (localStorage.getItem('darkMode') === '1') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const btn = document.getElementById('btn-dark');
+    if (btn) btn.textContent = '☀️';
+  }
+}
+setTimeout(initDarkMode, 100);
+
+// ══════════════════════════════════════════
+//  HISTORIQUE MULTI-SAISONS
+// ══════════════════════════════════════════
+function renderHistorique() {
+  const saisons = DB.allSaisons || [DB.saison];
+
+  // Charger les plannings de toutes les saisons
+  const allPlannings = {};
+  saisons.forEach(s => {
+    const saved = localStorage.getItem('carnet_jsp_planning_'+s);
+    allPlannings[s] = saved ? JSON.parse(saved) : (s === DB.saison ? DB.planning : []);
+  });
+
+  let html2 = '<div class="section-header"><h2><i class="ti ti-history" aria-hidden="true"></i> Historique multi-saisons</h2></div>';
+
+  // Stats par saison
+  html2 += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px">';
+  saisons.forEach(s => {
+    const planning = allPlannings[s] || [];
+    const isCurrent = s === DB.saison;
+    html2 += '<div style="background:white;border-radius:12px;border:'+(isCurrent?'2px solid var(--bleu)':'.5px solid var(--gris-bord)')+';padding:16px">'
+      +'<div style="font-size:16px;font-weight:700;color:var(--bleu);margin-bottom:12px">'
+      +(isCurrent?'<span style="background:var(--bleu);color:white;font-size:10px;padding:2px 8px;border-radius:20px;margin-right:6px">EN COURS</span>':'')+s+'</div>'
+      +'<div style="font-size:13px;color:var(--gris-txt)"><i class="ti ti-calendar-event"></i> '+planning.length+' événements planifiés</div>'
+      +'<button onclick="changerSaisonHisto(this)" data-s="'+s+'" class="btn-add" style="margin-top:10px;padding:5px 12px;font-size:12px;'+(isCurrent?'background:var(--gris-txt)':'')+'">'
+      +(isCurrent?'Saison active':'<i class="ti ti-arrow-right"></i> Aller à cette saison')+'</button>'
+      +'</div>';
+  });
+  html2 += '</div>';
+
+  // Comparaison absences par JSP
+  html2 += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden;margin-bottom:16px">';
+  html2 += '<div style="background:var(--bleu);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-chart-bar"></i> Absences — Saison en cours ('+DB.saison+')</div>';
+  html2 += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+  html2 += '<thead><tr><th style="padding:10px 14px;text-align:left;background:var(--gris-bg)">JSP</th><th style="padding:10px 14px;text-align:left;background:var(--gris-bg)">Grade</th><th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Absences</th><th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Non excusées</th><th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Retards</th><th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Moy. /20</th></tr></thead>';
+  html2 += '<tbody>';
+  DB.jsps.forEach((j,i) => {
+    const abs = DB.absences.filter(a=>a.jspId==j.id);
+    const ret = DB.retards.filter(r=>r.jspId==j.id);
+    const res = DB.resultats.filter(r=>r.jspId==j.id);
+    const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
+    const absNE = abs.filter(a=>!a.excusee).length;
+    html2 += '<tr style="background:'+(i%2?'var(--gris-bg)':'white')+';border-bottom:.5px solid var(--gris-bord)">'
+      +'<td style="padding:9px 14px;font-weight:600">'+j.prenom+' '+j.nom+'</td>'
+      +'<td style="padding:9px 14px"><span class="badge badge-bleu">'+j.promotion+'</span></td>'
+      +'<td style="padding:9px 14px;text-align:center"><span class="badge '+(abs.length>3?'badge-rouge':abs.length>0?'badge-orange':'badge-vert')+'">'+abs.length+'</span></td>'
+      +'<td style="padding:9px 14px;text-align:center"><span class="badge '+(absNE>0?'badge-rouge':'badge-vert')+'">'+absNE+'</span></td>'
+      +'<td style="padding:9px 14px;text-align:center"><span class="badge '+(ret.length>0?'badge-orange':'badge-vert')+'">'+ret.length+'</span></td>'
+      +'<td style="padding:9px 14px;text-align:center">'+(moy!=='—'?'<span class="badge badge-'+( parseFloat(moy)>=12?'vert':'rouge')+'">'+moy+'</span>':'—')+'</td>'
+      +'</tr>';
+  });
+  html2 += '</tbody></table></div>';
+
+  // Bouton nouvelle saison
+  html2 += '<div style="text-align:center;margin-top:16px">';
+  html2 += '<button class="btn-add" onclick="modalNouvelleSaison()"><i class="ti ti-calendar-plus"></i> Créer une nouvelle saison</button>';
+  html2 += '</div>';
+
+  return html2;
 }
 
 function showEvtDetail(id) {
