@@ -426,6 +426,13 @@
         <div class="nav-item" onclick="showSection('messagerie')">
           <i class="ti ti-message"></i><span>Messagerie</span>
         </div>
+        <div class="sidebar-section">Équipement</div>
+        <div class="nav-item" onclick="showSection('habillement')">
+          <i class="ti ti-shirt"></i><span>Habillement</span>
+        </div>
+        <div class="nav-item" onclick="showSection('icp')">
+          <i class="ti ti-run"></i><span>ICP JSP</span>
+        </div>
         
         
       </div>
@@ -484,6 +491,8 @@ function loadData() {
     const parsed = JSON.parse(d);
     if (!parsed.saison) parsed.saison = '2025-2026';
     if (!parsed.allSaisons) parsed.allSaisons = ['2025-2026'];
+    if (!parsed.habillement) parsed.habillement = [];
+    if (!parsed.icp) parsed.icp = [];
     return parsed;
   }
   return {
@@ -915,6 +924,8 @@ function loadData() {
             "excTotal": 1
       }
 ],
+    habillement: [],
+    icp: [],
     absences: [
       {
             "id": 1000,
@@ -1569,6 +1580,8 @@ function showSection(sec) {
     case 'feuille-appel': c.innerHTML = renderFeuilleAppel(); break;
     case 'messagerie': c.innerHTML = renderMessagerie(); break;
     case 'parent-messages': c.innerHTML = renderParentMessages(); break;
+    case 'habillement': c.innerHTML = renderHabillement(); break;
+    case 'icp': c.innerHTML = renderICP(); break;
   }
 }
 
@@ -2772,6 +2785,45 @@ function renderParentBilan() {
     html += '</div>';
   }
 
+  // ── ICP dans vue parent ──
+  const icpParent = (DB.icp||[]).find(x => x.jspId == j.id && x.saison === saison);
+  if (icpParent) {
+    const pp = icpParent.periodes || {};
+    function moyP(pid) {
+      const pd = pp[pid]||{};
+      const ns = ICP_EPREUVES.map(e=>parseFloat(pd[e.id+'_note'])).filter(n=>!isNaN(n));
+      return ns.length?(ns.reduce((a,b)=>a+b,0)/ns.length).toFixed(1):null;
+    }
+    const pCol = {debut:'#2563b0',milieu:'#b45309',fin:'#166534'};
+    html += '<div style="margin-bottom:20px">';
+    html += '<div style="background:var(--bleu);color:white;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;margin-bottom:10px">🏃 ICP — Condition Physique</div>';
+    html += '<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap">';
+    ICP_PERIODES.forEach(function(p) {
+      const m = moyP(p.id);
+      html += '<div style="flex:1;min-width:90px;background:var(--gris-bg);border-radius:8px;padding:12px;text-align:center">';
+      html += '<div style="font-size:10px;color:'+pCol[p.id]+';font-weight:700;text-transform:uppercase;margin-bottom:4px">'+p.icon+' '+p.label+'</div>';
+      html += '<div style="font-size:22px;font-weight:800;color:'+(m?pCol[p.id]:'#9ca3af')+'">'+(m?m+'/20':'—')+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+    html += '<thead><tr style="background:var(--gris-bg)"><th style="padding:8px;text-align:left">Épreuve</th>';
+    ICP_PERIODES.forEach(function(p) { html += '<th style="padding:8px;text-align:center;color:'+pCol[p.id]+'">'+p.icon+' '+p.label.split(' ')[0]+'</th>'; });
+    html += '</tr></thead><tbody>';
+    ICP_EPREUVES.forEach(function(e) {
+      html += '<tr style="border-bottom:.5px solid var(--gris-bord)"><td style="padding:8px;font-weight:600">'+e.label+'</td>';
+      ICP_PERIODES.forEach(function(p) {
+        const pd = pp[p.id]||{};
+        const brut = pd[e.id+'_brut']||'';
+        const note = pd[e.id+'_note']||'';
+        const nc = !note?'#9ca3af':parseFloat(note)>=14?'#166534':parseFloat(note)>=10?'#b45309':'#b91c1c';
+        html += '<td style="padding:8px;text-align:center"><div style="font-size:11px;color:#6b7280">'+brut+'</div><div style="font-size:14px;font-weight:800;color:'+nc+'">'+(note?note+'/20':'—')+'</div></td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
   html += '</div>';
   return html;
 }
@@ -3044,7 +3096,67 @@ function genererPDFJSP(jspId) {
     y += 2;
   });
 
-  // ── COMMENTAIRES ──
+  // ── ICP JSP ──
+  const icpEntry = (DB.icp||[]).find(x => x.jspId == jspId && x.saison === saison);
+  if (icpEntry) {
+    const icpPeriodes = icpEntry.periodes || {};
+    function icpMoy(pid) {
+      const p = icpPeriodes[pid] || {};
+      const ns = ICP_EPREUVES.map(e => parseFloat(p[e.id+'_note'])).filter(n=>!isNaN(n));
+      return ns.length ? (ns.reduce((a,b)=>a+b,0)/ns.length).toFixed(1) : null;
+    }
+    const pColors3 = { debut:[37,99,176], milieu:[180,83,9], fin:[22,101,52] };
+
+    if (y > H - 60) { doc.addPage(); y = MT; }
+    addSectionHeader('ICP — Indice de Condition Physique');
+
+    // En-têtes colonnes
+    const colW = (W-ML-MR-60)/3;
+    doc.setFillColor(...GRIS_BG);
+    doc.rect(ML, y, W-ML-MR, 7, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    ICP_PERIODES.forEach((p,i) => {
+      doc.setTextColor(...(pColors3[p.id]||GRIS));
+      doc.text(p.label, ML+60+i*colW+colW/2, y+5, {align:'center'});
+    });
+    doc.setTextColor(50,50,50);
+    doc.text('Épreuve', ML+3, y+5);
+    y += 8;
+
+    ICP_EPREUVES.forEach(e => {
+      if (y > H-15) { doc.addPage(); y=MT; }
+      doc.setFillColor(250,250,250);
+      doc.rect(ML, y, W-ML-MR, 7, 'F');
+      doc.setDrawColor(230,230,230); doc.setLineWidth(0.3);
+      doc.line(ML, y+7, ML+W-ML-MR, y+7);
+      doc.setTextColor(50,50,50); doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      doc.text(e.label, ML+3, y+5);
+      ICP_PERIODES.forEach((p,i) => {
+        const pd = icpPeriodes[p.id]||{};
+        const brut = pd[e.id+'_brut']||'';
+        const note = pd[e.id+'_note']||'';
+        const noteNum = parseFloat(note);
+        const nc = isNaN(noteNum)?GRIS:noteNum>=14?VERT:noteNum>=10?ORANGE:ROUGE;
+        const txt = brut ? brut+(note?' → '+note+'/20':'') : (note?note+'/20':'—');
+        doc.setTextColor(...nc); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+        doc.text(txt, ML+60+i*colW+colW/2, y+5, {align:'center'});
+      });
+      y += 8;
+    });
+
+    // Ligne moyennes
+    if (y > H-15) { doc.addPage(); y=MT; }
+    doc.setFillColor(...BLEU);
+    doc.rect(ML, y, W-ML-MR, 8, 'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text('Moyenne générale', ML+3, y+5.5);
+    ICP_PERIODES.forEach((p,i) => {
+      const m = icpMoy(p.id);
+      doc.setTextColor(255,255,255);
+      doc.text(m ? m+'/20' : '—', ML+60+i*colW+colW/2, y+5.5, {align:'center'});
+    });
+    y += 12;
+  }
   function addTextBlock(titre, texte) {
     if (!texte) return;
     if (y > H - 30) { doc.addPage(); y = MT; }
@@ -4025,6 +4137,854 @@ function deleteItem(collection, id, section) {
 function openModal(html) {
   document.getElementById('modalContent').innerHTML = html;
   document.getElementById('modalBg').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+//  HABILLEMENT
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  ICP JSP
+// ══════════════════════════════════════════
+
+const ICP_PERIODES = [
+  { id: 'debut',   label: 'Début d\'année',   icon: '🌱', color: '#2563b0' },
+  { id: 'milieu',  label: 'Milieu d\'année',  icon: '📈', color: '#b45309' },
+  { id: 'fin',     label: 'Fin d\'année',     icon: '🏆', color: '#166534' }
+];
+
+const ICP_EPREUVES = [
+  { id: 'luc_leger',      label: 'Luc léger',          unite: 'paliers',   icon: '🏃' },
+  { id: 'pompes',         label: 'Pompes',              unite: 'rép.',      icon: '💪' },
+  { id: 'abdo',           label: 'Abdominaux',          unite: 'rép.',      icon: '🔥' },
+  { id: 'killy',          label: 'KILLY (chaise)',       unite: 'sec.',      icon: '🦵' },
+  { id: 'grimper_corde',  label: 'Grimper de corde',    unite: 'passé/non', icon: '🧗' }
+];
+
+function getICP(jspId, saison) {
+  if (!DB.icp) DB.icp = [];
+  return DB.icp.find(x => x.jspId == jspId && x.saison === saison) || null;
+}
+
+function renderICP() {
+  if (!DB.icp) DB.icp = [];
+  const saison = DB.saison;
+  window._icpJspId = window._icpJspId || (DB.jsps[0] ? DB.jsps[0].id : null);
+  const selectedId = window._icpJspId;
+
+  // ─ Stats globales
+  const total = DB.jsps.length;
+  const saisis = DB.jsps.filter(j => getICP(j.id, saison)).length;
+
+  // ─ Sélecteur JSP
+  const jspOpts = DB.jsps.map(j =>
+    `<option value="${j.id}" ${j.id==selectedId?'selected':''}>${j.prenom} ${j.nom} (${j.promotion})</option>`
+  ).join('');
+
+  let contenu = '';
+  if (selectedId) {
+    const j = DB.jsps.find(x => x.id == selectedId);
+    const icp = getICP(selectedId, saison) || { periodes: {} };
+    contenu = renderICPJsp(j, icp, saison);
+  }
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-run"></i> ICP JSP — ${saison}</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-add" onclick="printICPTableau()" style="background:#6b7280"><i class="ti ti-printer"></i> Tableau global</button>
+      <button class="btn-add" onclick="printICPFiche(${selectedId})" style="background:#b91c1c"><i class="ti ti-printer"></i> Fiche JSP</button>
+    </div>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-bottom:20px">
+    <div class="stat-card bleu"><div class="stat-val">${total}</div><div class="stat-lbl">JSP inscrits</div></div>
+    <div class="stat-card vert"><div class="stat-val">${saisis}</div><div class="stat-lbl">Fiches saisies</div></div>
+    <div class="stat-card orange"><div class="stat-val">${total - saisis}</div><div class="stat-lbl">Non saisis</div></div>
+  </div>
+
+  <div class="jsp-selector">
+    <label><i class="ti ti-user"></i> JSP :</label>
+    <select onchange="window._icpJspId=parseInt(this.value);showSection('icp')">${jspOpts}</select>
+  </div>
+
+  ${contenu}`;
+}
+
+function renderICPJsp(j, icp, saison) {
+  const periodes = icp.periodes || {};
+
+  // Calcul moyennes /20 par période
+  function moyPeriode(pid) {
+    const p = periodes[pid] || {};
+    const notes = ICP_EPREUVES.map(e => parseFloat(p[e.id + '_note'])).filter(n => !isNaN(n));
+    if (!notes.length) return null;
+    return (notes.reduce((a,b)=>a+b,0)/notes.length).toFixed(1);
+  }
+
+  const moys = ICP_PERIODES.map(p => ({ ...p, moy: moyPeriode(p.id) }));
+
+  // Graphe progression mini (barres SVG)
+  const barData = ICP_EPREUVES.map(e => {
+    const vals = ICP_PERIODES.map(p => {
+      const n = parseFloat((periodes[p.id]||{})[e.id+'_note']);
+      return isNaN(n) ? null : n;
+    });
+    return { e, vals };
+  });
+
+  const graphSVG = `
+  <svg viewBox="0 0 340 120" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:340px">
+    ${ICP_EPREUVES.map((e, ei) => {
+      const x0 = ei * 68 + 4;
+      return ICP_PERIODES.map((p, pi) => {
+        const val = parseFloat((periodes[p.id]||{})[e.id+'_note']);
+        if (isNaN(val)) return '';
+        const h = Math.round((val/20)*80);
+        const colors = ['#2563b0','#b45309','#166534'];
+        return `<rect x="${x0+pi*20}" y="${100-h}" width="16" height="${h}" rx="3" fill="${colors[pi]}" opacity="0.85"/>
+          <text x="${x0+pi*20+8}" y="${95-h}" text-anchor="middle" font-size="8" fill="${colors[pi]}" font-weight="700">${val}</text>`;
+      }).join('');
+    }).join('')}
+    ${ICP_EPREUVES.map((e, ei) => {
+      const x0 = ei * 68 + 34;
+      return `<text x="${x0}" y="114" text-anchor="middle" font-size="9" fill="#6b7280">${e.icon}</text>`;
+    }).join('')}
+  </svg>`;
+
+  // Tableau de saisie par période
+  const saisieHTML = ICP_PERIODES.map(p => {
+    const pd = periodes[p.id] || {};
+    const moy = moyPeriode(p.id);
+    return `
+    <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);overflow:hidden;margin-bottom:12px">
+      <div style="background:${p.color};color:white;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:14px;font-weight:700">${p.icon} ${p.label}</div>
+        ${moy ? `<div style="background:rgba(255,255,255,.2);border-radius:20px;padding:3px 12px;font-size:13px;font-weight:700">Moy. ${moy}/20</div>` : '<div style="font-size:12px;opacity:.7">Non saisi</div>'}
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--gris-bg)">
+            <th style="padding:8px 12px;text-align:left;font-size:12px;color:var(--gris-txt)">Épreuve</th>
+            <th style="padding:8px 12px;text-align:center;font-size:12px;color:var(--gris-txt)">Résultat brut</th>
+            <th style="padding:8px 12px;text-align:center;font-size:12px;color:var(--gris-txt)">Note /20</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ICP_EPREUVES.map(e => {
+            const brut = pd[e.id+'_brut'] || '';
+            const note = pd[e.id+'_note'] || '';
+            const noteNum = parseFloat(note);
+            const noteColor = isNaN(noteNum) ? '#6b7280' : noteNum>=14?'#166534':noteNum>=10?'#b45309':'#b91c1c';
+            return `<tr style="border-bottom:.5px solid var(--gris-bord)">
+              <td style="padding:9px 12px;font-weight:600">${e.icon} ${e.label}</td>
+              <td style="padding:9px 12px;text-align:center">
+                <input type="text" value="${brut}" placeholder="${e.unite}"
+                  onchange="saveICPField(${j.id},'${saison}','${p.id}','${e.id}_brut',this.value)"
+                  style="width:80px;padding:5px 8px;border:1.5px solid var(--gris-bord);border-radius:6px;text-align:center;font-size:13px;font-weight:600">
+              </td>
+              <td style="padding:9px 12px;text-align:center">
+                <input type="number" min="0" max="20" step="0.5" value="${note}" placeholder="/20"
+                  onchange="saveICPField(${j.id},'${saison}','${p.id}','${e.id}_note',this.value)"
+                  style="width:70px;padding:5px 8px;border:1.5px solid var(--gris-bord);border-radius:6px;text-align:center;font-size:14px;font-weight:700;color:${noteColor}">
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div style="padding:8px 12px;background:var(--gris-bg)">
+        <input type="text" placeholder="Observations (encadrant)…" value="${pd.obs||''}"
+          onchange="saveICPField(${j.id},'${saison}','${p.id}','obs',this.value)"
+          style="width:100%;padding:6px 10px;border:1px solid var(--gris-bord);border-radius:6px;font-size:13px">
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--bleu)">
+      <div style="background:var(--bleu);color:white;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">${j.prenom[0]}${j.nom[0]}</div>
+      <div>
+        <div style="font-size:18px;font-weight:700">${j.prenom} ${j.nom}</div>
+        <div style="font-size:13px;color:var(--gris-txt)"><span style="background:var(--bleu-pale);color:var(--bleu);padding:2px 10px;border-radius:20px;font-weight:700;font-size:12px">${j.promotion}</span> — Saison ${saison}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:12px;align-items:center">
+        ${moys.map(m => m.moy ? `<div style="text-align:center">
+          <div style="font-size:18px;font-weight:800;color:${m.color}">${m.moy}</div>
+          <div style="font-size:10px;color:var(--gris-txt)">${m.icon} ${m.label.split(' ')[0]}</div>
+        </div>` : '').join('')}
+      </div>
+    </div>
+
+    <!-- Graphe progression -->
+    ${barData.some(b => b.vals.some(v => v!==null)) ? `
+    <div style="background:var(--gris-bg);border-radius:8px;padding:14px;margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--bleu);margin-bottom:10px">📊 Progression par épreuve</div>
+      <div style="display:flex;align-items:flex-end;gap:8px">
+        ${graphSVG}
+        <div style="font-size:10px;color:var(--gris-txt);line-height:2">
+          <div><span style="display:inline-block;width:10px;height:10px;background:#2563b0;border-radius:2px;margin-right:4px"></span>Début</div>
+          <div><span style="display:inline-block;width:10px;height:10px;background:#b45309;border-radius:2px;margin-right:4px"></span>Milieu</div>
+          <div><span style="display:inline-block;width:10px;height:10px;background:#166534;border-radius:2px;margin-right:4px"></span>Fin</div>
+        </div>
+      </div>
+    </div>` : ''}
+
+    ${saisieHTML}
+  </div>`;
+}
+
+function saveICPField(jspId, saison, periodeId, field, value) {
+  if (!DB.icp) DB.icp = [];
+  let entry = DB.icp.find(x => x.jspId == jspId && x.saison === saison);
+  if (!entry) {
+    entry = { jspId, saison, periodes: {} };
+    DB.icp.push(entry);
+  }
+  if (!entry.periodes) entry.periodes = {};
+  if (!entry.periodes[periodeId]) entry.periodes[periodeId] = {};
+  entry.periodes[periodeId][field] = value;
+  saveData();
+}
+
+function printICPFiche(jspId) {
+  if (!jspId) return;
+  const j = DB.jsps.find(x => x.id == jspId);
+  const saison = DB.saison;
+  const icp = getICP(jspId, saison) || { periodes: {} };
+  const periodes = icp.periodes || {};
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+
+  function moyPeriode(pid) {
+    const p = periodes[pid] || {};
+    const notes = ICP_EPREUVES.map(e => parseFloat(p[e.id+'_note'])).filter(n => !isNaN(n));
+    return notes.length ? (notes.reduce((a,b)=>a+b,0)/notes.length).toFixed(1) : null;
+  }
+
+  const pColors = { debut:'#2563b0', milieu:'#b45309', fin:'#166534' };
+
+  const rows = ICP_EPREUVES.map(e => {
+    const cells = ICP_PERIODES.map(p => {
+      const pd = periodes[p.id] || {};
+      const brut = pd[e.id+'_brut'] || '—';
+      const note = pd[e.id+'_note'] || '';
+      const noteNum = parseFloat(note);
+      const nc = isNaN(noteNum)?'#6b7280':noteNum>=14?'#166534':noteNum>=10?'#b45309':'#b91c1c';
+      return `<td style="text-align:center;padding:8px 6px;border-right:1px solid #e5e7eb">
+        <div style="font-size:12px;color:#6b7280">${brut} ${e.unite}</div>
+        <div style="font-size:14px;font-weight:800;color:${nc}">${note ? note+'/20' : '—'}</div>
+      </td>`;
+    }).join('');
+    return `<tr style="border-bottom:1px solid #e5e7eb">
+      <td style="padding:8px 10px;font-weight:600;font-size:13px">${e.icon} ${e.label}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  const moyRow = ICP_PERIODES.map(p => {
+    const m = moyPeriode(p.id);
+    return `<td style="text-align:center;padding:8px 6px;border-right:1px solid #e5e7eb">
+      <div style="font-size:16px;font-weight:800;color:${m ? pColors[p.id] : '#9ca3af'}">${m ? m+'/20' : '—'}</div>
+    </td>`;
+  }).join('');
+
+  const obsRows = ICP_PERIODES.map(p => {
+    const obs = (periodes[p.id]||{}).obs || '';
+    return obs ? `<tr><td style="padding:6px 10px;font-weight:700;color:${pColors[p.id]};font-size:12px">${p.icon} ${p.label}</td><td colspan="3" style="padding:6px 10px;font-size:12px">${obs}</td></tr>` : '';
+  }).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+  <meta charset="UTF-8"><title>ICP — ${j.prenom} ${j.nom}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;padding:12mm;color:#1f2937}
+    @page{size:A4 portrait;margin:10mm}
+    .tricolore{display:flex;height:6px}
+    .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
+    table{width:100%;border-collapse:collapse}
+    thead th{background:#1a3c6e;color:white;padding:9px 8px;font-size:12px;text-align:center}
+    thead th:first-child{text-align:left}
+    .sig-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+    .sig-box{border-top:1.5px solid #374151;padding-top:5px}
+    .sig-label{font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase}
+    .sig-space{height:32px}
+  </style>
+</head><body>
+  <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 8px">
+    <div>
+      <div style="font-size:18px;font-weight:800;color:#1a3c6e">CIS Cruzy-Quarante — JSP</div>
+      <div style="font-size:11px;color:#6b7280">SDIS 34 · Indice de Condition Physique (ICP) · Saison ${saison}</div>
+    </div>
+    <div style="font-size:11px;color:#6b7280;text-align:right">Édité le ${now}</div>
+  </div>
+  <div style="background:#1a3c6e;color:white;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:19px;font-weight:800">${j.prenom} ${j.nom}</div>
+      <div style="font-size:12px;opacity:.8">${j.promotion} · ${j.ville||''}</div>
+    </div>
+    <div style="display:flex;gap:16px">
+      ${ICP_PERIODES.map(p => { const m = moyPeriode(p.id); return m ? `<div style="text-align:center"><div style="font-size:20px;font-weight:800;color:white">${m}</div><div style="font-size:10px;opacity:.75">${p.icon} ${p.label.split(' ')[0]}</div></div>` : ''; }).join('')}
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left;width:30%">Épreuve</th>
+        ${ICP_PERIODES.map(p=>`<th style="color:white;background:${pColors[p.id]}">${p.icon} ${p.label}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+      <tr style="background:#f3f4f6;font-weight:700;border-top:2px solid #1a3c6e">
+        <td style="padding:8px 10px;font-size:13px">📊 Moyenne générale</td>
+        ${moyRow}
+      </tr>
+    </tbody>
+  </table>
+  ${obsRows ? `<table style="margin-top:10px;border:1px solid #e5e7eb"><thead><tr><th colspan="4" style="text-align:left">Observations</th></tr></thead><tbody>${obsRows}</tbody></table>` : ''}
+  <div class="sig-grid">
+    <div class="sig-box"><div class="sig-label">Signature du JSP</div><div class="sig-space"></div><div style="font-size:10px;color:#6b7280">${j.prenom} ${j.nom}</div></div>
+    <div class="sig-box"><div class="sig-label">Signature parent / tuteur</div><div class="sig-space"></div><div style="font-size:10px;color:#6b7280">Représentant légal</div></div>
+    <div class="sig-box"><div class="sig-label">Visa chef de section</div><div class="sig-space"></div><div style="font-size:10px;color:#6b7280">Chef Galiana · CIS Cruzy</div></div>
+  </div>
+  <div class="tricolore" style="margin-top:12px"></div>
+  <div style="text-align:center;font-size:9px;color:#9ca3af;margin-top:6px">Document officiel JSP · CIS Cruzy-Quarante · SDIS Hérault 34</div>
+  <script>window.onload=()=>window.print()<\/script>
+</body></html>`);
+  win.document.close();
+}
+
+function printICPTableau() {
+  const saison = DB.saison;
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+
+  function moyPeriode(jspId, pid) {
+    const icp = getICP(jspId, saison);
+    if (!icp) return null;
+    const p = (icp.periodes||{})[pid] || {};
+    const notes = ICP_EPREUVES.map(e => parseFloat(p[e.id+'_note'])).filter(n => !isNaN(n));
+    return notes.length ? (notes.reduce((a,b)=>a+b,0)/notes.length).toFixed(1) : null;
+  }
+
+  const rows = DB.jsps.map(j => {
+    const moys = ICP_PERIODES.map(p => moyPeriode(j.id, p.id));
+    const progression = moys[0] && moys[2] ? (parseFloat(moys[2]) - parseFloat(moys[0])).toFixed(1) : null;
+    const progColor = progression===null?'#6b7280':parseFloat(progression)>=0?'#166534':'#b91c1c';
+    return `<tr style="border-bottom:1px solid #e5e7eb">
+      <td style="padding:7px 10px;font-weight:700">${j.prenom} ${j.nom}</td>
+      <td style="padding:7px 10px;text-align:center"><span style="background:#dbeafe;color:#1a3c6e;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${j.promotion}</span></td>
+      ${moys.map(m => `<td style="padding:7px 10px;text-align:center;font-weight:700;color:${m?( parseFloat(m)>=14?'#166534':parseFloat(m)>=10?'#b45309':'#b91c1c'):'#9ca3af'}">${m?m+'/20':'—'}</td>`).join('')}
+      <td style="padding:7px 10px;text-align:center;font-weight:800;color:${progColor}">${progression!==null?(parseFloat(progression)>0?'+':'')+progression:'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+  <meta charset="UTF-8"><title>Tableau ICP JSP</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;padding:10mm;font-size:12px}
+    @page{size:A4 landscape;margin:8mm}
+    h1{font-size:15px;color:#1a3c6e;margin-bottom:3px}
+    .sub{font-size:11px;color:#6b7280;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse}
+    thead{background:#1a3c6e;color:white}
+    thead th{padding:8px 10px;font-size:11px;text-align:center}
+    thead th:first-child{text-align:left}
+    tbody tr:nth-child(even){background:#f9fafb}
+  </style>
+</head><body>
+  <h1>🏃 ICP JSP — CIS Cruzy-Quarante · Saison ${saison}</h1>
+  <div class="sub">SDIS 34 · Imprimé le ${now} · Indice de Condition Physique</div>
+  <table>
+    <thead><tr>
+      <th style="text-align:left">Nom</th>
+      <th>Promo</th>
+      <th style="background:#2563b0">🌱 Début</th>
+      <th style="background:#b45309">📈 Milieu</th>
+      <th style="background:#166534">🏆 Fin</th>
+      <th>Progression</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <script>window.onload=()=>window.print()<\/script>
+</body></html>`);
+  win.document.close();
+}
+
+function renderHabillement() {
+  if (!DB.habillement) DB.habillement = [];
+  const total = DB.jsps.length;
+  const valides = DB.habillement.filter(h => h.statut === 'Validé').length;
+  const attente = DB.habillement.filter(h => h.statut === 'En attente').length;
+  const incomplet = DB.habillement.filter(h => h.statut === 'Incomplet').length;
+  const nonSaisis = total - DB.habillement.length;
+
+  // Liste enrichie : JSP + leurs données habillement
+  const rows = DB.jsps.map(j => {
+    const h = DB.habillement.find(x => x.jspId === j.id) || null;
+    return { jsp: j, hab: h };
+  });
+
+  const badgeStatut = (h) => {
+    if (!h) return '<span class="badge badge-gris">Non saisi</span>';
+    if (h.statut === 'Validé') return '<span class="badge badge-vert">✅ Validé</span>';
+    if (h.statut === 'Incomplet') return '<span class="badge badge-rouge">⚠️ Incomplet</span>';
+    return '<span class="badge badge-orange">⏳ En attente</span>';
+  };
+
+  const val = (v) => v || '<span style="color:var(--rouge)">—</span>';
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-shirt"></i> Habillement JSP</h2>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-add" onclick="modalHabillement(null)" style="background:var(--bleu)">
+        <i class="ti ti-plus"></i> Saisir dotation
+      </button>
+      <button class="btn-add" onclick="printTableauHabillement()" style="background:#6b7280">
+        <i class="ti ti-printer"></i> Imprimer tableau
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+    <div class="stat-card bleu"><div class="stat-val">${total}</div><div class="stat-lbl">JSP inscrits</div></div>
+    <div class="stat-card vert"><div class="stat-val">${valides}</div><div class="stat-lbl">Dotations validées</div></div>
+    <div class="stat-card orange"><div class="stat-val">${attente}</div><div class="stat-lbl">En attente</div></div>
+    <div class="stat-card rouge"><div class="stat-val">${nonSaisis + incomplet}</div><div class="stat-lbl">À compléter</div></div>
+  </div>
+
+  <div class="table-card" id="hab-table-wrap">
+    <table id="hab-table">
+      <thead>
+        <tr>
+          <th>JSP</th>
+          <th>Promo</th>
+          <th>Veste TSI</th>
+          <th>Pantalon TSI</th>
+          <th>Casque</th>
+          <th>Gants</th>
+          <th>Chaussures</th>
+          <th>Ceinture</th>
+          <th>Parka</th>
+          <th>Grade</th>
+          <th>Remarques</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(({ jsp, hab }) => `
+          <tr>
+            <td><div style="display:flex;align-items:center;gap:8px">
+              <div style="width:32px;height:32px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${jsp.prenom[0]}${jsp.nom[0]}</div>
+              <strong>${jsp.prenom} ${jsp.nom}</strong>
+            </div></td>
+            <td><span class="badge badge-bleu">${jsp.promotion}</span></td>
+            <td>${val(hab?.veste)}</td>
+            <td>${val(hab?.pantalon)}</td>
+            <td>${val(hab?.casque)}</td>
+            <td>${val(hab?.gants)}</td>
+            <td>${val(hab?.chaussures)}</td>
+            <td>${val(hab?.ceinture)}</td>
+            <td>${val(hab?.parka)}</td>
+            <td>${val(hab?.grade)}</td>
+            <td style="font-size:12px;color:var(--gris-txt);max-width:140px">${hab?.remarques || ''}</td>
+            <td>${badgeStatut(hab)}</td>
+            <td>
+              <div style="display:flex;gap:6px">
+                <button class="btn-add" style="padding:5px 10px;font-size:12px;background:var(--bleu-clair)" onclick="modalHabillement(${jsp.id})">
+                  <i class="ti ti-pencil"></i>
+                </button>
+                ${hab ? `<button class="btn-add" style="padding:5px 10px;font-size:12px;background:#6b7280" onclick="printFicheHabillement(${jsp.id})">
+                  <i class="ti ti-printer"></i>
+                </button>` : ''}
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function modalHabillement(jspId) {
+  if (!DB.habillement) DB.habillement = [];
+  const jsp = jspId ? DB.jsps.find(j => j.id === jspId) : null;
+  const hab = jspId ? DB.habillement.find(h => h.jspId === jspId) : null;
+
+  const jspSelect = jspId
+    ? `<div class="form-group"><label>JSP</label><input type="text" value="${jsp.prenom} ${jsp.nom}" disabled style="background:var(--gris-bg)"></div>`
+    : `<div class="form-group"><label>JSP *</label><select id="hab-jspId"><option value="">-- Sélectionner --</option>${DB.jsps.map(j=>`<option value="${j.id}">${j.prenom} ${j.nom} (${j.promotion})</option>`).join('')}</select></div>`;
+
+  const v = (field) => hab?.[field] || '';
+
+  openModal(`
+    <h3><i class="ti ti-shirt"></i> ${hab ? 'Modifier dotation' : 'Nouvelle dotation habillement'} ${jsp ? '— '+jsp.prenom+' '+jsp.nom : ''}</h3>
+    ${jspSelect}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>Veste TSI</label>
+        <select id="hab-veste">
+          <option value="">--</option>
+          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('veste')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Pantalon TSI</label>
+        <select id="hab-pantalon">
+          <option value="">--</option>
+          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('pantalon')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Casque</label>
+        <select id="hab-casque">
+          <option value="">--</option>
+          ${['T1 (50-54 cm)','T2 (55-58 cm)','T3 (59-62 cm)','T4 (63+ cm)'].map(s=>`<option ${v('casque')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Taille gants</label>
+        <select id="hab-gants">
+          <option value="">--</option>
+          ${['6 (XS)','7 (S)','8 (M)','9 (L)','10 (XL)','11 (XXL)'].map(s=>`<option ${v('gants')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Taille chaussures</label>
+        <select id="hab-chaussures">
+          <option value="">--</option>
+          ${['35','36','37','38','39','40','41','42','43','44','45','46','47'].map(s=>`<option ${v('chaussures')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ceinture</label>
+        <select id="hab-ceinture">
+          <option value="">--</option>
+          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('ceinture')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Parka</label>
+        <select id="hab-parka">
+          <option value="">--</option>
+          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('parka')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Grade</label>
+        <select id="hab-grade">
+          <option value="">--</option>
+          ${['JSP 1','JSP 2','JSP 3','JSP 4','Chef de groupe JSP'].map(s=>`<option ${v('grade')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Statut</label>
+        <select id="hab-statut">
+          <option ${v('statut')==='En attente'||!v('statut')?'selected':''} value="En attente">⏳ En attente</option>
+          <option ${v('statut')==='Validé'?'selected':''} value="Validé">✅ Validé</option>
+          <option ${v('statut')==='Incomplet'?'selected':''} value="Incomplet">⚠️ Incomplet</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Remarques</label>
+      <input type="text" id="hab-remarques" value="${v('remarques')}" placeholder="Commande en cours, ajustement…">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      ${hab ? `<button class="btn-danger" onclick="deleteHabillement(${jspId})"><i class="ti ti-trash"></i> Supprimer</button>` : ''}
+      <button class="btn-save" onclick="saveHabillement(${jspId || 'null'})">💾 Enregistrer</button>
+    </div>`);
+}
+
+function saveHabillement(jspId) {
+  if (!DB.habillement) DB.habillement = [];
+  const id = jspId || parseInt(document.getElementById('hab-jspId')?.value);
+  if (!id) { alert('Sélectionne un JSP'); return; }
+
+  const veste     = document.getElementById('hab-veste').value;
+  const pantalon  = document.getElementById('hab-pantalon').value;
+  const casque    = document.getElementById('hab-casque').value;
+  const gants     = document.getElementById('hab-gants').value;
+  const chaussures= document.getElementById('hab-chaussures').value;
+  const ceinture  = document.getElementById('hab-ceinture').value;
+  const parka     = document.getElementById('hab-parka').value;
+  const grade     = document.getElementById('hab-grade').value;
+  const statut    = document.getElementById('hab-statut').value;
+  const remarques = document.getElementById('hab-remarques').value.trim();
+
+  // Auto-incomplet si champs manquants
+  const autoStatut = (statut !== 'Validé' && (!veste || !pantalon || !casque || !gants || !chaussures || !ceinture || !parka || !grade))
+    ? 'Incomplet' : statut;
+
+  const entry = { jspId: id, veste, pantalon, casque, gants, chaussures, ceinture, parka, grade, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
+
+  const idx = DB.habillement.findIndex(h => h.jspId === id);
+  if (idx >= 0) DB.habillement[idx] = entry;
+  else DB.habillement.push(entry);
+
+  saveData();
+  closeModal();
+  showSection('habillement');
+}
+
+function deleteHabillement(jspId) {
+  if (!confirm('Supprimer la dotation de ce JSP ?')) return;
+  DB.habillement = DB.habillement.filter(h => h.jspId !== jspId);
+  saveData();
+  closeModal();
+  showSection('habillement');
+}
+
+function printFicheHabillement(jspId) {
+  const jsp = DB.jsps.find(j => j.id === jspId);
+  const hab = DB.habillement.find(h => h.jspId === jspId) || {};
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
+  const ficheNum = 'HAB-' + String(jspId).padStart(3,'0') + '-' + new Date().getFullYear();
+
+  // QR code : données de la fiche encodées en URL data
+  const qrData = encodeURIComponent(`JSP:${jsp.prenom} ${jsp.nom}|PROMO:${jsp.promotion}|FICHE:${ficheNum}|DATE:${now}|CIS:Cruzy-Quarante SDIS34`);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${qrData}&color=1a3c6e&bgcolor=ffffff&margin=4`;
+
+  // Logo pompiers SVG (casque stylisé + flamme)
+  const logoSVG = `<svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="26" cy="26" r="25" fill="#1a3c6e"/>
+    <!-- Flamme -->
+    <path d="M26 8 C22 14 18 16 20 22 C17 20 17 14 19 11 C15 15 13 21 16 27 C14 25 14 22 15 20 C12 25 13 32 18 36 C20 38 23 39 26 39 C29 39 32 38 34 36 C39 32 40 25 37 20 C38 22 38 25 36 27 C39 21 37 15 33 11 C35 14 35 20 32 22 C34 16 30 14 26 8Z" fill="#C8102E"/>
+    <!-- Lettre JSP -->
+    <text x="26" y="47" text-anchor="middle" font-family="Arial" font-size="9" font-weight="900" fill="white" letter-spacing="1">JSP</text>
+  </svg>`;
+
+  const row = (lbl, val, icon) => `
+    <tr>
+      <td class="row-lbl"><span class="icon">${icon}</span>${lbl}</td>
+      <td class="row-val ${!val ? 'missing' : ''}">${val || '—'}</td>
+      <td class="row-check"></td>
+    </tr>`;
+
+  const statutColor = hab.statut==='Validé' ? '#166534' : hab.statut==='Incomplet' ? '#b91c1c' : '#b45309';
+  const statutBg    = hab.statut==='Validé' ? '#dcfce7' : hab.statut==='Incomplet' ? '#fee2e2' : '#fef3c7';
+  const statutIcon  = hab.statut==='Validé' ? '✅' : hab.statut==='Incomplet' ? '⚠️' : '⏳';
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+    <meta charset="UTF-8">
+    <title>Fiche habillement — ${jsp.prenom} ${jsp.nom}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:Arial,sans-serif;background:white;color:#1f2937}
+      @page{size:A4 portrait;margin:12mm}
+
+      /* ── BANDEAU TRICOLORE ── */
+      .tricolore{display:flex;height:7px;width:100%}
+      .tc-b{flex:1;background:#002395}
+      .tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}
+      .tc-r{flex:1;background:#C8102E}
+
+      /* ── EN-TÊTE DOCUMENT ── */
+      .doc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px}
+      .doc-header-left{display:flex;align-items:center;gap:14px}
+      .org-name{font-size:18px;font-weight:800;color:#1a3c6e;line-height:1.2}
+      .org-sub{font-size:11px;color:#6b7280;margin-top:2px}
+      .doc-title-block{text-align:center;flex:1}
+      .doc-title{font-size:13px;font-weight:700;color:#1a3c6e;text-transform:uppercase;letter-spacing:.08em}
+      .fiche-num{font-size:10px;color:#6b7280;margin-top:3px;font-family:monospace}
+
+      /* ── BLOC JSP ── */
+      .jsp-block{background:#1a3c6e;color:white;border-radius:8px 8px 0 0;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+      .jsp-name{font-size:20px;font-weight:800;letter-spacing:.03em}
+      .jsp-meta{font-size:12px;opacity:.85;margin-top:3px}
+      .jsp-promo{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700}
+
+      /* ── TABLEAU FOURNITURES ── */
+      .fournitures{width:100%;border-collapse:collapse;border:1.5px solid #1a3c6e}
+      .fournitures thead tr{background:#e8edf5}
+      .fournitures thead th{padding:8px 12px;font-size:10px;font-weight:700;color:#1a3c6e;text-transform:uppercase;letter-spacing:.06em;text-align:left}
+      .fournitures thead th:last-child{text-align:center;width:70px}
+      .fournitures tbody tr{border-bottom:1px solid #e5e7eb}
+      .fournitures tbody tr:nth-child(even){background:#f9fafb}
+      .row-lbl{padding:10px 12px;font-size:12px;font-weight:600;color:#374151;width:38%;display:flex;align-items:center;gap:6px}
+      .row-val{padding:10px 12px;font-size:13px;font-weight:700;color:#1f2937;width:42%}
+      .row-val.missing{color:#b91c1c;font-style:italic;font-weight:400}
+      .row-check{width:70px;border-left:1px solid #e5e7eb;text-align:center}
+      .icon{font-size:14px;width:20px;display:inline-block}
+
+      /* ── STATUT ── */
+      .statut-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border:1.5px solid #1a3c6e;border-top:none;background:${statutBg}}
+      .statut-lbl{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em}
+      .statut-val{font-size:13px;font-weight:800;color:${statutColor}}
+
+      /* ── REMARQUES ── */
+      .remarques{border:1.5px solid #1a3c6e;border-top:none;padding:10px 16px;font-size:12px;background:#fffbeb}
+      .remarques strong{color:#b45309}
+
+      /* ── SIGNATURES ── */
+      .sig-block{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:14px;padding:14px 16px;border:1.5px solid #1a3c6e;border-radius:0 0 8px 8px;background:#f9fafb}
+      .sig-box{}
+      .sig-label{font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+      .sig-line{border-top:1.5px solid #374151;margin-top:32px}
+      .sig-name{font-size:10px;color:#6b7280;margin-top:4px}
+
+      /* ── PIED ── */
+      .doc-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:10px;padding-top:8px;border-top:1px solid #e5e7eb}
+      .doc-footer-txt{font-size:9px;color:#9ca3af;line-height:1.5}
+      .check-legend{font-size:9px;color:#6b7280;text-align:right}
+      .check-legend span{display:inline-block;width:14px;height:14px;border:1px solid #6b7280;border-radius:2px;vertical-align:middle;margin-right:3px}
+    </style>
+  </head><body>
+
+    <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
+
+    <div class="doc-header">
+      <div class="doc-header-left">
+        ${logoSVG}
+        <div>
+          <div class="org-name">CIS Cruzy-Quarante</div>
+          <div class="org-sub">Jeunes Sapeurs-Pompiers · SDIS 34</div>
+        </div>
+      </div>
+      <div class="doc-title-block">
+        <div class="doc-title">Bon de dotation habillement</div>
+        <div class="fiche-num">N° ${ficheNum}</div>
+      </div>
+      <div style="text-align:right">
+        <img src="${qrUrl}" width="72" height="72" alt="QR fiche" style="border-radius:6px;border:1px solid #e5e7eb">
+        <div style="font-size:8px;color:#9ca3af;margin-top:3px">Scanner pour vérifier</div>
+      </div>
+    </div>
+
+    <div class="tricolore" style="height:4px"></div>
+
+    <div class="jsp-block">
+      <div>
+        <div class="jsp-name">${jsp.prenom} ${jsp.nom}</div>
+        <div class="jsp-meta">Grade : ${hab.grade || '—'} &nbsp;·&nbsp; Ville : ${jsp.ville || '—'} &nbsp;·&nbsp; Né(e) le : ${jsp.dateNaissance ? jsp.dateNaissance.split('-').reverse().join('/') : '—'}</div>
+      </div>
+      <div class="jsp-promo">${jsp.promotion}</div>
+    </div>
+
+    <table class="fournitures">
+      <thead>
+        <tr>
+          <th colspan="2">Fourniture</th>
+          <th>Taille / Référence</th>
+          <th>✓ Remis</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${row('Veste TSI', hab.veste, '🧥')}
+        ${row('Pantalon TSI', hab.pantalon, '👖')}
+        ${row('Parka', hab.parka, '🥼')}
+        ${row('Ceinture', hab.ceinture, '🔗')}
+        ${row('Casque', hab.casque, '⛑️')}
+        ${row('Gants', hab.gants, '🧤')}
+        ${row('Chaussures', hab.chaussures, '👢')}
+        ${row('Grade (insigne)', hab.grade, '🏅')}
+      </tbody>
+    </table>
+
+    <div class="statut-bar">
+      <div>
+        <div class="statut-lbl">Statut dotation</div>
+        <div class="statut-val">${statutIcon} ${hab.statut || 'Non défini'}</div>
+      </div>
+      <div style="font-size:11px;color:#6b7280">Édité le ${now} &nbsp;·&nbsp; Carnet JSP Cruzy-Quarante</div>
+    </div>
+
+    ${hab.remarques ? `<div class="remarques"><strong>⚠️ Remarques :</strong> ${hab.remarques}</div>` : ''}
+
+    <div class="sig-block">
+      <div class="sig-box">
+        <div class="sig-label">Signature du JSP</div>
+        <div class="sig-line"></div>
+        <div class="sig-name">${jsp.prenom} ${jsp.nom}</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-label">Signature parent / tuteur</div>
+        <div class="sig-line"></div>
+        <div class="sig-name">Représentant légal</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-label">Visa chef de section</div>
+        <div class="sig-line"></div>
+        <div class="sig-name">Chef Galiana · CIS Cruzy</div>
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      <div class="doc-footer-txt">
+        Document officiel JSP · CIS Cruzy-Quarante · SDIS Hérault<br>
+        Fiche N° ${ficheNum} · À conserver par le JSP et la section
+      </div>
+      <div class="check-legend">
+        <span></span> Case à cocher lors de la remise physique de chaque article
+      </div>
+    </div>
+
+    <div class="tricolore" style="margin-top:10px"></div>
+
+    <script>window.onload=()=>{ window.print(); }<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+function printTableauHabillement() {
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+  const rows = DB.jsps.map(j => {
+    const h = DB.habillement?.find(x => x.jspId === j.id);
+    const statut = !h ? 'Non saisi' : h.statut;
+    const statColor = statut==='Validé'?'#166534':statut==='Incomplet'||statut==='Non saisi'?'#b91c1c':'#b45309';
+    const v = (val) => val || '—';
+    return `<tr>
+      <td><strong>${j.prenom} ${j.nom}</strong></td>
+      <td>${j.promotion}</td>
+      <td>${v(h?.veste)}</td>
+      <td>${v(h?.pantalon)}</td>
+      <td>${v(h?.casque)}</td>
+      <td>${v(h?.gants)}</td>
+      <td>${v(h?.chaussures)}</td>
+      <td>${v(h?.ceinture)}</td>
+      <td>${v(h?.parka)}</td>
+      <td>${v(h?.grade)}</td>
+      <td style="color:${statColor};font-weight:700">${statut}</td>
+      <td style="font-size:11px;color:#6b7280">${h?.remarques||''}</td>
+      <td style="border:1px solid #ccc;width:60px">&nbsp;</td>
+    </tr>`;
+  }).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+    <meta charset="UTF-8"><title>Tableau habillement JSP</title>
+    <style>
+      * { box-sizing:border-box; margin:0; padding:0; }
+      body { font-family:Arial,sans-serif; font-size:11px; padding:10mm; }
+      @page { size:A4 landscape; margin:10mm; }
+      h1 { font-size:16px; color:#1a3c6e; margin-bottom:4px; }
+      .sub { font-size:11px; color:#6b7280; margin-bottom:14px; }
+      table { width:100%; border-collapse:collapse; }
+      thead { background:#1a3c6e; color:white; }
+      thead th { padding:8px 10px; text-align:left; font-size:11px; }
+      tbody tr { border-bottom:1px solid #e5e7eb; }
+      tbody tr:nth-child(even) { background:#f3f4f6; }
+      tbody td { padding:7px 10px; }
+    </style>
+  </head><body>
+    <h1>🧱 Dotations Habillement JSP — CIS Cruzy-Quarante</h1>
+    <div class="sub">SDIS 34 · Imprimé le ${now}</div>
+    <table>
+      <thead><tr>
+        <th>Nom</th><th>Promo</th><th>Veste TSI</th><th>Pantalon TSI</th>
+        <th>Casque</th><th>Gants</th><th>Chaussures</th><th>Ceinture</th><th>Parka</th><th>Grade</th><th>Statut</th>
+        <th>Remarques</th><th>Visa</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <script>window.onload=()=>{ window.print(); }<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 function closeModal(e) {
