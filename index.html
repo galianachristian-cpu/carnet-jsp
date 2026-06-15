@@ -374,6 +374,10 @@
       </div>
       <div class="header-user">
         <button onclick="toggleDarkMode()" id="btn-dark" title="Mode sombre" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:16px;margin-right:4px">🌙</button>
+        <div id="sync-cloud-status" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 10px;margin-right:4px;font-size:12px;color:white">
+          <div class="sync-dot wait" id="sync-cloud-dot" style="width:8px;height:8px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
+          <span id="sync-cloud-label">Cloud…</span>
+        </div>
         <i class="ti ti-user-circle" style="font-size:20px"></i>
         <span id="headerUserName"></span>
         <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
@@ -484,6 +488,60 @@
 // ══════════════════════════════════════════
 //  DONNÉES & CONFIG
 // ══════════════════════════════════════════
+
+// ══════════════════════════════════════════
+//  SYNC CLOUD — Google Apps Script
+// ══════════════════════════════════════════
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxwuOo_ugSgs6h-8OVjMTmbSvVUtp5_38-0q-cS--bZkY69WMsTEgYK1-E_5yJZ7sGnRw/exec';
+
+function setSyncStatus(state, msg) {
+  const dot = document.getElementById('sync-cloud-dot');
+  const lbl = document.getElementById('sync-cloud-label');
+  if (!dot || !lbl) return;
+  dot.className = 'sync-dot ' + state;
+  lbl.textContent = msg;
+}
+
+async function saveData() {
+  // 1. Toujours sauvegarder en local en premier (instantané)
+  localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+  localStorage.setItem('carnet_jsp_planning_'+DB.saison, JSON.stringify(DB.planning));
+  // 2. Envoyer au cloud en arrière-plan
+  try {
+    setSyncStatus('wait', 'Sauvegarde…');
+    await fetch(CLOUD_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', data: DB })
+    });
+    setSyncStatus('ok', 'Synchronisé · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
+  } catch(e) {
+    setSyncStatus('err', 'Hors ligne');
+  }
+}
+
+async function loadFromCloud() {
+  try {
+    setSyncStatus('wait', 'Chargement…');
+    const resp = await fetch(CLOUD_URL + '?action=load');
+    const cloud = await resp.json();
+    if (cloud && cloud.jsps && cloud.jsps.length > 0) {
+      // Le cloud a des données → on les utilise
+      if (!cloud.habillement) cloud.habillement = [];
+      if (!cloud.icp) cloud.icp = [];
+      DB = cloud;
+      localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+      setSyncStatus('ok', 'Chargé depuis le cloud');
+      return true;
+    }
+    setSyncStatus('ok', 'Local utilisé');
+    return false;
+  } catch(e) {
+    setSyncStatus('err', 'Hors ligne — données locales');
+    return false;
+  }
+}
 
 function loadData() {
   const d = localStorage.getItem('carnet_jsp_v5');
@@ -1393,6 +1451,12 @@ function saveData() {
 
 let DB = loadData();
 
+// Chargement cloud au démarrage (après login)
+async function initCloudSync() {
+  const loaded = await loadFromCloud();
+  if (loaded && currentSection) showSection(currentSection);
+}
+
 // ══════════════════════════════════════════
 //  CONFIG EMAILJS
 // ══════════════════════════════════════════
@@ -1518,6 +1582,8 @@ function doLogin() {
   if (user.role === 'admin') {
     document.getElementById('sidebarAdmin').classList.remove('hidden');
     showSection('dashboard');
+    // Chargement cloud au démarrage
+    initCloudSync().then(() => { if (currentSection) showSection(currentSection); });
   } else {
     document.getElementById('sidebarParent').classList.remove('hidden');
     // Badge messages non lus
