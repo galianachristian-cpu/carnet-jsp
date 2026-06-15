@@ -492,29 +492,27 @@
 // ══════════════════════════════════════════
 //  SYNC CLOUD — Google Apps Script
 // ══════════════════════════════════════════
-const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxwuOo_ugSgs6h-8OVjMTmbSvVUtp5_38-0q-cS--bZkY69WMsTEgYK1-E_5yJZ7sGnRw/exec';
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbyjcphAvZ2p7yqO1aYtExjWogQ53gKsdXs_SMmMCwGNGCkJQaJvC79joN3PPt-aEAPO4w/exec';
 
 function setSyncStatus(state, msg) {
   const dot = document.getElementById('sync-cloud-dot');
   const lbl = document.getElementById('sync-cloud-label');
   if (!dot || !lbl) return;
-  dot.className = 'sync-dot ' + state;
+  dot.style.background = state==='ok' ? '#22c55e' : state==='err' ? '#ef4444' : '#F59E0B';
   lbl.textContent = msg;
 }
 
 async function saveData() {
-  // 1. Toujours sauvegarder en local en premier (instantané)
+  // 1. Local en premier
   localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
   localStorage.setItem('carnet_jsp_planning_'+DB.saison, JSON.stringify(DB.planning));
-  // 2. Envoyer au cloud en arrière-plan
+  // 2. Cloud via formulaire (contourne CORS)
   try {
     setSyncStatus('wait', 'Sauvegarde…');
-    await fetch(CLOUD_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'save', data: DB })
-    });
+    const form = new FormData();
+    form.append('action', 'save');
+    form.append('data', JSON.stringify(DB));
+    await fetch(CLOUD_URL, { method: 'POST', mode: 'no-cors', body: form });
     setSyncStatus('ok', 'Synchronisé · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
   } catch(e) {
     setSyncStatus('err', 'Hors ligne');
@@ -522,25 +520,42 @@ async function saveData() {
 }
 
 async function loadFromCloud() {
-  try {
+  return new Promise((resolve) => {
     setSyncStatus('wait', 'Chargement…');
-    const resp = await fetch(CLOUD_URL + '?action=load');
-    const cloud = await resp.json();
-    if (cloud && cloud.jsps && cloud.jsps.length > 0) {
-      // Le cloud a des données → on les utilise
-      if (!cloud.habillement) cloud.habillement = [];
-      if (!cloud.icp) cloud.icp = [];
-      DB = cloud;
-      localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
-      setSyncStatus('ok', 'Chargé depuis le cloud');
-      return true;
-    }
-    setSyncStatus('ok', 'Local utilisé');
-    return false;
-  } catch(e) {
-    setSyncStatus('err', 'Hors ligne — données locales');
-    return false;
-  }
+    const cbName = 'jsp_cb_' + Date.now();
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      document.body.removeChild(script);
+      delete window[cbName];
+      setSyncStatus('err', 'Hors ligne — local utilisé');
+      resolve(false);
+    }, 8000);
+
+    window[cbName] = function(cloud) {
+      clearTimeout(timeout);
+      document.body.removeChild(script);
+      delete window[cbName];
+      if (cloud && cloud.jsps && cloud.jsps.length > 0) {
+        if (!cloud.habillement) cloud.habillement = [];
+        if (!cloud.icp) cloud.icp = [];
+        DB = cloud;
+        localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+        setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
+        resolve(true);
+      } else {
+        setSyncStatus('ok', 'Local utilisé');
+        resolve(false);
+      }
+    };
+    script.src = CLOUD_URL + '?action=load&callback=' + cbName;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      setSyncStatus('err', 'Hors ligne — local utilisé');
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
 }
 
 function loadData() {
@@ -1583,7 +1598,7 @@ function doLogin() {
     document.getElementById('sidebarAdmin').classList.remove('hidden');
     showSection('dashboard');
     // Chargement cloud au démarrage
-    initCloudSync().then(() => { if (currentSection) showSection(currentSection); });
+    initCloudSync().then(() => { showSection('dashboard'); });
   } else {
     document.getElementById('sidebarParent').classList.remove('hidden');
     // Badge messages non lus
