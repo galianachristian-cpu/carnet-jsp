@@ -415,6 +415,9 @@
         <div class="nav-item" onclick="showSection('jsps')">
           <i class="ti ti-users"></i><span>JSP</span>
         </div>
+        <div class="nav-item" onclick="showSection('trombinoscope')">
+          <i class="ti ti-photo"></i><span>Trombinoscope</span>
+        </div>
         <div class="nav-item" onclick="showSection('admin-mdp')">
           <i class="ti ti-lock"></i><span>Mots de passe</span>
         </div>
@@ -1638,6 +1641,7 @@ function showSection(sec) {
   switch(sec) {
     case 'dashboard': c.innerHTML = renderDashboard(); break;
     case 'jsps': c.innerHTML = renderJSPs(); break;
+    case 'trombinoscope': c.innerHTML = renderTrombinoscope(); break;
     case 'absences': c.innerHTML = renderAbsences(); break;
     case 'retards': c.innerHTML = renderRetards(); break;
     case 'comportement': c.innerHTML = renderComportement(); break;
@@ -1754,16 +1758,136 @@ function renderDashboard() {
 // ══════════════════════════════════════════
 //  SECTION JSP (admin)
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  TROMBINOSCOPE
+// ══════════════════════════════════════════
+function renderTrombinoscope() {
+  if (!DB.jsps.length) {
+    return `
+    <div class="section-header">
+      <h2><i class="ti ti-photo"></i> Trombinoscope JSP</h2>
+    </div>
+    <div class="table-card" style="padding:40px;text-align:center;color:var(--gris-txt)">
+      <i class="ti ti-users-off" style="font-size:32px"></i>
+      <p style="margin-top:8px">Aucun JSP enregistré</p>
+    </div>`;
+  }
+
+  // Groupement par promotion
+  const promos = ['JSP 1','JSP 2','JSP 3','JSP 4'];
+  const groupes = promos.map(p => ({
+    label: p,
+    jsps: DB.jsps.filter(j => j.promotion === p).sort((a,b) => a.nom.localeCompare(b.nom))
+  })).filter(g => g.jsps.length > 0);
+  // JSP sans promotion reconnue
+  const autres = DB.jsps.filter(j => !promos.includes(j.promotion));
+  if (autres.length) groupes.push({ label: 'Autres', jsps: autres });
+
+  const card = (j) => {
+    const photo = j.photo
+      ? `<img src="${j.photo}" style="width:100%;height:140px;object-fit:cover;border-radius:10px 10px 0 0">`
+      : `<div style="width:100%;height:140px;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;border-radius:10px 10px 0 0">${j.prenom[0]}${j.nom[0]}</div>`;
+    return `
+    <div class="trombi-card" onclick="modalEditJSP(${j.id})" title="Cliquer pour modifier la photo">
+      ${photo}
+      <div style="padding:10px 12px">
+        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.prenom} ${j.nom}</div>
+        <div style="font-size:11px;color:var(--gris-txt);margin-top:2px">${j.ville||''}</div>
+      </div>
+    </div>`;
+  };
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-photo"></i> Trombinoscope JSP</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-add" style="background:#6b7280" onclick="printTrombinoscope()"><i class="ti ti-printer"></i> Imprimer</button>
+      <button class="btn-add" onclick="showSection('jsps')"><i class="ti ti-list"></i> Vue tableau</button>
+    </div>
+  </div>
+
+  <style>
+    .trombi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:16px; margin-bottom:28px; }
+    .trombi-card { background:white; border-radius:10px; border:.5px solid var(--gris-bord); overflow:hidden; cursor:pointer; transition:transform .15s, box-shadow .15s; }
+    .trombi-card:hover { transform:translateY(-3px); box-shadow:0 6px 16px rgba(0,0,0,.1); }
+    .trombi-group-title { font-size:14px; font-weight:700; color:var(--bleu); margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--bleu-pale); display:flex; align-items:center; gap:8px; }
+    .trombi-group-count { background:var(--bleu-pale); color:var(--bleu); border-radius:20px; padding:2px 10px; font-size:12px; }
+  </style>
+
+  ${groupes.map(g => `
+    <div class="trombi-group-title">
+      <i class="ti ti-flame"></i> ${g.label}
+      <span class="trombi-group-count">${g.jsps.length}</span>
+    </div>
+    <div class="trombi-grid">
+      ${g.jsps.map(card).join('')}
+    </div>
+  `).join('')}`;
+}
+
+function printTrombinoscope() {
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+  const promos = ['JSP 1','JSP 2','JSP 3','JSP 4'];
+  const groupes = promos.map(p => ({
+    label: p,
+    jsps: DB.jsps.filter(j => j.promotion === p).sort((a,b) => a.nom.localeCompare(b.nom))
+  })).filter(g => g.jsps.length > 0);
+
+  const card = (j) => {
+    const photo = j.photo
+      ? `<img src="${j.photo}" style="width:100%;height:110px;object-fit:cover;border-radius:8px 8px 0 0">`
+      : `<div style="width:100%;height:110px;background:#1a3c6e;color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;border-radius:8px 8px 0 0">${j.prenom[0]}${j.nom[0]}</div>`;
+    return `<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;break-inside:avoid">
+      ${photo}
+      <div style="padding:6px 8px;text-align:center">
+        <div style="font-weight:700;font-size:11px">${j.prenom} ${j.nom}</div>
+      </div>
+    </div>`;
+  };
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+  <meta charset="UTF-8"><title>Trombinoscope JSP</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;padding:10mm}
+    @page{size:A4 portrait;margin:10mm}
+    .tricolore{display:flex;height:5px;margin-bottom:10px}
+    .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
+    h1{font-size:16px;color:#1a3c6e;margin-bottom:2px}
+    .sub{font-size:11px;color:#6b7280;margin-bottom:16px}
+    .grp-title{font-size:13px;font-weight:700;color:#1a3c6e;margin:14px 0 8px;border-bottom:2px solid #dbeafe;padding-bottom:4px}
+    .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px}
+  </style>
+  </head><body>
+    <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
+    <h1>🧱 Trombinoscope JSP — CIS Cruzy-Quarante</h1>
+    <div class="sub">SDIS 34 · Imprimé le ${now}</div>
+    ${groupes.map(g => `
+      <div class="grp-title">${g.label} (${g.jsps.length})</div>
+      <div class="grid">${g.jsps.map(card).join('')}</div>
+    `).join('')}
+    <script>window.onload=()=>window.print()<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
 function renderJSPs() {
   return `
     <div class="section-header">
       <h2><i class="ti ti-users" aria-hidden="true"></i> Gestion des JSP</h2>
-      <button class="btn-add" onclick="modalAddJSP()"><i class="ti ti-plus"></i> Ajouter un JSP</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-add" style="background:#6b7280" onclick="showSection('trombinoscope')"><i class="ti ti-photo"></i> Trombinoscope</button>
+        <button class="btn-add" onclick="modalAddJSP()"><i class="ti ti-plus"></i> Ajouter un JSP</button>
+      </div>
     </div>
     <div class="table-card"><table>
-      <thead><tr><th>Prénom Nom</th><th>Grade</th><th>Ville</th><th>Adresse</th><th>Tél. père</th><th>Tél. mère</th><th>Tél. JSP</th><th>Email</th><th>Actions</th></tr></thead>
+      <thead><tr><th></th><th>Prénom Nom</th><th>Grade</th><th>Ville</th><th>Adresse</th><th>Tél. père</th><th>Tél. mère</th><th>Tél. JSP</th><th>Email</th><th>Actions</th></tr></thead>
       <tbody>
         ${DB.jsps.length ? DB.jsps.map(j => `<tr>
+          <td>${j.photo
+            ? '<img src="'+j.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover">'
+            : '<div style="width:34px;height:34px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>'}</td>
           <td><strong>${j.prenom} ${j.nom}</strong></td>
           <td><span class="badge badge-bleu">${j.promotion||'—'}</span></td>
           <td>${j.ville||'—'}</td>
@@ -1774,7 +1898,7 @@ function renderJSPs() {
           <td style="font-size:12px;color:var(--bleu-clair)">${j.email?'<a href="mailto:'+j.email+'" style="color:var(--bleu-clair)">'+j.email+'</a>':'—'}</td>
           <td><button class="btn-add" style="padding:5px 10px;font-size:12px" onclick="modalEditJSP(${j.id})"><i class="ti ti-edit"></i></button>
               <button class="btn-danger" style="padding:5px 10px;font-size:12px;margin-left:6px;border-radius:6px" onclick="deleteJSP(${j.id})"><i class="ti ti-trash"></i></button></td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="9"><i class="ti ti-users-off"></i> Aucun JSP enregistré</td></tr>`}
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="10"><i class="ti ti-users-off"></i> Aucun JSP enregistré</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -2702,7 +2826,9 @@ function renderBilanForm(j, bilan, saison) {
   
   // Header JSP
   html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--bleu)">';
-  html += '<div style="background:var(--bleu);color:white;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>';
+  html += j.photo
+    ? '<img src="'+j.photo+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--bleu)">'
+    : '<div style="background:var(--bleu);color:white;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>';
   html += '<div><div style="font-size:18px;font-weight:700">'+j.prenom+' '+j.nom+'</div>';
   html += '<div style="font-size:13px;color:var(--gris-txt)"><span style="background:var(--bleu-pale);color:var(--bleu);padding:2px 10px;border-radius:20px;font-weight:700;font-size:12px">'+j.promotion+'</span> — Saison '+saison+'</div></div>';
   html += '<div style="margin-left:auto;display:flex;gap:8px">';
@@ -4383,7 +4509,9 @@ function renderICPJsp(j, icp, saison) {
   return `
   <div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;margin-bottom:16px">
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--bleu)">
-      <div style="background:var(--bleu);color:white;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">${j.prenom[0]}${j.nom[0]}</div>
+      ${j.photo
+        ? `<img src="${j.photo}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--bleu)">`
+        : `<div style="background:var(--bleu);color:white;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">${j.prenom[0]}${j.nom[0]}</div>`}
       <div>
         <div style="font-size:18px;font-weight:700">${j.prenom} ${j.nom}</div>
         <div style="font-size:13px;color:var(--gris-txt)"><span style="background:var(--bleu-pale);color:var(--bleu);padding:2px 10px;border-radius:20px;font-weight:700;font-size:12px">${j.promotion}</span> — Saison ${saison}</div>
@@ -4660,7 +4788,9 @@ function renderHabillement() {
         ${rows.map(({ jsp, hab }) => `
           <tr>
             <td><div style="display:flex;align-items:center;gap:8px">
-              <div style="width:32px;height:32px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${jsp.prenom[0]}${jsp.nom[0]}</div>
+              ${jsp.photo
+                ? `<img src="${jsp.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0">`
+                : `<div style="width:32px;height:32px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${jsp.prenom[0]}${jsp.nom[0]}</div>`}
               <strong>${jsp.prenom} ${jsp.nom}</strong>
             </div></td>
             <td><span class="badge badge-bleu">${jsp.promotion}</span></td>
