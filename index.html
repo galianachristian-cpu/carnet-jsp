@@ -1710,6 +1710,7 @@ function renderDashboard() {
   const absNE = DB.absences.filter(a => !a.excusee).length;
   const retards = DB.retards.length;
   const reprimandes = DB.comportements.length;
+  const jspsEnAlerte = DB.jsps.filter(j => getAbsenceStats(j.id).alerte).length;
   const prochains = DB.planning.filter(p => p.date >= new Date().toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
   return `
     <div class="section-header"><h2><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Tableau de bord</h2>
@@ -1719,6 +1720,7 @@ function renderDashboard() {
       <div class="stat-card rouge"><div class="stat-val">${absNE}</div><div class="stat-lbl">Absences non excusées</div></div>
       <div class="stat-card orange"><div class="stat-val">${retards}</div><div class="stat-lbl">Retards</div></div>
       <div class="stat-card rouge"><div class="stat-val">${reprimandes}</div><div class="stat-lbl">Comportements</div></div>
+      ${jspsEnAlerte > 0 ? `<div class="stat-card rouge" style="cursor:pointer" onclick="showSection('absences')"><div class="stat-val">⚠️ ${jspsEnAlerte}</div><div class="stat-lbl">JSP en alerte absences</div></div>` : ''}
     </div>
     <div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Prochains événements</h2></div>
     <div class="planning-grid">
@@ -1739,10 +1741,12 @@ function renderDashboard() {
             const ret = DB.retards.filter(r=>r.jspId==j.id).length;
             const res = DB.resultats.filter(r=>r.jspId==j.id);
             const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
-            return `<tr>
+            const stats = getAbsenceStats(j.id);
+            return `<tr ${stats.alerte ? 'style="background:#fef2f2"' : ''}>
               <td style="display:flex;align-items:center;gap:10px">
           ${j.photo ? '<img src="'+j.photo+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--bleu)">' : '<div style="width:36px;height:36px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+j.prenom[0]+j.nom[0]+'</div>'}
           <strong>${j.prenom} ${j.nom}</strong>
+          ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:15px" title="Seuil d\\'alerte absences atteint"></i>' : ''}
           </td>
               <td><span class="badge badge-bleu">${j.promotion}</span></td>
               <td><span class="badge ${abs>0?'badge-rouge':'badge-vert'}">${abs}</span></td>
@@ -2036,14 +2040,45 @@ function deleteJSP(id) {
 // ══════════════════════════════════════════
 //  ABSENCES (admin)
 // ══════════════════════════════════════════
+function getAbsenceStats(jspId) {
+  const list = DB.absences.filter(a => a.jspId == jspId);
+  const nonExc = list.filter(a => !a.excusee).length;
+  const exc = list.filter(a => a.excusee).length;
+  const seuil = 3;
+  const alerte = nonExc >= seuil || exc >= seuil;
+  return { total: list.length, nonExc, exc, alerte, seuil };
+}
+
 function renderAbsences(jspFilt) {
   const list = jspFilt ? DB.absences.filter(a=>a.jspId==jspFilt) : DB.absences;
   const sorted = [...list].sort((a,b)=>b.date.localeCompare(a.date));
+
+  // JSP en alerte (seuil atteint)
+  const jspsAlerte = DB.jsps
+    .map(j => ({ jsp: j, stats: getAbsenceStats(j.id) }))
+    .filter(x => x.stats.alerte);
+
+  const bandeauAlerte = jspsAlerte.length ? `
+    <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:flex-start;gap:12px">
+      <i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:22px;flex-shrink:0;margin-top:2px"></i>
+      <div>
+        <div style="font-weight:700;color:#991b1b;font-size:14px;margin-bottom:6px">⚠️ ${jspsAlerte.length} JSP ${jspsAlerte.length>1?'ont atteint':'a atteint'} le seuil d'alerte (3 absences)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${jspsAlerte.map(x => `
+            <span style="background:white;border:1px solid #fca5a5;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#991b1b;cursor:pointer" onclick="showSection('absences');filterAbsence(${x.jsp.id})">
+              ${x.jsp.prenom} ${x.jsp.nom}
+              ${x.stats.nonExc>=3?` · ${x.stats.nonExc} non exc.`:''}${x.stats.exc>=3?` · ${x.stats.exc} exc.`:''}
+            </span>`).join('')}
+        </div>
+      </div>
+    </div>` : '';
+
   return `
     <div class="section-header">
       <h2><i class="ti ti-calendar-x" aria-hidden="true"></i> Absences</h2>
       <button class="btn-add" onclick="modalAddAbsence()"><i class="ti ti-plus"></i> Ajouter</button>
     </div>
+    ${bandeauAlerte}
     <div class="jsp-selector">
       <label><i class="ti ti-filter" aria-hidden="true"></i> Filtrer :</label>
       <select onchange="showSection('absences');filterAbsence(this.value)">
@@ -2053,14 +2088,17 @@ function renderAbsences(jspFilt) {
     <div class="table-card"><table>
       <thead><tr><th>JSP</th><th>Date</th><th>Motif</th><th>Excusée</th><th>Remarque</th><th></th></tr></thead>
       <tbody>
-        ${sorted.length ? sorted.map(a => `<tr>
-          <td><strong>${jspNom(a.jspId)}</strong></td>
+        ${sorted.length ? sorted.map(a => {
+          const stats = getAbsenceStats(a.jspId);
+          return `<tr ${stats.alerte ? 'style="background:#fef2f2"' : ''}>
+          <td><strong>${jspNom(a.jspId)}</strong> ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:14px" title="Seuil d\\'alerte atteint"></i>' : ''}</td>
           <td>${fmtDate(a.date)}</td>
           <td>${a.motif}</td>
           <td><span class="badge ${a.excusee?'badge-vert':'badge-rouge'}">${a.excusee?'Oui':'Non'}</span></td>
           <td style="color:var(--gris-txt);font-size:13px">${a.remarque||'—'}</td>
           <td><button onclick="deleteItem('absences',${a.id},'absences')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Aucune absence enregistrée</td></tr>`}
+        </tr>`;
+        }).join('') : `<tr class="empty-row"><td colspan="6">Aucune absence enregistrée</td></tr>`}
       </tbody>
     </table></div>`;
 }
