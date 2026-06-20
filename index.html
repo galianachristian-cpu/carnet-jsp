@@ -492,7 +492,7 @@
 // ══════════════════════════════════════════
 //  SYNC CLOUD — Google Apps Script
 // ══════════════════════════════════════════
-const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwV3Ei46HokdSBCOn4KN9iziUpMKeszwdakpK-vy907RClzm1tPF7eJ15Q6DdxV8dNWcQ/exec';
+const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwcrasYN_yYfdbvbaCOcrSMmSI7clH6DLGOTl3nZCDOI8E9FGPEF8rDS8pdeu1hAFCfxg/exec';
 
 function setSyncStatus(state, msg) {
   const dot = document.getElementById('sync-cloud-dot');
@@ -520,27 +520,42 @@ async function saveData() {
 }
 
 async function loadFromCloud() {
-  setSyncStatus('wait', 'Chargement…');
-  try {
-    const resp = await fetch(CLOUD_URL + '?action=load&t=' + Date.now(), {
-      method: 'GET',
-      cache: 'no-store'
-    });
-    const cloud = await resp.json();
-    if (cloud && cloud.jsps && cloud.jsps.length > 0) {
-      if (!cloud.habillement) cloud.habillement = [];
-      if (!cloud.icp) cloud.icp = [];
-      DB = cloud;
-      localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
-      setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
-      return true;
-    }
-    setSyncStatus('ok', 'Local utilisé');
-    return false;
-  } catch(e) {
-    setSyncStatus('err', 'Hors ligne — local utilisé');
-    return false;
-  }
+  return new Promise((resolve) => {
+    setSyncStatus('wait', 'Chargement…');
+    const cbName = 'jsp_cb_' + Date.now();
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      try { document.body.removeChild(script); } catch(e){}
+      delete window[cbName];
+      setSyncStatus('err', 'Hors ligne — local utilisé');
+      resolve(false);
+    }, 8000);
+
+    window[cbName] = function(cloud) {
+      clearTimeout(timeout);
+      try { document.body.removeChild(script); } catch(e){}
+      delete window[cbName];
+      if (cloud && cloud.jsps && cloud.jsps.length > 0) {
+        if (!cloud.habillement) cloud.habillement = [];
+        if (!cloud.icp) cloud.icp = [];
+        DB = cloud;
+        localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+        setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
+        resolve(true);
+      } else {
+        setSyncStatus('ok', 'Local utilisé');
+        resolve(false);
+      }
+    };
+    script.src = CLOUD_URL + '?action=load&callback=' + cbName + '&t=' + Date.now();
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      setSyncStatus('err', 'Hors ligne — local utilisé');
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
 }
 
 function loadData() {
