@@ -1746,7 +1746,7 @@ function renderDashboard() {
               <td style="display:flex;align-items:center;gap:10px">
           ${j.photo ? '<img src="'+j.photo+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--bleu)">' : '<div style="width:36px;height:36px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+j.prenom[0]+j.nom[0]+'</div>'}
           <strong>${j.prenom} ${j.nom}</strong>
-          ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:15px" title="Seuil d\\'alerte absences atteint"></i>' : ''}
+          ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:15px" title="Seuil alerte absences atteint"></i>' : ''}
           </td>
               <td><span class="badge badge-bleu">${j.promotion}</span></td>
               <td><span class="badge ${abs>0?'badge-rouge':'badge-vert'}">${abs}</span></td>
@@ -2091,7 +2091,7 @@ function renderAbsences(jspFilt) {
         ${sorted.length ? sorted.map(a => {
           const stats = getAbsenceStats(a.jspId);
           return `<tr ${stats.alerte ? 'style="background:#fef2f2"' : ''}>
-          <td><strong>${jspNom(a.jspId)}</strong> ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:14px" title="Seuil d\\'alerte atteint"></i>' : ''}</td>
+          <td><strong>${jspNom(a.jspId)}</strong> ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:14px" title="Seuil alerte atteint"></i>' : ''}</td>
           <td>${fmtDate(a.date)}</td>
           <td>${a.motif}</td>
           <td><span class="badge ${a.excusee?'badge-vert':'badge-rouge'}">${a.excusee?'Oui':'Non'}</span></td>
