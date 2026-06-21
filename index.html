@@ -540,6 +540,7 @@ async function loadFromCloud() {
       delete window[cbName];
       if (cloud && cloud.jsps && cloud.jsps.length > 0) {
         if (!cloud.habillement) cloud.habillement = [];
+        if (!cloud.mouvementsHabillement) cloud.mouvementsHabillement = [];
         if (!cloud.icp) cloud.icp = [];
         DB = cloud;
         localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
@@ -568,6 +569,7 @@ function loadData() {
     if (!parsed.saison) parsed.saison = '2025-2026';
     if (!parsed.allSaisons) parsed.allSaisons = ['2025-2026'];
     if (!parsed.habillement) parsed.habillement = [];
+    if (!parsed.mouvementsHabillement) parsed.mouvementsHabillement = [];
     if (!parsed.icp) parsed.icp = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
@@ -1005,6 +1007,7 @@ function loadData() {
       }
 ],
     habillement: [],
+    mouvementsHabillement: [],
     icp: [],
     absences: [
       {
@@ -4803,8 +4806,10 @@ function printICPTableau() {
   win.document.close();
 }
 
-function renderHabillement() {
+function renderHabillement(ongletActif) {
   if (!DB.habillement) DB.habillement = [];
+  if (!DB.mouvementsHabillement) DB.mouvementsHabillement = [];
+  ongletActif = ongletActif || 'dotation';
   const total = DB.jsps.length;
   const valides = DB.habillement.filter(h => h.statut === 'Validé').length;
   const attente = DB.habillement.filter(h => h.statut === 'En attente').length;
@@ -4826,6 +4831,27 @@ function renderHabillement() {
 
   const val = (v) => v || '<span style="color:var(--rouge)">—</span>';
 
+  const onglets = `
+    <div style="display:flex;gap:4px;margin-bottom:18px">
+      <button onclick="document.getElementById('content').innerHTML=renderHabillement('dotation')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='dotation'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='dotation'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='dotation'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-shirt"></i> Dotation actuelle</button>
+      <button onclick="document.getElementById('content').innerHTML=renderHabillement('historique')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='historique'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='historique'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='historique'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-history"></i> Historique mouvements ${DB.mouvementsHabillement.length?'('+DB.mouvementsHabillement.length+')':''}</button>
+    </div>`;
+
+  if (ongletActif === 'historique') {
+    return `
+    <div class="section-header">
+      <h2><i class="ti ti-shirt"></i> Habillement JSP</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-add" onclick="modalMouvementHabillement(null)" style="background:var(--bleu)">
+          <i class="ti ti-plus"></i> Nouveau mouvement
+        </button>
+      </div>
+    </div>
+    ${onglets}
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:14px">Retours de fin d'année, retours suite à un départ, échanges (déchiré/abîmé/perdu) et changements de taille.</p>
+    <div id="hab-mvt-list">${renderMouvementsHabillement(null)}</div>`;
+  }
+
   return `
   <div class="section-header">
     <h2><i class="ti ti-shirt"></i> Habillement JSP</h2>
@@ -4833,11 +4859,15 @@ function renderHabillement() {
       <button class="btn-add" onclick="modalHabillement(null)" style="background:var(--bleu)">
         <i class="ti ti-plus"></i> Saisir dotation
       </button>
+      <button class="btn-add" onclick="modalMouvementHabillement(null)" style="background:var(--orange)">
+        <i class="ti ti-replace"></i> Mouvement
+      </button>
       <button class="btn-add" onclick="printTableauHabillement()" style="background:#6b7280">
         <i class="ti ti-printer"></i> Imprimer tableau
       </button>
     </div>
   </div>
+  ${onglets}
 
   <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
     <div class="stat-card bleu"><div class="stat-val">${total}</div><div class="stat-lbl">JSP inscrits</div></div>
@@ -4887,12 +4917,18 @@ function renderHabillement() {
             <td>${badgeStatut(hab)}</td>
             <td>
               <div style="display:flex;gap:6px">
-                <button class="btn-add" style="padding:5px 10px;font-size:12px;background:var(--bleu-clair)" onclick="modalHabillement(${jsp.id})">
+                <button class="btn-add" style="padding:5px 10px;font-size:12px;background:var(--bleu-clair)" onclick="modalHabillement(${jsp.id})" title="Modifier la dotation">
                   <i class="ti ti-pencil"></i>
                 </button>
-                ${hab ? `<button class="btn-add" style="padding:5px 10px;font-size:12px;background:#6b7280" onclick="printFicheHabillement(${jsp.id})">
+                <button class="btn-add" style="padding:5px 10px;font-size:12px;background:var(--orange)" onclick="modalMouvementHabillement(${jsp.id})" title="Enregistrer un mouvement">
+                  <i class="ti ti-replace"></i>
+                </button>
+                ${hab ? `<button class="btn-add" style="padding:5px 10px;font-size:12px;background:#6b7280" onclick="printFicheHabillement(${jsp.id})" title="Imprimer la fiche dotation">
                   <i class="ti ti-printer"></i>
                 </button>` : ''}
+                <button class="btn-add" style="padding:5px 10px;font-size:12px;background:var(--bleu)" onclick="printFicheMouvementsHabillement(${jsp.id})" title="Imprimer l'historique des mouvements">
+                  <i class="ti ti-history"></i>
+                </button>
               </div>
             </td>
           </tr>`).join('')}
@@ -5029,6 +5065,224 @@ function deleteHabillement(jspId) {
   saveData();
   closeModal();
   showSection('habillement');
+}
+
+// ══════════════════════════════════════════
+//  MOUVEMENTS HABILLEMENT (historique)
+// ══════════════════════════════════════════
+const HAB_ARTICLES = ['Veste TSI','Pantalon TSI','Parka','Ceinture','Casque','Gants','Chaussures','Grade (insigne)'];
+const HAB_ARTICLE_FIELD = {
+  'Veste TSI':'veste', 'Pantalon TSI':'pantalon', 'Parka':'parka', 'Ceinture':'ceinture',
+  'Casque':'casque', 'Gants':'gants', 'Chaussures':'chaussures', 'Grade (insigne)':'grade'
+};
+const HAB_TAILLES = {
+  'Veste TSI':['XS','S','M','L','XL','XXL','3XL'],
+  'Pantalon TSI':['XS','S','M','L','XL','XXL','3XL'],
+  'Parka':['XS','S','M','L','XL','XXL','3XL'],
+  'Ceinture':['XS','S','M','L','XL','XXL','3XL'],
+  'Casque':['T1 (50-54 cm)','T2 (55-58 cm)','T3 (59-62 cm)','T4 (63+ cm)'],
+  'Gants':['6 (XS)','7 (S)','8 (M)','9 (L)','10 (XL)','11 (XXL)'],
+  'Chaussures':['35','36','37','38','39','40','41','42','43','44','45','46','47'],
+  'Grade (insigne)':['JSP 1','JSP 2','JSP 3','JSP 4','Chef de groupe JSP']
+};
+const HAB_TYPES_MVT = [
+  { val:'remise', label:'Remise initiale (dotation)', icon:'📦' },
+  { val:'retour_fin_annee', label:"Retour fin d'année / fin de saison", icon:'🔄' },
+  { val:'retour_depart', label:'Retour suite à un départ', icon:'🚪' },
+  { val:'echange', label:'Échange (déchiré/abîmé/perdu)', icon:'🧵' },
+  { val:'taille', label:'Changement de taille (croissance)', icon:'📏' }
+];
+function habTypeLabel(val) { const t = HAB_TYPES_MVT.find(x=>x.val===val); return t ? t.icon+' '+t.label : val; }
+
+function modalMouvementHabillement(jspId) {
+  if (!DB.mouvementsHabillement) DB.mouvementsHabillement = [];
+  const jsp = jspId ? DB.jsps.find(j => j.id === jspId) : null;
+
+  const jspSelect = jspId
+    ? `<div class="form-group"><label>JSP</label><input type="text" value="${jsp.prenom} ${jsp.nom}" disabled style="background:var(--gris-bg)"></div>`
+    : `<div class="form-group"><label>JSP *</label><select id="mvt-jspId" onchange="updateMvtTailleOptions()"><option value="">-- Sélectionner --</option>${DB.jsps.map(j=>`<option value="${j.id}">${j.prenom} ${j.nom} (${j.promotion})</option>`).join('')}</select></div>`;
+
+  openModal(`
+    <h3><i class="ti ti-replace"></i> Mouvement habillement ${jsp ? '— '+jsp.prenom+' '+jsp.nom : ''}</h3>
+    ${jspSelect}
+    <input type="hidden" id="mvt-jspIdFixe" value="${jspId||''}">
+    <div class="form-group">
+      <label>Type de mouvement *</label>
+      <select id="mvt-type">
+        ${HAB_TYPES_MVT.map(t=>`<option value="${t.val}">${t.icon} ${t.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Article concerné *</label>
+      <select id="mvt-article" onchange="updateMvtTailleOptions()">
+        <option value="">-- Sélectionner --</option>
+        ${HAB_ARTICLES.map(a=>`<option value="${a}">${a}</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>Ancienne taille</label>
+        <select id="mvt-ancienne"><option value="">--</option></select>
+      </div>
+      <div class="form-group">
+        <label>Nouvelle taille</label>
+        <select id="mvt-nouvelle"><option value="">--</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Date</label>
+      <input id="mvt-date" type="date" value="${new Date().toISOString().slice(0,10)}">
+    </div>
+    <div class="form-group">
+      <label>Remarque</label>
+      <textarea id="mvt-remarque" placeholder="Ex : veste déchirée à l'épaule, échange size M -> L..."></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveMouvementHabillement(${jspId || 'null'})">💾 Enregistrer</button>
+    </div>`);
+  setTimeout(updateMvtTailleOptions, 0);
+}
+
+function updateMvtTailleOptions() {
+  const article = document.getElementById('mvt-article')?.value;
+  const selAnc = document.getElementById('mvt-ancienne');
+  const selNew = document.getElementById('mvt-nouvelle');
+  if (!selAnc || !selNew) return;
+  const tailles = HAB_TAILLES[article] || [];
+  const opts = '<option value="">--</option>' + tailles.map(t=>`<option value="${t}">${t}</option>`).join('');
+  selAnc.innerHTML = opts;
+  selNew.innerHTML = opts;
+
+  // Pré-remplir l'ancienne taille avec la valeur actuelle si connue
+  const jspIdFixe = document.getElementById('mvt-jspIdFixe')?.value;
+  const jspIdSel = document.getElementById('mvt-jspId')?.value;
+  const jspId = parseInt(jspIdFixe || jspIdSel);
+  if (jspId && article) {
+    const field = HAB_ARTICLE_FIELD[article];
+    const hab = DB.habillement.find(h => h.jspId === jspId);
+    if (hab && hab[field]) selAnc.value = hab[field];
+  }
+}
+
+function saveMouvementHabillement(jspIdFixe) {
+  if (!DB.mouvementsHabillement) DB.mouvementsHabillement = [];
+  const jspId = jspIdFixe || parseInt(document.getElementById('mvt-jspId')?.value);
+  if (!jspId) { alert('Sélectionne un JSP'); return; }
+  const type = document.getElementById('mvt-type').value;
+  const article = document.getElementById('mvt-article').value;
+  if (!article) { alert("Sélectionne l'article concerné"); return; }
+  const ancienneTaille = document.getElementById('mvt-ancienne').value;
+  const nouvelleTaille = document.getElementById('mvt-nouvelle').value;
+  const date = document.getElementById('mvt-date').value;
+  const remarque = document.getElementById('mvt-remarque').value.trim();
+
+  DB.mouvementsHabillement.push({
+    id: nextId(DB.mouvementsHabillement),
+    jspId, type, article, ancienneTaille, nouvelleTaille, date, remarque,
+    saison: getSaisonFromDate(date)
+  });
+
+  // Met à jour automatiquement l'état courant de la dotation si une nouvelle taille est précisée
+  // (sauf retour suite à départ, où l'article quitte la dotation)
+  if (nouvelleTaille && type !== 'retour_depart') {
+    const field = HAB_ARTICLE_FIELD[article];
+    let hab = DB.habillement.find(h => h.jspId === jspId);
+    if (!hab) {
+      hab = { jspId, statut: 'En attente' };
+      DB.habillement.push(hab);
+    }
+    hab[field] = nouvelleTaille;
+    hab.maj = new Date().toLocaleDateString('fr-FR');
+  }
+  if (type === 'retour_depart') {
+    const field = HAB_ARTICLE_FIELD[article];
+    const hab = DB.habillement.find(h => h.jspId === jspId);
+    if (hab) hab[field] = '';
+  }
+
+  saveData();
+  closeModal();
+  showSection('habillement');
+}
+
+function deleteMouvementHabillement(id) {
+  if (!confirm('Supprimer ce mouvement de l\'historique ?')) return;
+  DB.mouvementsHabillement = DB.mouvementsHabillement.filter(m => m.id !== id);
+  saveData();
+  showSection('habillement');
+}
+
+function renderMouvementsHabillement(jspFilt) {
+  if (!DB.mouvementsHabillement) DB.mouvementsHabillement = [];
+  const list = jspFilt ? DB.mouvementsHabillement.filter(m=>m.jspId==jspFilt) : DB.mouvementsHabillement;
+  const sorted = [...list].sort((a,b)=>b.date.localeCompare(a.date));
+
+  return `
+    <div class="jsp-selector" style="margin-bottom:14px">
+      <label><i class="ti ti-filter" aria-hidden="true"></i> Filtrer :</label>
+      <select onchange="document.getElementById('hab-mvt-list').innerHTML=renderMouvementsHabillement(this.value||null)">
+        <option value="">Tous les JSP</option>${jspOptions(jspFilt)}
+      </select>
+    </div>
+    <div class="table-card"><table>
+      <thead><tr><th>JSP</th><th>Date</th><th>Saison</th><th>Type</th><th>Article</th><th>Taille</th><th>Remarque</th><th></th></tr></thead>
+      <tbody>
+        ${sorted.length ? sorted.map(m => `<tr>
+          <td><strong>${jspNom(m.jspId)}</strong></td>
+          <td>${fmtDate(m.date)}</td>
+          <td style="color:var(--gris-txt);font-size:12px">${m.saison||'—'}</td>
+          <td style="font-size:13px">${habTypeLabel(m.type)}</td>
+          <td>${m.article}</td>
+          <td style="font-size:13px">${m.ancienneTaille?m.ancienneTaille+' → ':''}${m.nouvelleTaille||(m.ancienneTaille?'(retiré)':'—')}</td>
+          <td style="color:var(--gris-txt);font-size:13px;max-width:180px">${m.remarque||'—'}</td>
+          <td><button onclick="deleteMouvementHabillement(${m.id})" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="8">Aucun mouvement enregistré</td></tr>`}
+      </tbody>
+    </table></div>`;
+}
+
+function printFicheMouvementsHabillement(jspId) {
+  const jsp = DB.jsps.find(j => j.id === jspId);
+  if (!jsp) return;
+  const mvts = [...(DB.mouvementsHabillement||[])].filter(m=>m.jspId===jspId).sort((a,b)=>a.date.localeCompare(b.date));
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+  <title>Historique habillement — ${jsp.prenom} ${jsp.nom}</title>
+  <style>
+    body{font-family:Arial,sans-serif;color:#1f2937;max-width:800px;margin:30px auto;padding:0 20px}
+    h1{color:#1a3c6e;font-size:20px;border-bottom:3px solid #1a3c6e;padding-bottom:10px}
+    .meta{font-size:13px;color:#6b7280;margin-bottom:20px}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px}
+    th{background:#1a3c6e;color:white;padding:8px 10px;text-align:left}
+    td{padding:7px 10px;border-bottom:1px solid #e5e7eb}
+    tr:nth-child(even){background:#f9fafb}
+    .footer{margin-top:30px;font-size:11px;color:#9ca3af;text-align:center}
+  </style></head><body>
+    <h1>🧥 Historique des mouvements habillement</h1>
+    <div class="meta">
+      <strong>${jsp.prenom} ${jsp.nom}</strong> — ${jsp.promotion}<br>
+      Document généré le ${now} · CIS Cruzy-Quarante
+    </div>
+    <table>
+      <thead><tr><th>Date</th><th>Saison</th><th>Type</th><th>Article</th><th>Taille</th><th>Remarque</th></tr></thead>
+      <tbody>
+        ${mvts.length ? mvts.map(m => `<tr>
+          <td>${fmtDate(m.date)}</td>
+          <td>${m.saison||'—'}</td>
+          <td>${habTypeLabel(m.type)}</td>
+          <td>${m.article}</td>
+          <td>${m.ancienneTaille?m.ancienneTaille+' → ':''}${m.nouvelleTaille||(m.ancienneTaille?'(retiré)':'—')}</td>
+          <td>${m.remarque||'—'}</td>
+        </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:#9ca3af">Aucun mouvement enregistré</td></tr>'}
+      </tbody>
+    </table>
+    <div class="footer">CIS Cruzy-Quarante — Section JSP — Document interne</div>
+    <script>window.onload=()=>window.print()<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 function printFicheHabillement(jspId) {
