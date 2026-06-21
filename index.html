@@ -569,6 +569,10 @@ function loadData() {
     if (!parsed.allSaisons) parsed.allSaisons = ['2025-2026'];
     if (!parsed.habillement) parsed.habillement = [];
     if (!parsed.icp) parsed.icp = [];
+    // Migration : rattacher les absences existantes (sans saison) à 2025-2026
+    if (parsed.absences) {
+      parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
+    }
     return parsed;
   }
   return {
@@ -1538,6 +1542,7 @@ async function syncAbsencesFromAppel() {
             DB.absences.push({
               id: Date.now() + Math.random(),
               jspId: carnetId,
+              saison: getSaisonFromDate(date),
               date: date,
               motif: theme || 'Séance JSP',
               excusee: statut === 'E' || statut === 'ER',
@@ -1707,7 +1712,7 @@ function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; 
 // ══════════════════════════════════════════
 function renderDashboard() {
   const totalJSP = DB.jsps.length;
-  const absNE = DB.absences.filter(a => !a.excusee).length;
+  const absNE = DB.absences.filter(a => !a.excusee && a.saison === DB.saison).length;
   const retards = DB.retards.length;
   const reprimandes = DB.comportements.length;
   const jspsEnAlerte = DB.jsps.filter(j => getAbsenceStats(j.id).alerte).length;
@@ -1737,7 +1742,7 @@ function renderDashboard() {
         <thead><tr><th>JSP</th><th>Promotion</th><th>Absences</th><th>Retards</th><th>Résultats</th></tr></thead>
         <tbody>
           ${DB.jsps.map(j => {
-            const abs = DB.absences.filter(a=>a.jspId==j.id).length;
+            const abs = DB.absences.filter(a=>a.jspId==j.id && a.saison===DB.saison).length;
             const ret = DB.retards.filter(r=>r.jspId==j.id).length;
             const res = DB.resultats.filter(r=>r.jspId==j.id);
             const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
@@ -2040,8 +2045,9 @@ function deleteJSP(id) {
 // ══════════════════════════════════════════
 //  ABSENCES (admin)
 // ══════════════════════════════════════════
-function getAbsenceStats(jspId) {
-  const list = DB.absences.filter(a => a.jspId == jspId);
+function getAbsenceStats(jspId, saison) {
+  saison = saison || DB.saison;
+  const list = DB.absences.filter(a => a.jspId == jspId && a.saison === saison);
   const nonExc = list.filter(a => !a.excusee).length;
   const exc = list.filter(a => a.excusee).length;
   const seuil = 3;
@@ -2049,20 +2055,22 @@ function getAbsenceStats(jspId) {
   return { total: list.length, nonExc, exc, alerte, seuil };
 }
 
-function renderAbsences(jspFilt) {
-  const list = jspFilt ? DB.absences.filter(a=>a.jspId==jspFilt) : DB.absences;
+function renderAbsences(jspFilt, toutesSaisons) {
+  const saisonActive = DB.saison;
+  let list = toutesSaisons ? DB.absences : DB.absences.filter(a => a.saison === saisonActive);
+  if (jspFilt) list = list.filter(a=>a.jspId==jspFilt);
   const sorted = [...list].sort((a,b)=>b.date.localeCompare(a.date));
 
-  // JSP en alerte (seuil atteint)
+  // JSP en alerte (seuil atteint, saison active uniquement)
   const jspsAlerte = DB.jsps
-    .map(j => ({ jsp: j, stats: getAbsenceStats(j.id) }))
+    .map(j => ({ jsp: j, stats: getAbsenceStats(j.id, saisonActive) }))
     .filter(x => x.stats.alerte);
 
   const bandeauAlerte = jspsAlerte.length ? `
     <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:flex-start;gap:12px">
       <i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:22px;flex-shrink:0;margin-top:2px"></i>
       <div>
-        <div style="font-weight:700;color:#991b1b;font-size:14px;margin-bottom:6px">⚠️ ${jspsAlerte.length} JSP ${jspsAlerte.length>1?'ont atteint':'a atteint'} le seuil d'alerte (3 absences)</div>
+        <div style="font-weight:700;color:#991b1b;font-size:14px;margin-bottom:6px">⚠️ ${jspsAlerte.length} JSP ${jspsAlerte.length>1?'ont atteint':'a atteint'} le seuil d'alerte (3 absences — saison ${saisonActive})</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px">
           ${jspsAlerte.map(x => `
             <span style="background:white;border:1px solid #fca5a5;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#991b1b;cursor:pointer" onclick="showSection('absences');filterAbsence(${x.jsp.id})">
@@ -2075,30 +2083,35 @@ function renderAbsences(jspFilt) {
 
   return `
     <div class="section-header">
-      <h2><i class="ti ti-calendar-x" aria-hidden="true"></i> Absences</h2>
+      <h2><i class="ti ti-calendar-x" aria-hidden="true"></i> Absences ${toutesSaisons ? '— Historique complet' : '— Saison ' + saisonActive}</h2>
       <button class="btn-add" onclick="modalAddAbsence()"><i class="ti ti-plus"></i> Ajouter</button>
     </div>
     ${bandeauAlerte}
-    <div class="jsp-selector">
+    <div class="jsp-selector" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
       <label><i class="ti ti-filter" aria-hidden="true"></i> Filtrer :</label>
-      <select onchange="showSection('absences');filterAbsence(this.value)">
+      <select onchange="document.getElementById('content').innerHTML=renderAbsences(this.value||null, ${toutesSaisons?'true':'false'})">
         <option value="">Tous les JSP</option>${jspOptions(jspFilt)}
       </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gris-txt);cursor:pointer;margin-left:auto">
+        <input type="checkbox" ${toutesSaisons?'checked':''} onchange="document.getElementById('content').innerHTML=renderAbsences(${jspFilt||'null'}, this.checked)">
+        Voir toutes les saisons (historique)
+      </label>
     </div>
     <div class="table-card"><table>
-      <thead><tr><th>JSP</th><th>Date</th><th>Motif</th><th>Excusée</th><th>Remarque</th><th></th></tr></thead>
+      <thead><tr><th>JSP</th><th>Saison</th><th>Date</th><th>Motif</th><th>Excusée</th><th>Remarque</th><th></th></tr></thead>
       <tbody>
         ${sorted.length ? sorted.map(a => {
-          const stats = getAbsenceStats(a.jspId);
-          return `<tr ${stats.alerte ? 'style="background:#fef2f2"' : ''}>
-          <td><strong>${jspNom(a.jspId)}</strong> ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:14px" title="Seuil alerte atteint"></i>' : ''}</td>
+          const stats = getAbsenceStats(a.jspId, a.saison);
+          return `<tr ${stats.alerte && a.saison===saisonActive ? 'style="background:#fef2f2"' : ''}>
+          <td><strong>${jspNom(a.jspId)}</strong> ${stats.alerte && a.saison===saisonActive ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:14px" title="Seuil alerte atteint"></i>' : ''}</td>
+          <td style="color:var(--gris-txt);font-size:12px">${a.saison||'—'}</td>
           <td>${fmtDate(a.date)}</td>
           <td>${a.motif}</td>
           <td><span class="badge ${a.excusee?'badge-vert':'badge-rouge'}">${a.excusee?'Oui':'Non'}</span></td>
           <td style="color:var(--gris-txt);font-size:13px">${a.remarque||'—'}</td>
           <td><button onclick="deleteItem('absences',${a.id},'absences')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
         </tr>`;
-        }).join('') : `<tr class="empty-row"><td colspan="6">Aucune absence enregistrée</td></tr>`}
+        }).join('') : `<tr class="empty-row"><td colspan="7">Aucune absence enregistrée</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -2124,6 +2137,7 @@ function modalAddAbsence() {
 function saveAbsence() {
   DB.absences.push({ id: nextId(DB.absences),
     jspId: parseInt(document.getElementById('f_jsp').value),
+    saison: DB.saison,
     date: document.getElementById('f_date').value,
     motif: document.getElementById('f_motif').value,
     excusee: document.getElementById('f_exc').value==='1',
@@ -2327,6 +2341,15 @@ function getSaisonMois(saison) {
   for (let m = 9; m <= 12; m++) mois.push({num: String(m).padStart(2,'0'), an: String(y1), label: labels[m]+' '+y1});
   for (let m = 1; m <= 8; m++) mois.push({num: String(m).padStart(2,'0'), an: String(y2), label: labels[m]+' '+y2});
   return mois;
+}
+
+// Déduit la saison scolaire (ex: '2025-2026') à partir d'une date 'YYYY-MM-DD'.
+// Sept->Dec : saison = année-(année+1). Jan->Aout : saison = (année-1)-année.
+function getSaisonFromDate(dateStr) {
+  if (!dateStr) return DB.saison;
+  const annee = parseInt(dateStr.slice(0,4));
+  const mois = parseInt(dateStr.slice(5,7));
+  return mois >= 9 ? (annee+'-'+(annee+1)) : ((annee-1)+'-'+annee);
 }
 
 function changerSaisonHisto(btn) {
@@ -3247,7 +3270,7 @@ function genererPDFJSP(jspId) {
   y += 34;
 
   // ── STATS ABSENCES ──
-  const absJSP = DB.absences.filter(a => a.jspId == jspId);
+  const absJSP = DB.absences.filter(a => a.jspId == jspId && a.saison === saison);
   const absNE = absJSP.filter(a => !a.excusee).length;
   const absE = absJSP.filter(a => a.excusee).length;
   const retards = DB.retards.filter(r => r.jspId == jspId).length;
@@ -3695,25 +3718,26 @@ function exportListingJSP() {
 
 function exportAbsences() {
   const wb = XLSX.utils.book_new();
-  const headers = ['Prénom', 'Nom', 'Grade', 'Date', 'Motif', 'Excusée', 'Remarque'];
-  const rows = [...DB.absences]
+  const headers = ['Prénom', 'Nom', 'Grade', 'Saison', 'Date', 'Motif', 'Excusée', 'Remarque'];
+  const absSaison = DB.absences.filter(a => a.saison === DB.saison);
+  const rows = [...absSaison]
     .sort((a,b) => b.date.localeCompare(a.date))
     .map(a => {
       const j = DB.jsps.find(x => x.id == a.jspId);
       return [
-        j ? j.prenom : '—', j ? j.nom : '—', j ? j.promotion : '—',
+        j ? j.prenom : '—', j ? j.nom : '—', j ? j.promotion : '—', a.saison||'—',
         fmtDate(a.date), a.motif||'', a.excusee ? 'Oui' : 'Non', a.remarque||''
       ];
     });
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  ws['!cols'] = [{wch:12},{wch:16},{wch:8},{wch:12},{wch:20},{wch:10},{wch:25}];
+  ws['!cols'] = [{wch:12},{wch:16},{wch:8},{wch:12},{wch:12},{wch:20},{wch:10},{wch:25}];
   XLSX.utils.book_append_sheet(wb, ws, 'Absences');
 
-  // Stats par JSP
+  // Stats par JSP (saison active)
   const statsHeaders = ['Prénom', 'Nom', 'Grade', 'Total absences', 'Non excusées', 'Excusées'];
   const statsRows = DB.jsps.map(j => {
-    const abs = DB.absences.filter(a => a.jspId == j.id);
+    const abs = absSaison.filter(a => a.jspId == j.id);
     return [j.prenom, j.nom, j.promotion, abs.length,
       abs.filter(a => !a.excusee).length, abs.filter(a => a.excusee).length];
   });
@@ -3805,7 +3829,7 @@ function exportBilanComplet() {
   // Feuille 6 : Récap par JSP
   const h6 = ['Prénom','Nom','Grade','Absences total','Non excusées','Retards','Comportements','Moy. générale'];
   const r6 = DB.jsps.map(j => {
-    const abs = DB.absences.filter(a=>a.jspId==j.id);
+    const abs = DB.absences.filter(a=>a.jspId==j.id && a.saison===DB.saison);
     const ret = DB.retards.filter(r=>r.jspId==j.id);
     const comp = DB.comportements.filter(c=>c.jspId==j.id);
     const res = DB.resultats.filter(r=>r.jspId==j.id);
@@ -4329,7 +4353,7 @@ function renderHistorique() {
   html2 += '<thead><tr><th style="padding:10px 14px;text-align:left;background:var(--gris-bg)">JSP</th><th style="padding:10px 14px;text-align:left;background:var(--gris-bg)">Grade</th><th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Absences</th><th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Non excusées</th><th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Retards</th><th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Moy. /20</th></tr></thead>';
   html2 += '<tbody>';
   DB.jsps.forEach((j,i) => {
-    const abs = DB.absences.filter(a=>a.jspId==j.id);
+    const abs = DB.absences.filter(a=>a.jspId==j.id && a.saison===DB.saison);
     const ret = DB.retards.filter(r=>r.jspId==j.id);
     const res = DB.resultats.filter(r=>r.jspId==j.id);
     const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
@@ -4341,6 +4365,25 @@ function renderHistorique() {
       +'<td style="padding:9px 14px;text-align:center"><span class="badge '+(absNE>0?'badge-rouge':'badge-vert')+'">'+absNE+'</span></td>'
       +'<td style="padding:9px 14px;text-align:center"><span class="badge '+(ret.length>0?'badge-orange':'badge-vert')+'">'+ret.length+'</span></td>'
       +'<td style="padding:9px 14px;text-align:center">'+(moy!=='—'?'<span class="badge badge-'+( parseFloat(moy)>=12?'vert':'rouge')+'">'+moy+'</span>':'—')+'</td>'
+      +'</tr>';
+  });
+  html2 += '</tbody></table></div>';
+
+  // Suivi pluriannuel des absences par JSP (toutes saisons)
+  html2 += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden;margin-bottom:16px">';
+  html2 += '<div style="background:#6b7280;color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-history"></i> Suivi pluriannuel des absences (par saison)</div>';
+  html2 += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+  html2 += '<thead><tr><th style="padding:10px 14px;text-align:left;background:var(--gris-bg)">JSP</th>'
+    + saisons.map(s => '<th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">'+s+'</th>').join('')
+    + '<th style="padding:10px 14px;text-align:center;background:var(--gris-bg)">Total</th></tr></thead>';
+  html2 += '<tbody>';
+  DB.jsps.forEach((j,i) => {
+    const parSaison = saisons.map(s => DB.absences.filter(a=>a.jspId==j.id && a.saison===s).length);
+    const total = parSaison.reduce((a,b)=>a+b,0);
+    html2 += '<tr style="background:'+(i%2?'var(--gris-bg)':'white')+';border-bottom:.5px solid var(--gris-bord)">'
+      +'<td style="padding:9px 14px;font-weight:600">'+j.prenom+' '+j.nom+'</td>'
+      + parSaison.map(n => '<td style="padding:9px 14px;text-align:center">'+(n>0?'<span class="badge '+(n>3?'badge-rouge':'badge-orange')+'">'+n+'</span>':'<span style="color:var(--gris-txt)">—</span>')+'</td>').join('')
+      +'<td style="padding:9px 14px;text-align:center;font-weight:700">'+total+'</td>'
       +'</tr>';
   });
   html2 += '</tbody></table></div>';
