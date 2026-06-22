@@ -4881,7 +4881,7 @@ function renderHabillement(ongletActif) {
       <thead>
         <tr>
           <th>JSP</th>
-          <th>Promo</th>
+          <th>Grade</th>
           <th>Veste TSI</th>
           <th>Pantalon TSI</th>
           <th>Casque</th>
@@ -4889,7 +4889,9 @@ function renderHabillement(ongletActif) {
           <th>Chaussures</th>
           <th>Ceinture</th>
           <th>Parka</th>
-          <th>Grade</th>
+          <th>T-shirt sport</th>
+          <th>Veste sport</th>
+          <th>Pantalon sport</th>
           <th>Remarques</th>
           <th>Statut</th>
           <th>Actions</th>
@@ -4912,7 +4914,9 @@ function renderHabillement(ongletActif) {
             <td>${val(hab?.chaussures)}</td>
             <td>${val(hab?.ceinture)}</td>
             <td>${val(hab?.parka)}</td>
-            <td>${val(hab?.grade)}</td>
+            <td>${val(hab?.tshirtSport)}</td>
+            <td>${val(hab?.vesteSport)}</td>
+            <td>${val(hab?.pantalonSport)}</td>
             <td style="font-size:12px;color:var(--gris-txt);max-width:140px">${hab?.remarques || ''}</td>
             <td>${badgeStatut(hab)}</td>
             <td>
@@ -5002,10 +5006,24 @@ function modalHabillement(jspId) {
         </select>
       </div>
       <div class="form-group">
-        <label>Grade</label>
-        <select id="hab-grade">
+        <label>T-shirt sport</label>
+        <select id="hab-tshirtSport">
           <option value="">--</option>
-          ${['JSP 1','JSP 2','JSP 3','JSP 4','Chef de groupe JSP'].map(s=>`<option ${v('grade')===s?'selected':''}>${s}</option>`).join('')}
+          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('tshirtSport')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Veste sport</label>
+        <select id="hab-vesteSport">
+          <option value="">--</option>
+          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('vesteSport')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Pantalon sport</label>
+        <select id="hab-pantalonSport">
+          <option value="">--</option>
+          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('pantalonSport')===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
@@ -5017,6 +5035,7 @@ function modalHabillement(jspId) {
         </select>
       </div>
     </div>
+    <p style="font-size:12px;color:var(--gris-txt);margin:4px 0 0">🏃 Tenue de sport remise en JSP 2 — non récupérée au départ du JSP</p>
     <div class="form-group">
       <label>Remarques</label>
       <input type="text" id="hab-remarques" value="${v('remarques')}" placeholder="Commande en cours, ajustement…">
@@ -5040,15 +5059,17 @@ function saveHabillement(jspId) {
   const chaussures= document.getElementById('hab-chaussures').value;
   const ceinture  = document.getElementById('hab-ceinture').value;
   const parka     = document.getElementById('hab-parka').value;
-  const grade     = document.getElementById('hab-grade').value;
+  const tshirtSport   = document.getElementById('hab-tshirtSport').value;
+  const vesteSport    = document.getElementById('hab-vesteSport').value;
+  const pantalonSport = document.getElementById('hab-pantalonSport').value;
   const statut    = document.getElementById('hab-statut').value;
   const remarques = document.getElementById('hab-remarques').value.trim();
 
-  // Auto-incomplet si champs manquants
-  const autoStatut = (statut !== 'Validé' && (!veste || !pantalon || !casque || !gants || !chaussures || !ceinture || !parka || !grade))
+  // Auto-incomplet si champs manquants (tenue de base — la tenue de sport n'est exigée qu'en fin de cycle)
+  const autoStatut = (statut !== 'Validé' && (!veste || !pantalon || !casque || !gants || !chaussures || !ceinture || !parka))
     ? 'Incomplet' : statut;
 
-  const entry = { jspId: id, veste, pantalon, casque, gants, chaussures, ceinture, parka, grade, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
+  const entry = { jspId: id, veste, pantalon, casque, gants, chaussures, ceinture, parka, tshirtSport, vesteSport, pantalonSport, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
 
   const idx = DB.habillement.findIndex(h => h.jspId === id);
   if (idx >= 0) DB.habillement[idx] = entry;
@@ -5070,10 +5091,11 @@ function deleteHabillement(jspId) {
 // ══════════════════════════════════════════
 //  MOUVEMENTS HABILLEMENT (historique)
 // ══════════════════════════════════════════
-const HAB_ARTICLES = ['Veste TSI','Pantalon TSI','Parka','Ceinture','Casque','Gants','Chaussures','Grade (insigne)'];
+const HAB_ARTICLES = ['Veste TSI','Pantalon TSI','Parka','Ceinture','Casque','Gants','Chaussures','T-shirt sport','Veste sport','Pantalon sport'];
 const HAB_ARTICLE_FIELD = {
   'Veste TSI':'veste', 'Pantalon TSI':'pantalon', 'Parka':'parka', 'Ceinture':'ceinture',
-  'Casque':'casque', 'Gants':'gants', 'Chaussures':'chaussures', 'Grade (insigne)':'grade'
+  'Casque':'casque', 'Gants':'gants', 'Chaussures':'chaussures',
+  'T-shirt sport':'tshirtSport', 'Veste sport':'vesteSport', 'Pantalon sport':'pantalonSport'
 };
 const HAB_TAILLES = {
   'Veste TSI':['XS','S','M','L','XL','XXL','3XL'],
@@ -5083,7 +5105,9 @@ const HAB_TAILLES = {
   'Casque':['T1 (50-54 cm)','T2 (55-58 cm)','T3 (59-62 cm)','T4 (63+ cm)'],
   'Gants':['6 (XS)','7 (S)','8 (M)','9 (L)','10 (XL)','11 (XXL)'],
   'Chaussures':['35','36','37','38','39','40','41','42','43','44','45','46','47'],
-  'Grade (insigne)':['JSP 1','JSP 2','JSP 3','JSP 4','Chef de groupe JSP']
+  'T-shirt sport':['XS','S','M','L','XL','XXL','3XL'],
+  'Veste sport':['XS','S','M','L','XL','XXL','3XL'],
+  'Pantalon sport':['XS','S','M','L','XL','XXL','3XL']
 };
 const HAB_TYPES_MVT = [
   { val:'remise', label:'Remise initiale (dotation)', icon:'📦' },
@@ -5119,6 +5143,7 @@ function modalMouvementHabillement(jspId) {
         ${HAB_ARTICLES.map(a=>`<option value="${a}">${a}</option>`).join('')}
       </select>
     </div>
+    <div id="mvt-info-sport"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <div class="form-group">
         <label>Ancienne taille</label>
@@ -5163,6 +5188,15 @@ function updateMvtTailleOptions() {
     const hab = DB.habillement.find(h => h.jspId === jspId);
     if (hab && hab[field]) selAnc.value = hab[field];
   }
+
+  // Info : tenue de sport conservée par le JSP, non récupérée au départ
+  const infoDiv = document.getElementById('mvt-info-sport');
+  if (infoDiv) {
+    const estSport = ['T-shirt sport','Veste sport','Pantalon sport'].includes(article);
+    infoDiv.innerHTML = estSport
+      ? `<p style="font-size:12px;color:var(--orange);background:#fef3c7;border-radius:6px;padding:8px 10px;margin:-4px 0 12px">🏃 Tenue de sport : remise en JSP 2, le JSP la conserve même en cas de départ (pas de retour).</p>`
+      : '';
+  }
 }
 
 function saveMouvementHabillement(jspIdFixe) {
@@ -5183,9 +5217,13 @@ function saveMouvementHabillement(jspIdFixe) {
     saison: getSaisonFromDate(date)
   });
 
+  // Tenue de sport : conservée par le JSP, jamais récupérée au départ
+  const ARTICLES_NON_RECUPERABLES = ['T-shirt sport','Veste sport','Pantalon sport'];
+  const estRecuperable = !ARTICLES_NON_RECUPERABLES.includes(article);
+
   // Met à jour automatiquement l'état courant de la dotation si une nouvelle taille est précisée
-  // (sauf retour suite à départ, où l'article quitte la dotation)
-  if (nouvelleTaille && type !== 'retour_depart') {
+  // (sauf retour suite à départ pour les articles récupérables, où l'article quitte la dotation)
+  if (nouvelleTaille && (type !== 'retour_depart' || !estRecuperable)) {
     const field = HAB_ARTICLE_FIELD[article];
     let hab = DB.habillement.find(h => h.jspId === jspId);
     if (!hab) {
@@ -5195,7 +5233,7 @@ function saveMouvementHabillement(jspIdFixe) {
     hab[field] = nouvelleTaille;
     hab.maj = new Date().toLocaleDateString('fr-FR');
   }
-  if (type === 'retour_depart') {
+  if (type === 'retour_depart' && estRecuperable) {
     const field = HAB_ARTICLE_FIELD[article];
     const hab = DB.habillement.find(h => h.jspId === jspId);
     if (hab) hab[field] = '';
@@ -5407,7 +5445,7 @@ function printFicheHabillement(jspId) {
     <div class="jsp-block">
       <div>
         <div class="jsp-name">${jsp.prenom} ${jsp.nom}</div>
-        <div class="jsp-meta">Grade : ${hab.grade || '—'} &nbsp;·&nbsp; Ville : ${jsp.ville || '—'} &nbsp;·&nbsp; Né(e) le : ${jsp.dateNaissance ? jsp.dateNaissance.split('-').reverse().join('/') : '—'}</div>
+        <div class="jsp-meta">Grade : ${jsp.promotion || '—'} &nbsp;·&nbsp; Ville : ${jsp.ville || '—'} &nbsp;·&nbsp; Né(e) le : ${jsp.dateNaissance ? jsp.dateNaissance.split('-').reverse().join('/') : '—'}</div>
       </div>
       <div class="jsp-promo">${jsp.promotion}</div>
     </div>
@@ -5428,7 +5466,9 @@ function printFicheHabillement(jspId) {
         ${row('Casque', hab.casque, '⛑️')}
         ${row('Gants', hab.gants, '🧤')}
         ${row('Chaussures', hab.chaussures, '👢')}
-        ${row('Grade (insigne)', hab.grade, '🏅')}
+        ${row('T-shirt sport', hab.tshirtSport, '👕')}
+        ${row('Veste sport', hab.vesteSport, '🏃')}
+        ${row('Pantalon sport', hab.pantalonSport, '🩳')}
       </tbody>
     </table>
 
@@ -5494,7 +5534,9 @@ function printTableauHabillement() {
       <td>${v(h?.chaussures)}</td>
       <td>${v(h?.ceinture)}</td>
       <td>${v(h?.parka)}</td>
-      <td>${v(h?.grade)}</td>
+      <td>${v(h?.tshirtSport)}</td>
+      <td>${v(h?.vesteSport)}</td>
+      <td>${v(h?.pantalonSport)}</td>
       <td style="color:${statColor};font-weight:700">${statut}</td>
       <td style="font-size:11px;color:#6b7280">${h?.remarques||''}</td>
       <td style="border:1px solid #ccc;width:60px">&nbsp;</td>
@@ -5522,8 +5564,9 @@ function printTableauHabillement() {
     <div class="sub">SDIS 34 · Imprimé le ${now}</div>
     <table>
       <thead><tr>
-        <th>Nom</th><th>Promo</th><th>Veste TSI</th><th>Pantalon TSI</th>
-        <th>Casque</th><th>Gants</th><th>Chaussures</th><th>Ceinture</th><th>Parka</th><th>Grade</th><th>Statut</th>
+        <th>Nom</th><th>Grade</th><th>Veste TSI</th><th>Pantalon TSI</th>
+        <th>Casque</th><th>Gants</th><th>Chaussures</th><th>Ceinture</th><th>Parka</th>
+        <th>T-shirt sport</th><th>Veste sport</th><th>Pantalon sport</th><th>Statut</th>
         <th>Remarques</th><th>Visa</th>
       </tr></thead>
       <tbody>${rows}</tbody>
