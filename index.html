@@ -342,6 +342,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -499,9 +500,14 @@
 // ══════════════════════════════════════════
 
 // ══════════════════════════════════════════
-//  SYNC CLOUD — Google Apps Script
+//  SYNC CLOUD — Supabase
 // ══════════════════════════════════════════
-const CLOUD_URL = 'https://script.google.com/macros/s/AKfycbwcrasYN_yYfdbvbaCOcrSMmSI7clH6DLGOTl3nZCDOI8E9FGPEF8rDS8pdeu1hAFCfxg/exec';
+const SUPABASE_URL = 'https://efowmupcstdccmfxniot.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Mb2oAqSqdnaxLV7mzQl5Yw_QEhjRbIa';
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+let saveEnCours = false;
+let saveEnAttente = false;
 
 function setSyncStatus(state, msg) {
   const dot = document.getElementById('sync-cloud-dot');
@@ -512,61 +518,58 @@ function setSyncStatus(state, msg) {
 }
 
 async function saveData() {
-  // 1. Local en premier
+  // 1. Local en premier — jamais bloquant, jamais perdu même hors ligne
   localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
   localStorage.setItem('carnet_jsp_planning_'+DB.saison, JSON.stringify(DB.planning));
-  // 2. Cloud via formulaire (contourne CORS)
+
+  // 2. Cloud Supabase — avec anti-rafale (si un save est déjà en cours, on attend qu'il finisse)
+  if (!supabaseClient) { setSyncStatus('err', 'Supabase non chargé — local utilisé'); return; }
+  if (saveEnCours) { saveEnAttente = true; return; }
+  saveEnCours = true;
   try {
     setSyncStatus('wait', 'Sauvegarde…');
-    const form = new FormData();
-    form.append('action', 'save');
-    form.append('data', JSON.stringify(DB));
-    await fetch(CLOUD_URL, { method: 'POST', mode: 'no-cors', body: form });
+    const { error } = await supabaseClient
+      .from('carnet_jsp_data')
+      .update({ data: DB, updated_at: new Date().toISOString() })
+      .eq('id', 'main');
+    if (error) throw error;
     setSyncStatus('ok', 'Synchronisé · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
   } catch(e) {
-    setSyncStatus('err', 'Hors ligne');
+    setSyncStatus('err', 'Hors ligne — local utilisé');
+  } finally {
+    saveEnCours = false;
+    if (saveEnAttente) { saveEnAttente = false; saveData(); }
   }
 }
 
 async function loadFromCloud() {
-  return new Promise((resolve) => {
-    setSyncStatus('wait', 'Chargement…');
-    const cbName = 'jsp_cb_' + Date.now();
-    const script = document.createElement('script');
-    const timeout = setTimeout(() => {
-      try { document.body.removeChild(script); } catch(e){}
-      delete window[cbName];
-      setSyncStatus('err', 'Hors ligne — local utilisé');
-      resolve(false);
-    }, 8000);
-
-    window[cbName] = function(cloud) {
-      clearTimeout(timeout);
-      try { document.body.removeChild(script); } catch(e){}
-      delete window[cbName];
-      if (cloud && cloud.jsps && cloud.jsps.length > 0) {
-        if (!cloud.habillement) cloud.habillement = [];
-        if (!cloud.mouvementsHabillement) cloud.mouvementsHabillement = [];
-        if (!cloud.stockHabillement) cloud.stockHabillement = [];
-        if (!cloud.icp) cloud.icp = [];
-        DB = cloud;
-        localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
-        setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
-        resolve(true);
-      } else {
-        setSyncStatus('ok', 'Local utilisé');
-        resolve(false);
-      }
-    };
-    script.src = CLOUD_URL + '?action=load&callback=' + cbName + '&t=' + Date.now();
-    script.onerror = () => {
-      clearTimeout(timeout);
-      delete window[cbName];
-      setSyncStatus('err', 'Hors ligne — local utilisé');
-      resolve(false);
-    };
-    document.body.appendChild(script);
-  });
+  if (!supabaseClient) { setSyncStatus('err', 'Supabase non chargé — local utilisé'); return false; }
+  setSyncStatus('wait', 'Chargement…');
+  try {
+    const { data: row, error } = await supabaseClient
+      .from('carnet_jsp_data')
+      .select('data')
+      .eq('id', 'main')
+      .single();
+    if (error) throw error;
+    const cloud = row ? row.data : null;
+    if (cloud && cloud.jsps && cloud.jsps.length > 0) {
+      if (!cloud.habillement) cloud.habillement = [];
+      if (!cloud.mouvementsHabillement) cloud.mouvementsHabillement = [];
+      if (!cloud.stockHabillement) cloud.stockHabillement = [];
+      if (!cloud.icp) cloud.icp = [];
+      DB = cloud;
+      localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+      setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
+      return true;
+    } else {
+      setSyncStatus('ok', 'Local utilisé');
+      return false;
+    }
+  } catch(e) {
+    setSyncStatus('err', 'Hors ligne — local utilisé');
+    return false;
+  }
 }
 
 function loadData() {
@@ -1482,11 +1485,6 @@ function loadData() {
       { id: 33, date: "2026-07-13", titre: "Bal des Pompiers — RDV 18h30", type: "ceremonie", lieu: "CIS Cruzy" }
     ]
   };
-}
-
-function saveData() {
-  localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
-  localStorage.setItem('carnet_jsp_planning_'+DB.saison, JSON.stringify(DB.planning));
 }
 
 let DB = loadData();
