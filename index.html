@@ -1742,10 +1742,9 @@ function renderDashboard() {
     <div style="margin-top:24px" class="section-header"><h2><i class="ti ti-users" aria-hidden="true"></i> Liste rapide des JSP</h2></div>
     <div class="table-card">
       <table>
-        <thead><tr><th>JSP</th><th>Promotion</th><th>Absences</th><th>Retards</th><th>Résultats</th></tr></thead>
+        <thead><tr><th>JSP</th><th>Promotion</th><th>Abs. excusées</th><th>Abs. non exc.</th><th>Retards</th><th>Résultats</th></tr></thead>
         <tbody>
           ${DB.jsps.map(j => {
-            const abs = DB.absences.filter(a=>a.jspId==j.id && a.saison===DB.saison).length;
             const ret = DB.retards.filter(r=>r.jspId==j.id).length;
             const res = DB.resultats.filter(r=>r.jspId==j.id);
             const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
@@ -1757,7 +1756,8 @@ function renderDashboard() {
           ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:15px" title="Seuil alerte absences atteint"></i>' : ''}
           </td>
               <td><span class="badge badge-bleu">${j.promotion}</span></td>
-              <td><span class="badge ${abs>0?'badge-rouge':'badge-vert'}">${abs}</span></td>
+              <td><span class="badge ${stats.exc>0?'badge-orange':'badge-vert'}">${stats.exc}</span></td>
+              <td><span class="badge ${stats.nonExc>0?'badge-rouge':'badge-vert'}">${stats.nonExc}</span></td>
               <td><span class="badge ${ret>0?'badge-orange':'badge-vert'}">${ret}</span></td>
               <td>${moy !== '—' ? `<span class="badge badge-${noteColor(parseFloat(moy),20)}">${moy}/20</span>` : '—'}</td>
             </tr>`;
