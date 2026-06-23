@@ -3633,7 +3633,21 @@ function renderAdminMdp() {
       +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+u.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
       +'</tr>'
     ).join('')
-    +'</tbody></table></div></div>';
+    +'</tbody></table></div></div>'
+    + (() => {
+        const habUser = DB.users.find(u => u.role === 'habillement');
+        if (!habUser) return '';
+        return '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden;margin-top:16px">'
+          +'<div style="background:var(--orange);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-shirt"></i> Compte Bureau Habillement</div>'
+          +'<table style="width:100%;border-collapse:collapse;font-size:14px">'
+          +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Nom</th><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
+          +'<tbody><tr>'
+          +'<td style="padding:9px 14px;font-weight:600">'+habUser.nom+'</td>'
+          +'<td style="padding:9px 14px;color:var(--bleu)">'+habUser.login+'</td>'
+          +'<td style="padding:9px 14px"><input type="text" id="mdp_parent_'+habUser.login+'" value="'+habUser.pass+'" style="border:1px solid var(--gris-bord);border-radius:6px;padding:5px 8px;font-size:13px;width:140px"></td>'
+          +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+habUser.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
+          +'</tr></tbody></table></div>';
+      })();
 }
 
 function changerMdpAdmin() {
