@@ -541,6 +541,7 @@ async function loadFromCloud() {
       if (cloud && cloud.jsps && cloud.jsps.length > 0) {
         if (!cloud.habillement) cloud.habillement = [];
         if (!cloud.mouvementsHabillement) cloud.mouvementsHabillement = [];
+        if (!cloud.stockHabillement) cloud.stockHabillement = [];
         if (!cloud.icp) cloud.icp = [];
         DB = cloud;
         localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
@@ -570,6 +571,7 @@ function loadData() {
     if (!parsed.allSaisons) parsed.allSaisons = ['2025-2026'];
     if (!parsed.habillement) parsed.habillement = [];
     if (!parsed.mouvementsHabillement) parsed.mouvementsHabillement = [];
+    if (!parsed.stockHabillement) parsed.stockHabillement = [];
     if (!parsed.icp) parsed.icp = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
@@ -1008,6 +1010,7 @@ function loadData() {
 ],
     habillement: [],
     mouvementsHabillement: [],
+    stockHabillement: [],
     icp: [],
     absences: [
       {
@@ -4879,6 +4882,155 @@ function printICPTableau() {
   win.document.close();
 }
 
+// ══════════════════════════════════════════
+//  STOCK HABILLEMENT
+// ══════════════════════════════════════════
+const STOCK_ARTICLES = [
+  { id: 'veste',         label: 'Veste TSI',      champ: 'veste',         tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  { id: 'pantalon',      label: 'Pantalon TSI',   champ: 'pantalon',      tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  { id: 'casque',        label: 'Casque',         champ: 'casque',        tailles: ['T1 (50-54 cm)','T2 (55-58 cm)','T3 (59-62 cm)','T4 (63+ cm)'] },
+  { id: 'gants',         label: 'Gants',          champ: 'gants',         tailles: ['6 (XS)','7 (S)','8 (M)','9 (L)','10 (XL)','11 (XXL)'] },
+  { id: 'chaussures',    label: 'Chaussures',     champ: 'chaussures',    tailles: ['35','36','37','38','39','40','41','42','43','44','45','46','47'] },
+  { id: 'ceinture',      label: 'Ceinture',       champ: 'ceinture',      tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  { id: 'parka',         label: 'Parka',          champ: 'parka',         tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  { id: 'tshirtSport',   label: 'T-shirt sport',  champ: 'tshirtSport',   tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  { id: 'vesteSport',    label: 'Veste sport',    champ: 'vesteSport',    tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  { id: 'pantalonSport', label: 'Pantalon sport', champ: 'pantalonSport', tailles: ['XS','S','M','L','XL','XXL','3XL'] }
+];
+
+function getStockQte(articleId, taille) {
+  if (!DB.stockHabillement) DB.stockHabillement = [];
+  const e = DB.stockHabillement.find(s => s.articleId === articleId && s.taille === taille);
+  return e ? { qte: e.qte || 0, seuil: e.seuil || 0 } : { qte: 0, seuil: 0 };
+}
+
+function setStockQte(articleId, taille, field, value) {
+  if (!DB.stockHabillement) DB.stockHabillement = [];
+  let e = DB.stockHabillement.find(s => s.articleId === articleId && s.taille === taille);
+  if (!e) {
+    e = { articleId, taille, qte: 0, seuil: 0 };
+    DB.stockHabillement.push(e);
+  }
+  e[field] = parseInt(value) || 0;
+  saveData();
+}
+
+// Besoins = nb de JSP actuels portant cette taille pour cet article
+function getBesoinsArticle(articleId, champ) {
+  const besoins = {};
+  DB.jsps.forEach(j => {
+    const hab = DB.habillement.find(h => h.jspId === j.id);
+    const taille = hab ? hab[champ] : null;
+    if (taille) besoins[taille] = (besoins[taille] || 0) + 1;
+  });
+  return besoins;
+}
+
+function renderStockHabillement() {
+  if (!DB.stockHabillement) DB.stockHabillement = [];
+
+  // Calcul global des manques pour le bandeau d'alerte
+  const manques = [];
+  STOCK_ARTICLES.forEach(art => {
+    const besoins = getBesoinsArticle(art.id, art.champ);
+    art.tailles.forEach(t => {
+      const { qte, seuil } = getStockQte(art.id, t);
+      const besoin = besoins[t] || 0;
+      const manqueJSP = Math.max(0, besoin - qte);
+      const sousSeuil = qte < seuil;
+      if (manqueJSP > 0 || sousSeuil) {
+        manques.push({ article: art.label, taille: t, qte, seuil, besoin, manqueJSP, sousSeuil });
+      }
+    });
+  });
+
+  const bandeauAlerte = manques.length ? `
+    <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:20px"></i>
+        <strong style="color:#b91c1c">${manques.length} référence(s) à surveiller ou commander</strong>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${manques.map(m => `<span class="badge badge-rouge" title="Stock: ${m.qte} · Besoin JSP: ${m.besoin} · Seuil: ${m.seuil}">
+          ${m.article} ${m.taille} ${m.manqueJSP > 0 ? '· manque '+m.manqueJSP : '· sous seuil'}
+        </span>`).join('')}
+      </div>
+    </div>` : `
+    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:14px 18px;margin-bottom:18px;color:#166534">
+      <i class="ti ti-check"></i> <strong>Stock suffisant</strong> — aucune référence sous le seuil ou en manque par rapport aux JSP actuels.
+    </div>`;
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-boxes"></i> Stock habillement — Inventaire</h2>
+    <button class="btn-add" style="background:#6b7280" onclick="exportStockHabillementExcel()"><i class="ti ti-file-spreadsheet"></i> Exporter Excel</button>
+  </div>
+  <p style="font-size:13px;color:var(--gris-txt);margin-bottom:14px">
+    Saisis les quantités en stock et le seuil d'alerte pour chaque article/taille. La colonne "Besoin JSP" reprend les tailles actuellement portées par tes JSP (page Dotation). La colonne "Manque" indique combien de pièces commander pour couvrir tous les JSP actuels.
+  </p>
+
+  ${bandeauAlerte}
+
+  ${STOCK_ARTICLES.map(art => {
+    const besoins = getBesoinsArticle(art.id, art.champ);
+    return `
+    <div class="table-card" style="margin-bottom:18px">
+      <div style="padding:10px 16px;background:var(--bleu-pale);font-weight:700;font-size:14px;color:var(--bleu)">${art.label}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Taille</th>
+            <th>Stock actuel</th>
+            <th>Seuil d'alerte</th>
+            <th>Besoin JSP (saison)</th>
+            <th>Manque à commander</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${art.tailles.map(t => {
+            const { qte, seuil } = getStockQte(art.id, t);
+            const besoin = besoins[t] || 0;
+            const manqueJSP = Math.max(0, besoin - qte);
+            const sousSeuil = qte < seuil;
+            return `
+            <tr ${manqueJSP > 0 || sousSeuil ? 'style="background:#fef2f2"' : ''}>
+              <td><strong>${t}</strong></td>
+              <td>
+                <input type="number" min="0" value="${qte}" style="width:70px;padding:5px 8px;border:1.5px solid var(--gris-bord);border-radius:6px;text-align:center;font-weight:700"
+                  onchange="setStockQte('${art.id}','${t.replace(/'/g,"\\'")}','qte',this.value);document.getElementById('content').innerHTML=renderHabillement('stock')">
+              </td>
+              <td>
+                <input type="number" min="0" value="${seuil}" style="width:70px;padding:5px 8px;border:1.5px solid var(--gris-bord);border-radius:6px;text-align:center"
+                  onchange="setStockQte('${art.id}','${t.replace(/'/g,"\\'")}','seuil',this.value);document.getElementById('content').innerHTML=renderHabillement('stock')">
+              </td>
+              <td><span class="badge badge-bleu">${besoin}</span></td>
+              <td>${manqueJSP > 0 ? `<span class="badge badge-rouge">${manqueJSP}</span>` : '<span class="badge badge-vert">0</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }).join('')}`;
+}
+
+function exportStockHabillementExcel() {
+  const wb = XLSX.utils.book_new();
+  const headers = ['Article', 'Taille', 'Stock actuel', 'Seuil alerte', 'Besoin JSP', 'Manque à commander'];
+  const rows = [];
+  STOCK_ARTICLES.forEach(art => {
+    const besoins = getBesoinsArticle(art.id, art.champ);
+    art.tailles.forEach(t => {
+      const { qte, seuil } = getStockQte(art.id, t);
+      const besoin = besoins[t] || 0;
+      const manqueJSP = Math.max(0, besoin - qte);
+      rows.push([art.label, t, qte, seuil, besoin, manqueJSP]);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:16},{wch:20},{wch:12},{wch:12},{wch:12},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Stock habillement');
+  downloadXLSX(wb, 'Stock_Habillement_' + DB.saison + '.xlsx');
+}
 function renderHabillement(ongletActif) {
   if (!DB.habillement) DB.habillement = [];
   if (!DB.mouvementsHabillement) DB.mouvementsHabillement = [];
@@ -4908,7 +5060,17 @@ function renderHabillement(ongletActif) {
     <div style="display:flex;gap:4px;margin-bottom:18px">
       <button onclick="document.getElementById('content').innerHTML=renderHabillement('dotation')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='dotation'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='dotation'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='dotation'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-shirt"></i> Dotation actuelle</button>
       <button onclick="document.getElementById('content').innerHTML=renderHabillement('historique')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='historique'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='historique'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='historique'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-history"></i> Historique mouvements ${DB.mouvementsHabillement.length?'('+DB.mouvementsHabillement.length+')':''}</button>
+      <button onclick="document.getElementById('content').innerHTML=renderHabillement('stock')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='stock'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='stock'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='stock'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-boxes"></i> Stock & Inventaire</button>
     </div>`;
+
+  if (ongletActif === 'stock') {
+    return `
+    <div class="section-header">
+      <h2><i class="ti ti-shirt"></i> Habillement JSP</h2>
+    </div>
+    ${onglets}
+    ${renderStockHabillement()}`;
+  }
 
   if (ongletActif === 'historique') {
     return `
