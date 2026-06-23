@@ -4456,6 +4456,77 @@ function getICP(jspId, saison) {
   return DB.icp.find(x => x.jspId == jspId && x.saison === saison) || null;
 }
 
+// Top 3 par discipline : meilleure perf toutes périodes confondues (saison active)
+function getTopICP(saison) {
+  const result = {};
+  ICP_EPREUVES.forEach(e => {
+    if (e.id === 'grimper_corde') {
+      // Cas particulier : réussite binaire, pas un classement chiffré
+      const reussis = DB.jsps.filter(j => {
+        const icp = getICP(j.id, saison);
+        if (!icp || !icp.periodes) return false;
+        return ICP_PERIODES.some(p => {
+          const brut = (icp.periodes[p.id] || {})[e.id + '_brut'] || '';
+          return /^(o|pass)/i.test(brut.trim());
+        });
+      });
+      result[e.id] = { epreuve: e, type: 'binaire', jsps: reussis };
+      return;
+    }
+    const classement = [];
+    DB.jsps.forEach(j => {
+      const icp = getICP(j.id, saison);
+      if (!icp || !icp.periodes) return;
+      let meilleur = null, meilleurePeriode = null;
+      ICP_PERIODES.forEach(p => {
+        const brut = (icp.periodes[p.id] || {})[e.id + '_brut'];
+        const val = parseFloat(brut);
+        if (!isNaN(val) && (meilleur === null || val > meilleur)) {
+          meilleur = val;
+          meilleurePeriode = p.label;
+        }
+      });
+      if (meilleur !== null) classement.push({ jsp: j, valeur: meilleur, periode: meilleurePeriode });
+    });
+    classement.sort((a, b) => b.valeur - a.valeur);
+    result[e.id] = { epreuve: e, type: 'chiffre', classement: classement.slice(0, 3) };
+  });
+  return result;
+}
+
+function renderTopICP(saison) {
+  const tops = getTopICP(saison);
+  const medailles = ['🥇', '🥈', '🥉'];
+  return `
+  <div class="section-header" style="margin-top:4px"><h2><i class="ti ti-trophy"></i> Meilleurs JSP par discipline — ${saison}</h2></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:24px">
+    ${ICP_EPREUVES.map(e => {
+      const t = tops[e.id];
+      let body = '';
+      if (t.type === 'binaire') {
+        body = t.jsps.length
+          ? t.jsps.map(j => `<div style="padding:6px 0;font-size:13px;font-weight:600">✅ ${j.prenom} ${j.nom}</div>`).join('')
+          : '<div style="font-size:12px;color:var(--gris-txt)">Aucun résultat saisi</div>';
+      } else {
+        body = t.classement.length
+          ? t.classement.map((c, i) => `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;${i<t.classement.length-1?'border-bottom:1px solid var(--gris-bord)':''}">
+              <span style="font-size:16px">${medailles[i]}</span>
+              <span style="flex:1;font-size:13px;font-weight:600">${c.jsp.prenom} ${c.jsp.nom}</span>
+              <span style="font-size:13px;font-weight:700;color:var(--bleu)">${c.valeur} <span style="font-size:10px;color:var(--gris-txt);font-weight:400">${e.unite}</span></span>
+            </div>`).join('')
+          : '<div style="font-size:12px;color:var(--gris-txt)">Aucun résultat saisi</div>';
+      }
+      return `
+      <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);padding:14px 16px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px">${e.icon} ${e.label}</div>
+        ${body}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+
 function renderICP() {
   if (!DB.icp) DB.icp = [];
   const saison = DB.saison;
@@ -4492,6 +4563,8 @@ function renderICP() {
     <div class="stat-card vert"><div class="stat-val">${saisis}</div><div class="stat-lbl">Fiches saisies</div></div>
     <div class="stat-card orange"><div class="stat-val">${total - saisis}</div><div class="stat-lbl">Non saisis</div></div>
   </div>
+
+  ${renderTopICP(saison)}
 
   <div class="jsp-selector">
     <label><i class="ti ti-user"></i> JSP :</label>
