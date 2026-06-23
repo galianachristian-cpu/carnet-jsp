@@ -475,6 +475,12 @@
           <i class="ti ti-lock"></i><span>Mot de passe</span>
         </div>
       </div>
+      <div id="sidebarHabillement" class="hidden">
+        <div class="sidebar-section">Équipement</div>
+        <div class="nav-item active" onclick="showSection('habillement')">
+          <i class="ti ti-shirt"></i><span>Habillement</span>
+        </div>
+      </div>
     </div>
 
     <!-- Content -->
@@ -586,6 +592,12 @@ function loadData() {
             "pass": "admin123",
             "role": "admin",
             "nom": "Chef Galiana"
+      },
+      {
+            "login": "habillement",
+            "pass": "jsp2026hab",
+            "role": "habillement",
+            "nom": "Bureau Habillement"
       },
       {
             "login": "rouhart",
@@ -1613,6 +1625,10 @@ function doLogin() {
     showSection('dashboard');
     // Chargement cloud au démarrage
     initCloudSync().then(() => { showSection('dashboard'); });
+  } else if (user.role === 'habillement') {
+    document.getElementById('sidebarHabillement').classList.remove('hidden');
+    showSection('habillement');
+    initCloudSync().then(() => { showSection('habillement'); });
   } else {
     document.getElementById('sidebarParent').classList.remove('hidden');
     // Badge messages non lus
@@ -1637,6 +1653,7 @@ function doLogout() {
   document.getElementById('loginPass').value = '';
   document.getElementById('sidebarAdmin').classList.add('hidden');
   document.getElementById('sidebarParent').classList.add('hidden');
+  document.getElementById('sidebarHabillement').classList.add('hidden');
   document.getElementById('loginError').classList.add('hidden');
 }
 
