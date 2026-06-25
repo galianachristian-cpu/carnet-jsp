@@ -5172,7 +5172,7 @@ function renderHabillement(ongletActif) {
             </div></td>
             <td><span class="badge badge-bleu">${jsp.promotion}</span></td>
             <td>${val(hab?.veste)}</td>
-            <td>${val(hab?.pantalon)}</td>
+            <td>${val(hab?.pantalon)}${hab?.pantalonLongueur ? ` <span style="color:var(--gris-txt);font-size:11px">(${hab.pantalonLongueur} cm)</span>` : ''}</td>
             <td>${val(hab?.casque)}</td>
             <td>${val(hab?.gants)}</td>
             <td>${val(hab?.chaussures)}</td>
@@ -5180,7 +5180,7 @@ function renderHabillement(ongletActif) {
             <td>${val(hab?.parka)}</td>
             <td>${val(hab?.tshirtSport)}</td>
             <td>${val(hab?.vesteSport)}</td>
-            <td>${val(hab?.pantalonSport)}</td>
+            <td>${val(hab?.pantalonSport)}${hab?.pantalonSportLongueur ? ` <span style="color:var(--gris-txt);font-size:11px">(${hab.pantalonSportLongueur} cm)</span>` : ''}</td>
             <td style="font-size:12px;color:var(--gris-txt);max-width:140px">${hab?.remarques || ''}</td>
             <td>${badgeStatut(hab)}</td>
             <td>
@@ -5233,6 +5233,10 @@ function modalHabillement(jspId) {
           <option value="">--</option>
           ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('pantalon')===s?'selected':''}>${s}</option>`).join('')}
         </select>
+      </div>
+      <div class="form-group">
+        <label>Longueur pantalon TSI (cm)</label>
+        <input type="number" id="hab-pantalonLongueur" min="0" step="1" value="${v('pantalonLongueur')}" placeholder="Ex : 78">
       </div>
       <div class="form-group">
         <label>Casque</label>
@@ -5291,6 +5295,10 @@ function modalHabillement(jspId) {
         </select>
       </div>
       <div class="form-group">
+        <label>Longueur pantalon sport (cm)</label>
+        <input type="number" id="hab-pantalonSportLongueur" min="0" step="1" value="${v('pantalonSportLongueur')}" placeholder="Ex : 76">
+      </div>
+      <div class="form-group">
         <label>Statut</label>
         <select id="hab-statut">
           <option ${v('statut')==='En attente'||!v('statut')?'selected':''} value="En attente">⏳ En attente</option>
@@ -5318,6 +5326,7 @@ function saveHabillement(jspId) {
 
   const veste     = document.getElementById('hab-veste').value;
   const pantalon  = document.getElementById('hab-pantalon').value;
+  const pantalonLongueur = document.getElementById('hab-pantalonLongueur').value.trim();
   const casque    = document.getElementById('hab-casque').value;
   const gants     = document.getElementById('hab-gants').value;
   const chaussures= document.getElementById('hab-chaussures').value;
@@ -5326,6 +5335,7 @@ function saveHabillement(jspId) {
   const tshirtSport   = document.getElementById('hab-tshirtSport').value;
   const vesteSport    = document.getElementById('hab-vesteSport').value;
   const pantalonSport = document.getElementById('hab-pantalonSport').value;
+  const pantalonSportLongueur = document.getElementById('hab-pantalonSportLongueur').value.trim();
   const statut    = document.getElementById('hab-statut').value;
   const remarques = document.getElementById('hab-remarques').value.trim();
 
@@ -5333,7 +5343,7 @@ function saveHabillement(jspId) {
   const autoStatut = (statut !== 'Validé' && (!veste || !pantalon || !casque || !gants || !chaussures || !ceinture || !parka))
     ? 'Incomplet' : statut;
 
-  const entry = { jspId: id, veste, pantalon, casque, gants, chaussures, ceinture, parka, tshirtSport, vesteSport, pantalonSport, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
+  const entry = { jspId: id, veste, pantalon, pantalonLongueur, casque, gants, chaussures, ceinture, parka, tshirtSport, vesteSport, pantalonSport, pantalonSportLongueur, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
 
   const idx = DB.habillement.findIndex(h => h.jspId === id);
   if (idx >= 0) DB.habillement[idx] = entry;
@@ -5724,7 +5734,7 @@ function printFicheHabillement(jspId) {
       </thead>
       <tbody>
         ${row('Veste TSI', hab.veste, '🧥')}
-        ${row('Pantalon TSI', hab.pantalon, '👖')}
+        ${row('Pantalon TSI', (hab.pantalon || '') + (hab.pantalonLongueur ? (hab.pantalon ? ' ' : '') + '('+hab.pantalonLongueur+' cm)' : ''), '👖')}
         ${row('Parka', hab.parka, '🥼')}
         ${row('Ceinture', hab.ceinture, '🔗')}
         ${row('Casque', hab.casque, '⛑️')}
@@ -5732,7 +5742,7 @@ function printFicheHabillement(jspId) {
         ${row('Chaussures', hab.chaussures, '👢')}
         ${row('T-shirt sport', hab.tshirtSport, '👕')}
         ${row('Veste sport', hab.vesteSport, '🏃')}
-        ${row('Pantalon sport', hab.pantalonSport, '🩳')}
+        ${row('Pantalon sport', (hab.pantalonSport || '') + (hab.pantalonSportLongueur ? (hab.pantalonSport ? ' ' : '') + '('+hab.pantalonSportLongueur+' cm)' : ''), '🩳')}
       </tbody>
     </table>
 
