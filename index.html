@@ -441,6 +441,10 @@
         <div class="nav-item" onclick="showSection('icp')">
           <i class="ti ti-run"></i><span>ICP JSP</span>
         </div>
+        <div class="sidebar-section">Gestion</div>
+        <div class="nav-item" onclick="showSection('finance')">
+          <i class="ti ti-cash"></i><span>Finance</span>
+        </div>
         
         
       </div>
@@ -557,6 +561,7 @@ async function loadFromCloud() {
       if (!cloud.habillement) cloud.habillement = [];
       if (!cloud.mouvementsHabillement) cloud.mouvementsHabillement = [];
       if (!cloud.stockHabillement) cloud.stockHabillement = [];
+      if (!cloud.finance) cloud.finance = [];
       if (!cloud.icp) cloud.icp = [];
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
@@ -581,6 +586,7 @@ function loadData() {
     if (!parsed.habillement) parsed.habillement = [];
     if (!parsed.mouvementsHabillement) parsed.mouvementsHabillement = [];
     if (!parsed.stockHabillement) parsed.stockHabillement = [];
+    if (!parsed.finance) parsed.finance = [];
     if (!parsed.icp) parsed.icp = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
@@ -1026,6 +1032,7 @@ function loadData() {
     habillement: [],
     mouvementsHabillement: [],
     stockHabillement: [],
+    finance: [],
     icp: [],
     absences: [
       {
@@ -1693,6 +1700,7 @@ function showSection(sec) {
     case 'parent-messages': c.innerHTML = renderParentMessages(); break;
     case 'habillement': c.innerHTML = renderHabillement(); break;
     case 'icp': c.innerHTML = renderICP(); break;
+    case 'finance': c.innerHTML = renderFinance(); break;
   }
 }
 
@@ -5060,6 +5068,215 @@ function exportStockHabillementExcel() {
   XLSX.utils.book_append_sheet(wb, ws, 'Stock habillement');
   downloadXLSX(wb, 'Stock_Habillement_' + DB.saison + '.xlsx');
 }
+// ══════════════════════════════════════════
+//  FINANCE
+// ══════════════════════════════════════════
+const FINANCE_CATEGORIES_RECETTE = ['Mairie de Cruzy', 'Mairie de Quarante', 'Amicale', 'SIVU', 'Tombola', 'Loto', 'Trail', 'Autre'];
+
+function getFinanceSaison(saison) {
+  if (!DB.finance) DB.finance = [];
+  return DB.finance.filter(f => f.saison === saison);
+}
+
+function getSoldeAnterieur(saison) {
+  // Cherche un solde initial déclaré pour cette saison (champ spécial type='solde_initial')
+  if (!DB.finance) DB.finance = [];
+  const init = DB.finance.find(f => f.saison === saison && f.type === 'solde_initial');
+  return init ? init.montant : 0;
+}
+
+function setSoldeAnterieur(saison, montant) {
+  if (!DB.finance) DB.finance = [];
+  let init = DB.finance.find(f => f.saison === saison && f.type === 'solde_initial');
+  if (!init) {
+    init = { id: Date.now(), saison, type: 'solde_initial', montant: 0 };
+    DB.finance.push(init);
+  }
+  init.montant = parseFloat(montant) || 0;
+  saveData();
+}
+
+function renderFinance() {
+  if (!DB.finance) DB.finance = [];
+  const saison = DB.saison;
+  const lignes = getFinanceSaison(saison).filter(f => f.type === 'depense' || f.type === 'recette');
+  const depenses = lignes.filter(f => f.type === 'depense');
+  const recettes = lignes.filter(f => f.type === 'recette');
+
+  const totalDepenses = depenses.reduce((s, f) => s + f.montant, 0);
+  const totalRecettes = recettes.reduce((s, f) => s + f.montant, 0);
+  const soldeAnterieur = getSoldeAnterieur(saison);
+  const soldeAJour = soldeAnterieur + totalRecettes - totalDepenses;
+
+  // Récapitulatif par catégorie de recette (toujours afficher les 8 catégories fixes, même à 0)
+  const recettesParCategorie = FINANCE_CATEGORIES_RECETTE.map(cat => ({
+    categorie: cat,
+    montant: recettes.filter(f => f.categorie === cat).reduce((s, f) => s + f.montant, 0)
+  }));
+
+  const fmtEUR = (n) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-cash"></i> Finance — Saison ${saison}</h2>
+    <button class="btn-add" style="background:#6b7280" onclick="exportFinanceExcel()"><i class="ti ti-file-spreadsheet"></i> Exporter Excel</button>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:20px">
+    <div class="stat-card bleu">
+      <div class="stat-val" style="cursor:pointer" onclick="modalSoldeAnterieur('${saison}')" title="Cliquer pour modifier">${fmtEUR(soldeAnterieur)} <i class="ti ti-pencil" style="font-size:13px;color:var(--gris-txt)"></i></div>
+      <div class="stat-lbl">Solde antérieur</div>
+    </div>
+    <div class="stat-card vert"><div class="stat-val">${fmtEUR(totalRecettes)}</div><div class="stat-lbl">Total recettes</div></div>
+    <div class="stat-card rouge"><div class="stat-val">${fmtEUR(totalDepenses)}</div><div class="stat-lbl">Total dépenses</div></div>
+    <div class="stat-card ${soldeAJour >= 0 ? 'vert' : 'rouge'}"><div class="stat-val">${fmtEUR(soldeAJour)}</div><div class="stat-lbl">Solde à jour</div></div>
+  </div>
+
+  <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-gift"></i> Dons et subventions par catégorie</h3></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:24px">
+    ${recettesParCategorie.map(c => `
+      <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);padding:12px 14px">
+        <div style="font-size:12px;color:var(--gris-txt);margin-bottom:4px">${c.categorie}</div>
+        <div style="font-size:17px;font-weight:700;color:${c.montant>0?'#166534':'var(--gris-txt)'}">${fmtEUR(c.montant)}</div>
+      </div>`).join('')}
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+      <div class="section-header"><h3 style="font-size:15px;color:#166534"><i class="ti ti-arrow-down-circle"></i> Recettes (${recettes.length})</h3>
+        <button class="btn-add" onclick="modalFinanceLigne(null,'recette')"><i class="ti ti-plus"></i> Ajouter</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th>Montant</th><th></th></tr></thead>
+          <tbody>
+            ${recettes.length ? recettes.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(f => `
+              <tr>
+                <td>${f.date ? f.date.split('-').reverse().join('/') : '—'}</td>
+                <td><span class="badge badge-bleu">${f.categorie}</span></td>
+                <td>${f.libelle || '—'}</td>
+                <td style="font-weight:700;color:#166534">${fmtEUR(f.montant)}</td>
+                <td><button class="btn-add" style="padding:4px 9px;font-size:12px;background:var(--bleu-clair)" onclick="modalFinanceLigne(${f.id},'recette')"><i class="ti ti-pencil"></i></button></td>
+              </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--gris-txt);padding:20px">Aucune recette enregistrée</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="section-header"><h3 style="font-size:15px;color:#b91c1c"><i class="ti ti-arrow-up-circle"></i> Dépenses (${depenses.length})</h3>
+        <button class="btn-add" onclick="modalFinanceLigne(null,'depense')"><i class="ti ti-plus"></i> Ajouter</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Date</th><th>Libellé</th><th>Montant</th><th></th></tr></thead>
+          <tbody>
+            ${depenses.length ? depenses.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(f => `
+              <tr>
+                <td>${f.date ? f.date.split('-').reverse().join('/') : '—'}</td>
+                <td>${f.libelle || '—'}</td>
+                <td style="font-weight:700;color:#b91c1c">${fmtEUR(f.montant)}</td>
+                <td><button class="btn-add" style="padding:4px 9px;font-size:12px;background:var(--bleu-clair)" onclick="modalFinanceLigne(${f.id},'depense')"><i class="ti ti-pencil"></i></button></td>
+              </tr>`).join('') : `<tr><td colspan="4" style="text-align:center;color:var(--gris-txt);padding:20px">Aucune dépense enregistrée</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function modalSoldeAnterieur(saison) {
+  const solde = getSoldeAnterieur(saison);
+  openModal(`
+    <h3><i class="ti ti-bank"></i> Solde antérieur — ${saison}</h3>
+    <div class="form-group">
+      <label>Montant en banque au début de la saison (€)</label>
+      <input type="number" id="solde-anterieur-val" step="0.01" value="${solde}">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="setSoldeAnterieur('${saison}', document.getElementById('solde-anterieur-val').value); closeModal(); showSection('finance')">💾 Enregistrer</button>
+    </div>`);
+}
+
+function modalFinanceLigne(id, type) {
+  if (!DB.finance) DB.finance = [];
+  const ligne = id ? DB.finance.find(f => f.id === id) : null;
+  const isRecette = type === 'recette';
+
+  openModal(`
+    <h3><i class="ti ${isRecette?'ti-arrow-down-circle':'ti-arrow-up-circle'}"></i> ${ligne ? 'Modifier' : 'Nouvelle'} ${isRecette?'recette':'dépense'}</h3>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="fin-date" value="${ligne?.date || new Date().toISOString().slice(0,10)}">
+    </div>
+    ${isRecette ? `
+    <div class="form-group">
+      <label>Catégorie *</label>
+      <select id="fin-categorie">
+        ${FINANCE_CATEGORIES_RECETTE.map(c => `<option ${ligne?.categorie===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>` : ''}
+    <div class="form-group">
+      <label>Libellé</label>
+      <input type="text" id="fin-libelle" value="${ligne?.libelle || ''}" placeholder="${isRecette?'Ex : Tombola printemps':'Ex : Repas annuel, Rbt surveillant'}">
+    </div>
+    <div class="form-group">
+      <label>Montant (€) *</label>
+      <input type="number" id="fin-montant" step="0.01" min="0" value="${ligne?.montant || ''}">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      ${ligne ? `<button class="btn-danger" onclick="deleteFinanceLigne(${id})"><i class="ti ti-trash"></i> Supprimer</button>` : ''}
+      <button class="btn-save" onclick="saveFinanceLigne(${id || 'null'}, '${type}')">💾 Enregistrer</button>
+    </div>`);
+}
+
+function saveFinanceLigne(id, type) {
+  const date = document.getElementById('fin-date').value;
+  const categorie = type === 'recette' ? document.getElementById('fin-categorie').value : null;
+  const libelle = document.getElementById('fin-libelle').value.trim();
+  const montant = parseFloat(document.getElementById('fin-montant').value);
+
+  if (!montant || montant <= 0) { alert('Indique un montant valide.'); return; }
+
+  if (!DB.finance) DB.finance = [];
+  const entry = { id: id || Date.now(), saison: DB.saison, type, categorie, libelle, montant, date };
+  const idx = DB.finance.findIndex(f => f.id === id);
+  if (idx >= 0) DB.finance[idx] = entry;
+  else DB.finance.push(entry);
+
+  saveData();
+  closeModal();
+  showSection('finance');
+}
+
+function deleteFinanceLigne(id) {
+  if (!confirm('Supprimer cette ligne ?')) return;
+  DB.finance = DB.finance.filter(f => f.id !== id);
+  saveData();
+  closeModal();
+  showSection('finance');
+}
+
+function exportFinanceExcel() {
+  const saison = DB.saison;
+  const lignes = getFinanceSaison(saison).filter(f => f.type === 'depense' || f.type === 'recette');
+  const wb = XLSX.utils.book_new();
+  const headers = ['Type', 'Date', 'Catégorie', 'Libellé', 'Montant (€)'];
+  const rows = lignes.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(f => [
+    f.type === 'recette' ? 'Recette' : 'Dépense',
+    f.date ? f.date.split('-').reverse().join('/') : '',
+    f.categorie || '',
+    f.libelle || '',
+    f.montant
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{wch:10},{wch:12},{wch:18},{wch:28},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Finance ' + saison);
+  downloadXLSX(wb, 'Finance_JSP_' + saison + '.xlsx');
+}
+
+
 function renderHabillement(ongletActif) {
   if (!DB.habillement) DB.habillement = [];
   if (!DB.mouvementsHabillement) DB.mouvementsHabillement = [];
