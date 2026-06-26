@@ -430,6 +430,9 @@
         <div class="nav-item" onclick="showSection('historique')">
           <i class="ti ti-history"></i><span>Historique</span>
         </div>
+        <div class="nav-item" onclick="showSection('connexions')">
+          <i class="ti ti-user-check"></i><span>Connexions</span>
+        </div>
         <div class="nav-item" onclick="showSection('export')">
           <i class="ti ti-file-spreadsheet"></i><span>Export Excel</span>
         </div>
@@ -587,6 +590,7 @@ async function loadFromCloud() {
       if (!cloud.mouvementsHabillement) cloud.mouvementsHabillement = [];
       if (!cloud.stockHabillement) cloud.stockHabillement = [];
       if (!cloud.finance) cloud.finance = [];
+      if (!cloud.connexionsLog) cloud.connexionsLog = [];
       if (cloud.organigramme === undefined) cloud.organigramme = null;
       if (!cloud.icp) cloud.icp = [];
       DB = cloud;
@@ -613,6 +617,7 @@ function loadData() {
     if (!parsed.mouvementsHabillement) parsed.mouvementsHabillement = [];
     if (!parsed.stockHabillement) parsed.stockHabillement = [];
     if (!parsed.finance) parsed.finance = [];
+    if (!parsed.connexionsLog) parsed.connexionsLog = [];
     if (parsed.organigramme === undefined) parsed.organigramme = null;
     if (!parsed.icp) parsed.icp = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
@@ -1066,6 +1071,7 @@ function loadData() {
     mouvementsHabillement: [],
     stockHabillement: [],
     finance: [],
+    connexionsLog: [],
     organigramme: null,
     icp: [],
     absences: [
@@ -1676,6 +1682,11 @@ function doLogin() {
     return;
   }
   currentUser = user;
+  user.derniereConnexion = new Date().toISOString();
+  if (!DB.connexionsLog) DB.connexionsLog = [];
+  DB.connexionsLog.push({ login: user.login, nom: user.nom, role: user.role, date: new Date().toISOString() });
+  if (DB.connexionsLog.length > 500) DB.connexionsLog = DB.connexionsLog.slice(-500);
+  saveData();
   document.getElementById('loginWrap').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('headerUserName').textContent = user.nom;
@@ -1751,6 +1762,7 @@ function showSection(sec) {
     case 'admin-mdp': c.innerHTML = renderAdminMdp(); break;
     case 'export': c.innerHTML = renderExport(); break;
     case 'historique': c.innerHTML = renderHistorique(); break;
+    case 'connexions': c.innerHTML = renderConnexions(); break;
     case 'feuille-appel': c.innerHTML = renderFeuilleAppel(); break;
     case 'messagerie': c.innerHTML = renderMessagerie(); break;
     case 'parent-messages': c.innerHTML = renderParentMessages(); break;
@@ -5070,6 +5082,89 @@ setTimeout(initDarkMode, 100);
 // ══════════════════════════════════════════
 //  HISTORIQUE MULTI-SAISONS
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  SUIVI DES CONNEXIONS
+// ══════════════════════════════════════════
+function fmtDateHeure(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'}) + ' à ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+}
+
+function joursDepuis(iso) {
+  if (!iso) return Infinity;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / (1000*60*60*24));
+}
+
+function renderConnexions() {
+  if (!DB.connexionsLog) DB.connexionsLog = [];
+  const parents = DB.users.filter(u => u.role === 'parent');
+  const special = DB.users.filter(u => u.role === 'habillement' || u.role === 'finance');
+
+  const jamaisConnecte = parents.filter(u => !u.derniereConnexion).length;
+  const actifs7j = parents.filter(u => joursDepuis(u.derniereConnexion) <= 7).length;
+
+  const ligneCompte = (u) => {
+    const j = joursDepuis(u.derniereConnexion);
+    const statutColor = !u.derniereConnexion ? '#9ca3af' : j <= 7 ? '#166534' : j <= 30 ? '#b45309' : '#b91c1c';
+    const statutBg = !u.derniereConnexion ? '#f3f4f6' : j <= 7 ? '#dcfce7' : j <= 30 ? '#fef3c7' : '#fee2e2';
+    const statutTxt = !u.derniereConnexion ? 'Jamais connecté' : j === 0 ? "Aujourd'hui" : j === 1 ? 'Hier' : j + ' jours';
+    return `
+      <tr>
+        <td style="font-weight:600">${u.nom}</td>
+        <td style="color:var(--bleu)">${u.login}</td>
+        <td>${fmtDateHeure(u.derniereConnexion)}</td>
+        <td><span class="badge" style="background:${statutBg};color:${statutColor}">${statutTxt}</span></td>
+      </tr>`;
+  };
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-user-check"></i> Suivi des connexions</h2>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
+    <div class="stat-card bleu"><div class="stat-val">${parents.length}</div><div class="stat-lbl">Comptes parents</div></div>
+    <div class="stat-card vert"><div class="stat-val">${actifs7j}</div><div class="stat-lbl">Connectés ces 7 derniers jours</div></div>
+    <div class="stat-card rouge"><div class="stat-val">${jamaisConnecte}</div><div class="stat-lbl">Jamais connectés</div></div>
+  </div>
+
+  <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-users"></i> Comptes parents</h3></div>
+  <div class="table-card" style="margin-bottom:24px">
+    <table>
+      <thead><tr><th>Famille</th><th>Login</th><th>Dernière connexion</th><th>Statut</th></tr></thead>
+      <tbody>
+        ${parents.sort((a,b) => joursDepuis(a.derniereConnexion) - joursDepuis(b.derniereConnexion)).map(ligneCompte).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  ${special.length ? `
+  <div class="section-header"><h3 style="font-size:15px"><i class="ti ti-shield"></i> Comptes spéciaux</h3></div>
+  <div class="table-card" style="margin-bottom:24px">
+    <table>
+      <thead><tr><th>Compte</th><th>Login</th><th>Dernière connexion</th><th>Statut</th></tr></thead>
+      <tbody>${special.map(ligneCompte).join('')}</tbody>
+    </table>
+  </div>` : ''}
+
+  <div class="section-header"><h3 style="font-size:15px"><i class="ti ti-clock"></i> Historique récent (50 dernières connexions)</h3></div>
+  <div class="table-card">
+    <table>
+      <thead><tr><th>Date</th><th>Compte</th><th>Rôle</th></tr></thead>
+      <tbody>
+        ${DB.connexionsLog.slice(-50).reverse().map(l => `
+          <tr>
+            <td>${fmtDateHeure(l.date)}</td>
+            <td style="font-weight:600">${l.nom}</td>
+            <td><span class="badge badge-bleu">${l.role}</span></td>
+          </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--gris-txt);padding:16px">Aucune connexion enregistrée encore</td></tr>'}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+
 function renderHistorique() {
   const saisons = DB.allSaisons || [DB.saison];
 
