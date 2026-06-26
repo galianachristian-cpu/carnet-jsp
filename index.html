@@ -439,6 +439,9 @@
         <div class="nav-item" onclick="showSection('messagerie')">
           <i class="ti ti-message"></i><span>Messagerie</span>
         </div>
+        <div class="nav-item" onclick="showSection('envoi-identifiants')">
+          <i class="ti ti-key"></i><span>Envoi identifiants</span>
+        </div>
         <div class="sidebar-section">Équipement</div>
         <div class="nav-item" onclick="showSection('habillement')">
           <i class="ti ti-shirt"></i><span>Habillement</span>
@@ -1751,9 +1754,7 @@ function showSection(sec) {
     case 'feuille-appel': c.innerHTML = renderFeuilleAppel(); break;
     case 'messagerie': c.innerHTML = renderMessagerie(); break;
     case 'parent-messages': c.innerHTML = renderParentMessages(); break;
-    case 'feuille-appel': c.innerHTML = renderFeuilleAppel(); break;
-    case 'messagerie': c.innerHTML = renderMessagerie(); break;
-    case 'parent-messages': c.innerHTML = renderParentMessages(); break;
+    case 'envoi-identifiants': c.innerHTML = renderEnvoiIdentifiants(); break;
     case 'habillement': c.innerHTML = renderHabillement(); break;
     case 'icp': c.innerHTML = renderICP(); break;
     case 'finance': c.innerHTML = renderFinance(); break;
@@ -3186,6 +3187,174 @@ function renderParentBilan() {
 // ══════════════════════════════════════════
 //  NOTIFICATIONS EMAIL
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  ENVOI IDENTIFIANTS (groupé, par email)
+// ══════════════════════════════════════════
+function renderEnvoiIdentifiants() {
+  const destinatairesJSP = [];
+  DB.jsps.forEach(j => {
+    // Cherche le compte parent correspondant via le login déjà utilisé dans la page Mots de passe (basé sur le nom de famille)
+    const loginFamille = (j.nom || '').toLowerCase().replace(/[^a-z]/g, '');
+    const user = DB.users.find(u => u.role === 'parent' && u.login === loginFamille);
+    destinatairesJSP.push({
+      id: 'jsp_' + j.id,
+      label: j.prenom + ' ' + j.nom + (j.promotion ? ' — ' + j.promotion : ''),
+      email: j.email || '',
+      login: user ? user.login : loginFamille,
+      pass: user ? user.pass : ''
+    });
+  });
+
+  const comptesSpeciaux = DB.users.filter(u => u.role === 'habillement' || u.role === 'finance');
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-key"></i> Envoi des identifiants</h2>
+  </div>
+  <p style="font-size:13px;color:var(--gris-txt);margin-bottom:18px">
+    Sélectionne un ou plusieurs destinataires, puis envoie-leur directement leur identifiant et mot de passe par email.
+  </p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+      <div class="section-header" style="margin-bottom:10px"><h3 style="font-size:14px"><i class="ti ti-users"></i> Familles / JSP</h3>
+        <div>
+          <button class="btn-add" style="padding:5px 10px;font-size:12px;background:#6b7280" onclick="toggleTousDestinataires('jsp-dest',true)">Tout sélectionner</button>
+          <button class="btn-add" style="padding:5px 10px;font-size:12px;background:#6b7280" onclick="toggleTousDestinataires('jsp-dest',false)">Aucun</button>
+        </div>
+      </div>
+      <div class="table-card" style="max-height:380px;overflow-y:auto">
+        <table>
+          <thead><tr><th style="width:30px"></th><th>JSP</th><th>Email</th></tr></thead>
+          <tbody>
+            ${destinatairesJSP.map(d => `
+              <tr>
+                <td><input type="checkbox" class="jsp-dest" value="${d.id}" data-login="${d.login}" data-pass="${d.pass}" data-email="${d.email}" data-label="${d.label.replace(/"/g,'&quot;')}" ${!d.email ? 'disabled' : ''}></td>
+                <td>${d.label}</td>
+                <td style="font-size:12px;color:${d.email ? 'inherit' : 'var(--gris-txt)'}">${d.email || "Pas d'email"}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-header" style="margin-bottom:10px"><h3 style="font-size:14px"><i class="ti ti-shield"></i> Comptes spéciaux</h3></div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th style="width:30px"></th><th>Compte</th><th>Login</th></tr></thead>
+          <tbody>
+            ${comptesSpeciaux.map(u => `
+              <tr>
+                <td><input type="checkbox" class="special-dest" value="${u.login}" data-login="${u.login}" data-pass="${u.pass}" data-label="${u.nom}"></td>
+                <td>${u.nom}</td>
+                <td style="font-size:12px">${u.login}</td>
+              </tr>`).join('')}
+            ${comptesSpeciaux.length === 0 ? '<tr><td colspan="3" style="text-align:center;color:var(--gris-txt);padding:16px">Aucun compte spécial créé</td></tr>' : ''}
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:12px;color:var(--gris-txt);margin-top:8px">
+        ⚠️ Les comptes spéciaux n'ont pas d'email enregistré — tu devras copier le message et l'envoyer toi-même (SMS, WhatsApp...).
+      </p>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;text-align:center">
+    <button class="btn-add" style="background:var(--bleu);padding:10px 24px" onclick="apercuEnvoiIdentifiants()"><i class="ti ti-send"></i> Préparer l'envoi</button>
+  </div>`;
+}
+
+function toggleTousDestinataires(className, checked) {
+  document.querySelectorAll('.' + className).forEach(cb => { if (!cb.disabled) cb.checked = checked; });
+}
+
+function apercuEnvoiIdentifiants() {
+  const jspCoches = Array.from(document.querySelectorAll('.jsp-dest:checked'));
+  const specCoches = Array.from(document.querySelectorAll('.special-dest:checked'));
+
+  if (jspCoches.length === 0 && specCoches.length === 0) {
+    alert('Sélectionne au moins un destinataire.');
+    return;
+  }
+
+  const lienApp = 'https://galianachristian-cpu.github.io/carnet-jsp/';
+
+  const listeJSP = jspCoches.map(cb => ({
+    label: cb.dataset.label, email: cb.dataset.email, login: cb.dataset.login, pass: cb.dataset.pass
+  }));
+  const listeSpec = specCoches.map(cb => ({
+    label: cb.dataset.label, login: cb.dataset.login, pass: cb.dataset.pass
+  }));
+
+  openModal(`
+    <h3><i class="ti ti-send"></i> Aperçu de l'envoi (${listeJSP.length + listeSpec.length} destinataire${listeJSP.length+listeSpec.length>1?'s':''})</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:14px">
+      Chaque destinataire recevra un email personnalisé avec son propre identifiant et mot de passe.
+    </p>
+    <div style="max-height:280px;overflow-y:auto;border:1px solid var(--gris-bord);border-radius:8px;padding:10px;margin-bottom:16px">
+      ${listeJSP.map(d => `<div style="padding:6px 0;border-bottom:1px solid var(--gris-bord);font-size:13px"><strong>${d.label}</strong> — ${d.email} <span class="badge badge-bleu">${d.login}</span></div>`).join('')}
+      ${listeSpec.map(d => `<div style="padding:6px 0;border-bottom:1px solid var(--gris-bord);font-size:13px"><strong>${d.label}</strong> — <span style="color:var(--orange)">Pas d'email, à transmettre manuellement</span> <span class="badge badge-bleu">${d.login}</span></div>`).join('')}
+    </div>
+    <div id="envoi-progress" style="display:none;margin-bottom:12px">
+      <div style="font-size:13px;margin-bottom:6px">Envoi en cours… <span id="envoi-compteur">0</span>/${listeJSP.length}</div>
+      <div style="background:var(--gris-bg);border-radius:6px;height:8px;overflow:hidden">
+        <div id="envoi-barre" style="background:var(--vert);height:100%;width:0%;transition:width .2s"></div>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      ${listeJSP.length > 0 ? `<button class="btn-save" onclick='lancerEnvoiIdentifiants(${JSON.stringify(listeJSP).replace(/'/g,"&#39;")})'><i class="ti ti-mail"></i> Envoyer ${listeJSP.length} email${listeJSP.length>1?'s':''}</button>` : ''}
+    </div>`);
+}
+
+async function lancerEnvoiIdentifiants(liste) {
+  const lienApp = 'https://galianachristian-cpu.github.io/carnet-jsp/';
+  document.getElementById('envoi-progress').style.display = 'block';
+  let ok = 0, echecs = [];
+
+  for (let i = 0; i < liste.length; i++) {
+    const d = liste[i];
+    const sujet = 'Vos identifiants Carnet JSP — CIS Cruzy-Quarante';
+    const message = `Bonjour,
+
+Voici vos identifiants de connexion pour le Carnet JSP de la section JSP Cruzy-Quarante :
+
+Lien de connexion : ${lienApp}
+Identifiant : ${d.login}
+Mot de passe : ${d.pass}
+
+Vous pourrez y suivre les absences, résultats, planning et bilans de ${d.label}.
+
+Cordialement,
+Le Chef de section`;
+
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        email_destinataire: d.email,
+        sujet: sujet,
+        message: message,
+        name: 'Chef Galiana — JSP Cruzy-Quarante',
+        email: 'galiana.christian@gmail.com'
+      });
+      ok++;
+    } catch(e) {
+      console.error('Erreur envoi à', d.email, e);
+      echecs.push(d.label);
+    }
+    document.getElementById('envoi-compteur').textContent = (i + 1);
+    document.getElementById('envoi-barre').style.width = Math.round(((i + 1) / liste.length) * 100) + '%';
+  }
+
+  closeModal();
+  if (echecs.length === 0) {
+    showNotifToast('✅ ' + ok + ' email(s) envoyé(s) avec succès !');
+  } else {
+    alert(ok + ' email(s) envoyé(s).\n' + echecs.length + ' échec(s) : ' + echecs.join(', '));
+  }
+}
+
+
 async function sendEmailParent(jspId, sujet, message) {
   const j = DB.jsps.find(x => x.id == jspId);
   if (!j || !j.email) {
