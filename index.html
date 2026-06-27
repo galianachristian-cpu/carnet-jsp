@@ -599,6 +599,7 @@ async function loadFromCloud() {
       if (!cloud.finance) cloud.finance = [];
       if (!cloud.connexionsLog) cloud.connexionsLog = [];
       if (!cloud.validationsReglement) cloud.validationsReglement = [];
+      if (!cloud.reglement) cloud.reglement = { version: 1, texte: null, maj: null };
       if (cloud.organigramme === undefined) cloud.organigramme = null;
       if (!cloud.icp) cloud.icp = [];
       DB = cloud;
@@ -627,6 +628,7 @@ function loadData() {
     if (!parsed.finance) parsed.finance = [];
     if (!parsed.connexionsLog) parsed.connexionsLog = [];
     if (!parsed.validationsReglement) parsed.validationsReglement = [];
+    if (!parsed.reglement) parsed.reglement = { version: 1, texte: null, maj: null };
     if (parsed.organigramme === undefined) parsed.organigramme = null;
     if (!parsed.icp) parsed.icp = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
@@ -1082,6 +1084,7 @@ function loadData() {
     finance: [],
     connexionsLog: [],
     validationsReglement: [],
+    reglement: { version: 1, texte: null, maj: null },
     organigramme: null,
     icp: [],
     absences: [
@@ -1724,7 +1727,8 @@ function doLogin() {
     // Badge règlement intérieur non validé
     setTimeout(() => {
       const monJSP = getMyJSP();
-      const dejaValide = monJSP && DB.validationsReglement && DB.validationsReglement.find(v => v.jspId === monJSP.id);
+      const versionActuelle = DB.reglement ? DB.reglement.version : 1;
+      const dejaValide = monJSP && DB.validationsReglement && DB.validationsReglement.find(v => v.jspId === monJSP.id && v.version === versionActuelle);
       const badgeReg = document.getElementById('badge-reglement');
       if (badgeReg && !dejaValide) badgeReg.style.display = 'inline';
     }, 100);
@@ -5179,18 +5183,30 @@ const REGLEMENT_HTML = `
 <p><strong>Tenue de sport :</strong> pantalon de survêtement, tee-shirt, coupe-vent, chaussures adaptées à la course à pied (à la charge des parents).</p>
 `;
 
+function getTexteReglement() {
+  if (!DB.reglement) DB.reglement = { version: 1, texte: null, maj: null };
+  return DB.reglement.texte || REGLEMENT_HTML;
+}
+
 function renderReglement() {
   if (!DB.validationsReglement) DB.validationsReglement = [];
+  if (!DB.reglement) DB.reglement = { version: 1, texte: null, maj: null };
   const estAdmin = currentUser && currentUser.role === 'admin';
+  const versionActuelle = DB.reglement.version;
 
   if (estAdmin) {
     const totalJSP = DB.jsps.length;
-    const valides = DB.validationsReglement.length;
+    const validationsAJour = DB.validationsReglement.filter(v => v.version === versionActuelle);
+    const valides = validationsAJour.length;
     return `
-    <div class="section-header"><h2><i class="ti ti-file-text"></i> Règlement intérieur — Suivi des validations</h2></div>
+    <div class="section-header">
+      <h2><i class="ti ti-file-text"></i> Règlement intérieur — Suivi des validations</h2>
+      <button class="btn-add" style="background:var(--bleu)" onclick="modalEditerReglement()"><i class="ti ti-pencil"></i> Modifier le règlement</button>
+    </div>
+    <p style="font-size:12px;color:var(--gris-txt);margin-bottom:14px">Version actuelle : <strong>v${versionActuelle}</strong>${DB.reglement.maj ? ' · mise à jour le ' + fmtDateHeure(DB.reglement.maj) : ''}</p>
     <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
       <div class="stat-card bleu"><div class="stat-val">${totalJSP}</div><div class="stat-lbl">JSP inscrits</div></div>
-      <div class="stat-card vert"><div class="stat-val">${valides}</div><div class="stat-lbl">Règlements validés</div></div>
+      <div class="stat-card vert"><div class="stat-val">${valides}</div><div class="stat-lbl">Règlements validés (v${versionActuelle})</div></div>
       <div class="stat-card rouge"><div class="stat-val">${totalJSP - valides}</div><div class="stat-lbl">En attente</div></div>
     </div>
     <div class="table-card" style="margin-bottom:24px">
@@ -5198,7 +5214,7 @@ function renderReglement() {
         <thead><tr><th>JSP</th><th>Promotion</th><th>Statut</th><th>Date de validation</th></tr></thead>
         <tbody>
           ${DB.jsps.map(j => {
-            const v = DB.validationsReglement.find(x => x.jspId === j.id);
+            const v = validationsAJour.find(x => x.jspId === j.id);
             return `<tr>
               <td style="font-weight:600">${j.prenom} ${j.nom}</td>
               <td><span class="badge badge-bleu">${j.promotion || '—'}</span></td>
@@ -5209,17 +5225,17 @@ function renderReglement() {
         </tbody>
       </table>
     </div>
-    <div class="section-header"><h3 style="font-size:15px">Texte du règlement</h3></div>
-    <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);padding:20px 26px;max-width:780px;line-height:1.6;font-size:14px">${REGLEMENT_HTML}</div>`;
+    <div class="section-header"><h3 style="font-size:15px">Texte du règlement (v${versionActuelle})</h3></div>
+    <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);padding:20px 26px;max-width:780px;line-height:1.6;font-size:14px">${getTexteReglement()}</div>`;
   }
 
   // Vue parent
   const monJSP = getMyJSP ? getMyJSP() : null;
-  const dejaValide = monJSP ? DB.validationsReglement.find(v => v.jspId === monJSP.id) : null;
+  const dejaValide = monJSP ? DB.validationsReglement.find(v => v.jspId === monJSP.id && v.version === versionActuelle) : null;
 
   return `
   <div class="section-header"><h2><i class="ti ti-file-text"></i> Règlement intérieur</h2></div>
-  <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);padding:20px 26px;max-width:780px;line-height:1.6;font-size:14px;margin-bottom:20px">${REGLEMENT_HTML}</div>
+  <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);padding:20px 26px;max-width:780px;line-height:1.6;font-size:14px;margin-bottom:20px">${getTexteReglement()}</div>
 
   ${dejaValide ? `
   <div style="background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;padding:16px 20px;max-width:780px;color:#166534">
@@ -5234,13 +5250,43 @@ function renderReglement() {
   </div>`}`;
 }
 
+function modalEditerReglement() {
+  if (!DB.reglement) DB.reglement = { version: 1, texte: null, maj: null };
+  openModal(`
+    <h3><i class="ti ti-pencil"></i> Modifier le règlement intérieur (v${DB.reglement.version})</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:10px">
+      Format HTML simple accepté (ex : &lt;h3&gt;Titre&lt;/h3&gt;, &lt;p&gt;paragraphe&lt;/p&gt;, &lt;strong&gt;gras&lt;/strong&gt;, &lt;ul&gt;&lt;li&gt;liste&lt;/li&gt;&lt;/ul&gt;).
+    </p>
+    <textarea id="reglement-edit-texte" style="width:100%;height:380px;padding:12px;border:1px solid var(--gris-bord);border-radius:8px;font-size:13px;font-family:monospace;line-height:1.5">${getTexteReglement().trim()}</textarea>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-top:12px;font-size:13px;color:#92400e">
+      ⚠️ Enregistrer une modification crée une nouvelle version (v${DB.reglement.version + 1}) et <strong>réinitialise toutes les validations</strong> : chaque famille devra revalider le règlement.
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="sauverNouveauReglement()">💾 Enregistrer comme v${DB.reglement.version + 1}</button>
+    </div>`);
+}
+
+function sauverNouveauReglement() {
+  const texte = document.getElementById('reglement-edit-texte').value.trim();
+  if (!texte) { alert('Le texte ne peut pas être vide.'); return; }
+  if (!confirm('Confirmer la mise à jour ? Toutes les familles devront revalider le règlement.')) return;
+  DB.reglement.texte = texte;
+  DB.reglement.version = (DB.reglement.version || 1) + 1;
+  DB.reglement.maj = new Date().toISOString();
+  saveData();
+  closeModal();
+  showSection('reglement');
+  showNotifToast('✅ Règlement mis à jour en v' + DB.reglement.version + ' — validations réinitialisées');
+}
+
 function validerReglement() {
   const cb = document.getElementById('reglement-check');
   if (!cb || !cb.checked) { alert('Merci de cocher la case pour valider.'); return; }
   const monJSP = getMyJSP();
   if (!monJSP) { alert('Aucun JSP associé à ce compte.'); return; }
   if (!DB.validationsReglement) DB.validationsReglement = [];
-  DB.validationsReglement.push({ jspId: monJSP.id, date: new Date().toISOString(), login: currentUser.login });
+  DB.validationsReglement.push({ jspId: monJSP.id, date: new Date().toISOString(), login: currentUser.login, version: DB.reglement.version });
   saveData();
   showSection('reglement');
   const badge = document.getElementById('badge-reglement');
