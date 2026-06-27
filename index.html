@@ -433,6 +433,9 @@
         <div class="nav-item" onclick="showSection('connexions')">
           <i class="ti ti-user-check"></i><span>Connexions</span>
         </div>
+        <div class="nav-item" onclick="showSection('reglement')">
+          <i class="ti ti-file-text"></i><span>Règlement intérieur</span>
+        </div>
         <div class="nav-item" onclick="showSection('export')">
           <i class="ti ti-file-spreadsheet"></i><span>Export Excel</span>
         </div>
@@ -492,6 +495,10 @@
         <div class="sidebar-section">Section JSP</div>
         <div class="nav-item" onclick="showSection('organigramme')">
           <i class="ti ti-sitemap"></i><span>Organigramme</span>
+        </div>
+        <div class="nav-item" onclick="showSection('reglement')">
+          <i class="ti ti-file-text"></i><span>Règlement intérieur</span>
+          <span id="badge-reglement" class="badge-nav" style="display:none;background:var(--orange)">!</span>
         </div>
         <div class="sidebar-section">Mon compte</div>
         <div class="nav-item" onclick="showSection('parent-mdp')">
@@ -591,6 +598,7 @@ async function loadFromCloud() {
       if (!cloud.stockHabillement) cloud.stockHabillement = [];
       if (!cloud.finance) cloud.finance = [];
       if (!cloud.connexionsLog) cloud.connexionsLog = [];
+      if (!cloud.validationsReglement) cloud.validationsReglement = [];
       if (cloud.organigramme === undefined) cloud.organigramme = null;
       if (!cloud.icp) cloud.icp = [];
       DB = cloud;
@@ -618,6 +626,7 @@ function loadData() {
     if (!parsed.stockHabillement) parsed.stockHabillement = [];
     if (!parsed.finance) parsed.finance = [];
     if (!parsed.connexionsLog) parsed.connexionsLog = [];
+    if (!parsed.validationsReglement) parsed.validationsReglement = [];
     if (parsed.organigramme === undefined) parsed.organigramme = null;
     if (!parsed.icp) parsed.icp = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
@@ -1072,6 +1081,7 @@ function loadData() {
     stockHabillement: [],
     finance: [],
     connexionsLog: [],
+    validationsReglement: [],
     organigramme: null,
     icp: [],
     absences: [
@@ -1711,6 +1721,13 @@ function doLogin() {
       const badge = document.getElementById('badge-msgs');
       if (badge && nb > 0) { badge.textContent = nb; badge.style.display = 'inline'; }
     }, 100);
+    // Badge règlement intérieur non validé
+    setTimeout(() => {
+      const monJSP = getMyJSP();
+      const dejaValide = monJSP && DB.validationsReglement && DB.validationsReglement.find(v => v.jspId === monJSP.id);
+      const badgeReg = document.getElementById('badge-reglement');
+      if (badgeReg && !dejaValide) badgeReg.style.display = 'inline';
+    }, 100);
     showSection('parent-accueil');
   }
 }
@@ -1763,6 +1780,7 @@ function showSection(sec) {
     case 'export': c.innerHTML = renderExport(); break;
     case 'historique': c.innerHTML = renderHistorique(); break;
     case 'connexions': c.innerHTML = renderConnexions(); break;
+    case 'reglement': c.innerHTML = renderReglement(); break;
     case 'feuille-appel': c.innerHTML = renderFeuilleAppel(); break;
     case 'messagerie': c.innerHTML = renderMessagerie(); break;
     case 'parent-messages': c.innerHTML = renderParentMessages(); break;
@@ -5095,6 +5113,140 @@ function joursDepuis(iso) {
   if (!iso) return Infinity;
   return Math.floor((Date.now() - new Date(iso).getTime()) / (1000*60*60*24));
 }
+
+// ══════════════════════════════════════════
+//  RÈGLEMENT INTÉRIEUR
+// ══════════════════════════════════════════
+const REGLEMENT_HTML = `
+<h3>I : GÉNÉRALITÉS</h3>
+<p>La section a pour but de former des sapeurs-pompiers volontaires au centre de secours de Cruzy-Quarante et de préparer les jeunes au brevet national des jeunes sapeurs-pompiers.</p>
+<p>La section des jeunes sapeurs-pompiers de Cruzy-Quarante est agréée par le service départemental d'incendie et de secours de l'Hérault (SDIS 34).</p>
+
+<h3>II : INCORPORATION À LA SECTION</h3>
+<p>L'incorporation des jeunes sapeurs-pompiers est ouverte aux jeunes personnes (garçons ou filles) âgées de 13 ans minimum et de toutes nationalités, ceci en référence au règlement intérieur de l'association départementale des jeunes sapeurs-pompiers de l'Hérault.</p>
+<p>Le coût de la formation est de 250 € par an par enfant, financé par le SIVU pour les enfants de la zone couverte par celui-ci ; les autres devront s'acquitter de la pleine somme. Pour les jeunes venant de zones non couvertes par le SIVU, la somme de 250 euros sera demandée et non remboursée pour aucun motif (départ volontaire ou exclusion).</p>
+<p><strong>La section est conduite par un conseil d'administration où siègent :</strong></p>
+<ul><li>Le chef de centre</li><li>Le responsable de section</li><li>Le secrétaire</li><li>Le trésorier</li><li>Et des membres adjoints</li></ul>
+<p><strong>Pour chaque incorporation, un dossier individuel est établi. Il comprend :</strong></p>
+<ul><li>Une autorisation parentale</li><li>Une attestation de réussite 50 m de natation à fournir avant l'examen du brevet des JSP</li><li>Un certificat de vaccination antitétanique en cours de validité</li><li>Un certificat d'aptitudes physiques</li></ul>
+
+<h3>III : FORMATION</h3>
+<p>Les cours sont donnés tous les dimanches pendant la période scolaire de 9h à 12h. En dehors de ces horaires, les jeunes sapeurs-pompiers ne sont plus sous la responsabilité de la section.</p>
+<p>La formation s'articule comme suit : <strong>Théorie</strong> (programme national des JSP, 4 modules validés par niveaux JSP1 à JSP4), <strong>Sport</strong>, <strong>Manœuvres</strong>.</p>
+<p>Une sélection est faite au niveau des sections pour que les meilleurs de chaque catégorie se rencontrent au niveau du département. Tout JSP est tenu d'assister aux séances et de participer aux différentes manifestations annuelles.</p>
+<p><strong>Étapes de formation :</strong> Niveau 1/JSP1 galon blanc · Niveau 2/JSP2 galon jaune · Niveau 3/JSP3 galon orange · Niveau 4/JSP4 galon vert. L'année des JSP4 : 4 diplômes (Module PROMPT, Module Équipier VSAV, Module Opérations diverses, Module INC1).</p>
+
+<h3>IV : TENUE ET HABILLEMENT</h3>
+<p>Les tenues des jeunes sapeurs-pompiers sont définies par les directives nationales, régionales ou départementales, officialisées par des notes de service. La section de Cruzy-Quarante prend en charge l'habillement officiel et en garde la propriété jusqu'au déclassement.</p>
+<p>En cas de perte ou de détérioration des effets appartenant à la section, il est demandé aux parents ou tuteurs le remboursement des frais de remise en état ou de remplacement. Le jeune est tenu de restituer son équipement quand il quitte l'association.</p>
+<p>Le port des tenues officielles est obligatoire lors des séances d'instruction et des manifestations officielles ; il est interdit en dehors de ces activités. Le port de boucles d'oreilles est interdit pendant les activités, pour les garçons comme pour les filles. En cas de résiliation de contrat, l'ensemble du matériel prêté sera récupéré ou facturé.</p>
+<p>Tout JSP qui n'aura pas sa tenue complète ou ses affaires de sport pourra se voir infliger un avertissement. <strong>L'entretien des effets vestimentaires sera entièrement à la charge des parents du JSP.</strong></p>
+
+<h3>V : DÉPLACEMENTS</h3>
+<p>Les jeunes sapeurs-pompiers peuvent être appelés à se déplacer pour des manifestations officielles, avec le mode de transport défini par le responsable de section, à l'exclusion de tout autre moyen. Les repas lors de ces déplacements sont pris en charge par l'organisateur.</p>
+<p><strong>Les boissons alcoolisées, les cigarettes et les substances illicites sont interdites.</strong> La section pourrait être tenue pour responsable en cas de vol commis lors d'un déplacement ; en cas de dégradation volontaire, la responsabilité du jeune pourrait être retenue. Il est conseillé de ne pas donner une grosse somme d'argent lors des déplacements.</p>
+
+<h3>VI : DISCIPLINE ET SANCTIONS</h3>
+<p>Des sanctions disciplinaires pourront être prises envers les JSP et mentionnées dans les dossiers individuels :</p>
+<ul>
+<li><strong>La réprimande</strong> : formulée par un instructeur, communiquée aux parents en cas de comportement physique ou verbal contraire au règlement. Deux réprimandes entraîneront un avertissement.</li>
+<li><strong>L'avertissement</strong> : formulé par le conseil d'administration, communiqué par écrit aux parents et mentionné au dossier. Deux avertissements pourront entraîner la radiation.</li>
+<li><strong>La radiation</strong> : parents et JSP convoqués par le conseil d'administration, formulée par écrit.</li>
+</ul>
+<p>Une suspension immédiate (en attente de décision du conseil) pourra être appliquée pour : vol ou dégradation volontaire de matériel, impolitesse manifeste/répétée ou comportement agressif, manquement grave au règlement, acte extérieur préjudiciable à la section, ou condamnation pénale.</p>
+<p>Les cheveux longs doivent être attachés, le maquillage est interdit, tout objet de valeur est interdit (la section décline toute responsabilité en cas de perte ou de vol).</p>
+<p>Toute absence devra faire l'objet d'une excuse écrite ou téléphonique émanant exclusivement des parents, ou d'un certificat médical, communiquée au plus tôt par e-mail ou téléphone. Tout retard non justifié est sanctionné. <strong>Toute absence injustifiée vaudra une radiation. Au-delà de 3 absences non justifiées, le JSP pourra être radié.</strong> Aucune distinction religieuse apparente ne sera acceptée.</p>
+<p>Il est formellement interdit aux JSP de fumer dans l'enceinte du centre de secours et durant toutes les activités de la section, sous peine de sanction immédiate. Sauf accompagnement ou autorisation d'un instructeur, aucun JSP ne doit circuler dans les locaux non dévolus à l'instruction des jeunes.</p>
+
+<h3>VII : MANIFESTATIONS</h3>
+<p>Les JSP sont tenus de participer aux manifestations sportives, congrès départemental, rassemblements techniques régional et national, manifestations commémoratives, manifestations de l'association départementale ou de la section locale, lotos, et au 13 juillet (bal des SP Cruzy-Quarante).</p>
+<p>Chaque participant reçoit une convocation par e-mail et SMS — l'e-mail étant privilégié. Il est demandé aux parents de répondre afin de confirmer la bonne réception, à l'adresse <strong>jspcruzyquarante@gmail.com</strong>. En cas d'indisponibilité, un mot d'excuse signé par un parent ou tuteur légal devra être présenté.</p>
+
+<h3>VIII : DÉTENTE</h3>
+<p>Suivant les finances propres de la section, une journée récréative ou une sortie annuelle peut être organisée.</p>
+
+<h3>IX : FINANCEMENT</h3>
+<p>Le budget de la section est alimenté par une subvention du SIVU, une subvention de l'Amicale des sapeurs-pompiers de Cruzy-Quarante, ainsi que des dons et legs éventuels.</p>
+
+<h3>X : DIVERS</h3>
+<p>Le président de la section peut utiliser, sauf demande contraire des parents, des photos des jeunes sapeurs-pompiers dans le cadre d'informations sur différents supports médiatiques.</p>
+<p>Les parents devront se présenter le matin avec leurs enfants pour valider leur arrivée. Les JSP ne pourront quitter le centre qu'en présence d'un représentant légal, sauf autorisation manuscrite fournie en début d'année pour un retour autonome. <strong>À 12h00, la section JSP n'est plus responsable des jeunes sapeurs-pompiers.</strong></p>
+<p>Le présent règlement intérieur pourra être modifié à la demande de la moitié des membres du conseil d'administration ou en fonction des textes officiels à paraître.</p>
+<p style="margin-top:16px"><em>Le présent règlement a été établi par le conseil d'administration en date du 1ᵉʳ janvier 2025.</em></p>
+
+<h3>TENUES ET TARIFS</h3>
+<p><strong>Tenue de manœuvre :</strong> Pantalon TSI 39,90 € · Veste TSI 48,00 € · Rangers Swatt 52,50 € · Casque 92,50 € · Gants 12,00 € · Ceinture 5,20 € · Galon 2,50 €</p>
+<p><strong>Tenue de sport :</strong> pantalon de survêtement, tee-shirt, coupe-vent, chaussures adaptées à la course à pied (à la charge des parents).</p>
+`;
+
+function renderReglement() {
+  if (!DB.validationsReglement) DB.validationsReglement = [];
+  const estAdmin = currentUser && currentUser.role === 'admin';
+
+  if (estAdmin) {
+    const totalJSP = DB.jsps.length;
+    const valides = DB.validationsReglement.length;
+    return `
+    <div class="section-header"><h2><i class="ti ti-file-text"></i> Règlement intérieur — Suivi des validations</h2></div>
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:20px">
+      <div class="stat-card bleu"><div class="stat-val">${totalJSP}</div><div class="stat-lbl">JSP inscrits</div></div>
+      <div class="stat-card vert"><div class="stat-val">${valides}</div><div class="stat-lbl">Règlements validés</div></div>
+      <div class="stat-card rouge"><div class="stat-val">${totalJSP - valides}</div><div class="stat-lbl">En attente</div></div>
+    </div>
+    <div class="table-card" style="margin-bottom:24px">
+      <table>
+        <thead><tr><th>JSP</th><th>Promotion</th><th>Statut</th><th>Date de validation</th></tr></thead>
+        <tbody>
+          ${DB.jsps.map(j => {
+            const v = DB.validationsReglement.find(x => x.jspId === j.id);
+            return `<tr>
+              <td style="font-weight:600">${j.prenom} ${j.nom}</td>
+              <td><span class="badge badge-bleu">${j.promotion || '—'}</span></td>
+              <td>${v ? '<span class="badge badge-vert">✅ Validé</span>' : '<span class="badge badge-rouge">⏳ En attente</span>'}</td>
+              <td>${v ? fmtDateHeure(v.date) : '—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="section-header"><h3 style="font-size:15px">Texte du règlement</h3></div>
+    <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);padding:20px 26px;max-width:780px;line-height:1.6;font-size:14px">${REGLEMENT_HTML}</div>`;
+  }
+
+  // Vue parent
+  const monJSP = getMyJSP ? getMyJSP() : null;
+  const dejaValide = monJSP ? DB.validationsReglement.find(v => v.jspId === monJSP.id) : null;
+
+  return `
+  <div class="section-header"><h2><i class="ti ti-file-text"></i> Règlement intérieur</h2></div>
+  <div style="background:white;border-radius:10px;border:.5px solid var(--gris-bord);padding:20px 26px;max-width:780px;line-height:1.6;font-size:14px;margin-bottom:20px">${REGLEMENT_HTML}</div>
+
+  ${dejaValide ? `
+  <div style="background:#dcfce7;border:1.5px solid #86efac;border-radius:10px;padding:16px 20px;max-width:780px;color:#166534">
+    <strong>✅ Règlement validé</strong> le ${fmtDateHeure(dejaValide.date)}.
+  </div>` : `
+  <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:16px 20px;max-width:780px">
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:14px">
+      <input type="checkbox" id="reglement-check" style="margin-top:3px;width:18px;height:18px;cursor:pointer">
+      <span>J'ai lu et j'accepte le règlement intérieur de la section JSP Cruzy-Quarante pour mon enfant ${monJSP ? monJSP.prenom + ' ' + monJSP.nom : ''}.</span>
+    </label>
+    <button class="btn-save" style="margin-top:14px" onclick="validerReglement()">✅ Valider mon acceptation</button>
+  </div>`}`;
+}
+
+function validerReglement() {
+  const cb = document.getElementById('reglement-check');
+  if (!cb || !cb.checked) { alert('Merci de cocher la case pour valider.'); return; }
+  const monJSP = getMyJSP();
+  if (!monJSP) { alert('Aucun JSP associé à ce compte.'); return; }
+  if (!DB.validationsReglement) DB.validationsReglement = [];
+  DB.validationsReglement.push({ jspId: monJSP.id, date: new Date().toISOString(), login: currentUser.login });
+  saveData();
+  showSection('reglement');
+  const badge = document.getElementById('badge-reglement');
+  if (badge) badge.style.display = 'none';
+}
+
 
 function renderConnexions() {
   if (!DB.connexionsLog) DB.connexionsLog = [];
