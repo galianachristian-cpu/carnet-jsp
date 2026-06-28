@@ -462,6 +462,9 @@
         <div class="nav-item" onclick="showSection('organigramme')">
           <i class="ti ti-sitemap"></i><span>Organigramme</span>
         </div>
+        <div class="nav-item" onclick="showSection('subventions')">
+          <i class="ti ti-receipt"></i><span>Subventions</span>
+        </div>
         
         
       </div>
@@ -606,6 +609,7 @@ async function loadFromCloud() {
       if (!cloud.reglement) cloud.reglement = { version: 1, texte: null, maj: null };
       if (cloud.organigramme === undefined) cloud.organigramme = null;
       if (!cloud.icp) cloud.icp = [];
+      if (cloud.subventions === undefined) cloud.subventions = null;
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
@@ -635,6 +639,7 @@ function loadData() {
     if (!parsed.reglement) parsed.reglement = { version: 1, texte: null, maj: null };
     if (parsed.organigramme === undefined) parsed.organigramme = null;
     if (!parsed.icp) parsed.icp = [];
+    if (parsed.subventions === undefined) parsed.subventions = null;
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
       parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
@@ -1091,6 +1096,7 @@ function loadData() {
     reglement: { version: 1, texte: null, maj: null },
     organigramme: null,
     icp: [],
+    subventions: null,
     absences: [
       {
             "id": 1000,
@@ -1797,6 +1803,7 @@ function showSection(sec) {
     case 'icp': c.innerHTML = renderICP(); break;
     case 'finance': c.innerHTML = renderFinance(); break;
     case 'organigramme': c.innerHTML = renderOrganigramme(); break;
+    case 'subventions': c.innerHTML = renderSubventions(); break;
   }
 }
 
@@ -2469,6 +2476,60 @@ function saveResultat() {
 // ══════════════════════════════════════════
 //  GESTION DES SAISONS
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  VACANCES SCOLAIRES — Zone C (Montpellier)
+//  Aucune séance JSP pendant ces périodes, sauf exception explicite
+//  (ex: 13 juillet — Bal des pompiers)
+// ══════════════════════════════════════════
+const VACANCES_ZONE_C = [
+  // Saison 2025-2026
+  { nom: 'Toussaint',  debut: '2025-10-18', fin: '2025-11-02' },
+  { nom: 'Noël',       debut: '2025-12-20', fin: '2026-01-04' },
+  { nom: 'Hiver',      debut: '2026-02-07', fin: '2026-02-22' },
+  { nom: 'Printemps',  debut: '2026-04-11', fin: '2026-04-26' },
+  { nom: 'Été',        debut: '2026-07-04', fin: '2026-08-31' },
+  // Saison 2026-2027 (zone C — Montpellier)
+  { nom: 'Toussaint',  debut: '2026-10-17', fin: '2026-11-02' },
+  { nom: 'Noël',       debut: '2026-12-19', fin: '2027-01-04' },
+  { nom: 'Hiver',      debut: '2027-02-06', fin: '2027-02-22' },
+  { nom: 'Printemps',  debut: '2027-04-03', fin: '2027-04-19' },
+  { nom: 'Été',        debut: '2027-07-03', fin: '2027-08-31' }
+];
+
+// Dates exceptionnellement maintenues même en période de vacances
+// (ex : Bal des pompiers, toujours le 13 juillet)
+const EXCEPTIONS_VACANCES = ['07-13'];
+
+function estJourVacances(dateStr) {
+  if (!dateStr) return false;
+  const mmdd = dateStr.slice(5,10);
+  if (EXCEPTIONS_VACANCES.includes(mmdd)) return false;
+  return VACANCES_ZONE_C.some(periode => dateStr >= periode.debut && dateStr <= periode.fin);
+}
+
+function getNomVacances(dateStr) {
+  const periode = VACANCES_ZONE_C.find(p => dateStr >= p.debut && dateStr <= p.fin);
+  return periode ? periode.nom : null;
+}
+
+// Vérifie si on a bien les dates de vacances pour les mois de la saison donnée.
+// Sert à afficher un rappel quand le calendrier scolaire n'a pas encore été mis à jour
+// pour une nouvelle saison (les arrêtés ministériels sortent ~1 an à l'avance).
+function getCouvertureVacances(saison) {
+  const mois = getSaisonMois(saison);
+  const dateDerniereVacanceConnue = VACANCES_ZONE_C.reduce((max, p) => p.fin > max ? p.fin : max, '0000-00-00');
+  // Mois de la saison qui ne sont couverts par aucune période connue
+  const moisNonCouverts = mois.filter(m => {
+    const debutMois = m.an+'-'+m.num+'-01';
+    return debutMois > dateDerniereVacanceConnue;
+  });
+  return {
+    complet: moisNonCouverts.length === 0,
+    dateDerniereVacanceConnue,
+    premierMoisManquant: moisNonCouverts.length ? moisNonCouverts[0] : null
+  };
+}
+
 function getSaisonMois(saison) {
   const [y1, y2] = saison.split('-').map(Number);
   const labels = {1:'Jan',2:'Fev',3:'Mar',4:'Avr',5:'Mai',6:'Juin',7:'Juil',8:'Aout',9:'Sep',10:'Oct',11:'Nov',12:'Dec'};
@@ -2552,8 +2613,10 @@ function renderPlanning(moisActif) {
     const dayEvts = evts.filter(e=>e.date===dateStr);
     const isToday = dateStr===today;
     const isPast = dateStr<today;
-    calHtml += '<div style="min-height:64px;border-radius:8px;padding:4px;border:1px solid var(--gris-bord);background:'+(isToday?'#dbeafe':isPast&&!dayEvts.length?'var(--gris-bg)':'white')+'">';
-    calHtml += '<div style="font-size:12px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'var(--bleu)':isPast?'var(--gris-txt)':'#1f2937')+';margin-bottom:3px">'+d+'</div>';
+    const isVacances = estJourVacances(dateStr);
+    const bgCase = isToday ? '#dbeafe' : (isVacances ? '#fef2f2' : (isPast && !dayEvts.length ? 'var(--gris-bg)' : 'white'));
+    calHtml += '<div title="'+(isVacances?'Vacances scolaires':'')+'" style="min-height:64px;border-radius:8px;padding:4px;border:1px solid '+(isVacances?'#fecaca':'var(--gris-bord)')+';background:'+bgCase+'">';
+    calHtml += '<div style="font-size:12px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'var(--bleu)':isVacances?'#b91c1c':isPast?'var(--gris-txt)':'#1f2937')+';margin-bottom:3px">'+d+(isVacances?' <i class="ti ti-beach" style="font-size:10px"></i>':'')+'</div>';
     dayEvts.forEach(e => {
       calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+e.titre+'</div>';
     });
@@ -2582,14 +2645,19 @@ function renderPlanning(moisActif) {
   const legende = '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px">'
     +[['formation','#dbeafe','#2563b0'],['exercice','#fef3c7','#b45309'],['ceremonie','#dcfce7','#166534'],['controle','#fee2e2','#b91c1c'],['sortie','#f3e8ff','#6b21a8']].map(([t,bg,col])=>
       '<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:'+bg+';color:'+col+'">'+t+'</span>'
-    ).join('')+'</div>';
+    ).join('')
+    +'<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca"><i class="ti ti-beach" style="font-size:11px"></i> vacances scolaires</span>'
+    +'</div>';
 
   var ongletsHtml = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px">';
   mois.forEach(function(m) {
     var key = m.num+'-'+m.an;
     var cnt = countMois(m);
     var isActif = key === moisActif;
-    var badge = cnt>0 ? '<span style="position:absolute;top:-6px;right:-6px;background:'+(isActif?'white':'var(--rouge)')+';color:'+(isActif?'var(--rouge)':'white')+';font-size:10px;font-weight:700;border-radius:10px;padding:0 5px;min-width:16px;text-align:center">'+cnt+'</span>' : '';
+    var dernierJourMois = new Date(parseInt(m.an), parseInt(m.num), 0).getDate();
+    var moisPasse = (m.an+'-'+m.num+'-'+String(dernierJourMois).padStart(2,'0')) < today;
+    var couleurBadge = moisPasse ? 'var(--gris-txt)' : 'var(--rouge)';
+    var badge = cnt>0 ? '<span style="position:absolute;top:-6px;right:-6px;background:'+(isActif?'white':couleurBadge)+';color:'+(isActif?couleurBadge:'white')+';font-size:10px;font-weight:700;border-radius:10px;padding:0 5px;min-width:16px;text-align:center">'+cnt+'</span>' : '';
     ongletsHtml += '<button onclick="window._planningMois=\''+key+'\';showSection(\'planning\')" style="padding:6px 12px;border-radius:8px;border:1.5px solid '+(isActif?'var(--bleu)':'var(--gris-bord)')+';background:'+(isActif?'var(--bleu)':'white')+';color:'+(isActif?'white':'#374151')+';font-size:13px;font-weight:'+(isActif?'700':'500')+';cursor:pointer;position:relative">'+m.label+badge+'</button>';
   });
   ongletsHtml += '</div>';
@@ -2598,10 +2666,20 @@ function renderPlanning(moisActif) {
     var actif = s===DB.saison;
     return '<button onclick="changerSaison(this.dataset.s)" data-s="'+s+'" style="padding:5px 14px;border-radius:20px;border:1.5px solid '+(actif?'var(--bleu)':'var(--gris-bord)')+';background:'+(actif?'var(--bleu)':'white')+';color:'+(actif?'white':'#374151')+';font-size:13px;font-weight:'+(actif?'700':'500')+';cursor:pointer">'+s+'</button>';
   }).join('');
+
+  const couverture = getCouvertureVacances(DB.saison);
+  const alerteVacances = couverture.complet ? '' :
+    '<div style="display:flex;align-items:flex-start;gap:10px;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;margin-bottom:18px">'
+    +'<i class="ti ti-alert-triangle" style="color:#b45309;font-size:18px;flex-shrink:0;margin-top:1px"></i>'
+    +'<div style="font-size:13px;color:#78350f"><b>Dates de vacances scolaires incomplètes pour '+DB.saison+'.</b><br>'
+    +'Le calendrier ne grise les vacances que jusqu\'au '+fmtDate(couverture.dateDerniereVacanceConnue)+' ('+couverture.premierMoisManquant.label+' '+DB.saison+' et les mois suivants ne sont pas encore couverts). '
+    +'L\'arrêté ministériel sort généralement à l\'automne précédent — demande la mise à jour des dates de vacances dès qu\'il est publié.</div></div>';
+
   return '<div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning '+DB.saison+'</h2>'
     +'<div style="display:flex;gap:8px"><button class="btn-add" style="background:#6b7280" onclick="modalNouvelleSaison()"><i class="ti ti-calendar-stats"></i> Saison</button>'
     +'<button class="btn-add" onclick="modalAddPlanning()"><i class="ti ti-plus"></i> Ajouter</button></div></div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">'+saisonBtns+'</div>'
+    +alerteVacances
     +'<div class="stats-grid" style="margin-bottom:20px"><div class="stat-card bleu"><div class="stat-val">'+evtsTotal+'</div><div class="stat-lbl">Total evenements</div></div>'
     +'<div class="stat-card vert"><div class="stat-val">'+evtsFuturs+'</div><div class="stat-lbl">A venir</div></div></div>'
     +legende+ongletsHtml
@@ -2622,8 +2700,15 @@ function modalAddPlanning() {
 }
 
 function savePlanning() {
+  const date = document.getElementById('f_date').value;
+  if (estJourVacances(date)) {
+    const nomVac = getNomVacances(date) || 'vacances scolaires';
+    if (!confirm('⚠️ Le ' + date.split('-').reverse().join('/') + ' tombe pendant les vacances ('+nomVac+').\n\nLes séances JSP sont normalement suspendues pendant les vacances scolaires (sauf le 13 juillet, bal des pompiers).\n\nEnregistrer quand même cet événement ?')) {
+      return;
+    }
+  }
   DB.planning.push({ id: nextId(DB.planning),
-    date: document.getElementById('f_date').value,
+    date: date,
     titre: document.getElementById('f_titre').value,
     type: document.getElementById('f_type').value,
     lieu: document.getElementById('f_lieu').value });
@@ -2892,8 +2977,10 @@ function renderParentPlanning(moisActif) {
     const dayEvts = evts.filter(e=>e.date===dateStr);
     const isToday = dateStr===today;
     const isPast = dateStr<today;
-    calHtml += `<div style="min-height:64px;border-radius:8px;padding:4px;border:1px solid var(--gris-bord);background:${isToday?'#dbeafe':isPast&&!dayEvts.length?'var(--gris-bg)':'white'}">`;
-    calHtml += `<div style="font-size:12px;font-weight:${isToday?'700':'500'};color:${isToday?'var(--bleu)':isPast?'var(--gris-txt)':'#1f2937'};margin-bottom:3px">${d}</div>`;
+    const isVacances = estJourVacances(dateStr);
+    const bgCase = isToday ? '#dbeafe' : (isVacances ? '#fef2f2' : (isPast && !dayEvts.length ? 'var(--gris-bg)' : 'white'));
+    calHtml += `<div title="${isVacances?'Vacances scolaires':''}" style="min-height:64px;border-radius:8px;padding:4px;border:1px solid ${isVacances?'#fecaca':'var(--gris-bord)'};background:${bgCase}">`;
+    calHtml += `<div style="font-size:12px;font-weight:${isToday?'700':'500'};color:${isToday?'var(--bleu)':isVacances?'#b91c1c':isPast?'var(--gris-txt)':'#1f2937'};margin-bottom:3px">${d}${isVacances?' <i class="ti ti-beach" style="font-size:10px"></i>':''}</div>`;
     dayEvts.forEach(e => {
       calHtml += `<div title="${e.titre}" style="font-size:10px;background:${typeBg[e.type]||'#f3f4f6'};color:${typeColors[e.type]||'#374151'};border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${e.titre}</div>`;
     });
@@ -3880,6 +3967,570 @@ function genererOrganigrammePDF() {
       });
     }
     window.onload = function(){ dessinerLiensPDF(); setTimeout(function(){ window.print(); }, 150); };
+  </scr` + `ipt>
+</body></html>`);
+  win.document.close();
+}
+
+
+// ══════════════════════════════════════════
+//  SUBVENTIONS — Dossier annuel mairie de Cruzy
+// ══════════════════════════════════════════
+function getBureauDepuisOrganigramme() {
+  const org = getOrganigramme();
+  const arbre = org.arbre || [];
+
+  const splitNom = (nomComplet) => {
+    if (!nomComplet) return { nom: '', prenom: '' };
+    const parts = nomComplet.trim().split(/\s+/);
+    if (parts.length === 1) return { nom: parts[0], prenom: '' };
+    return { nom: parts[0], prenom: parts.slice(1).join(' ') };
+  };
+
+  // Le "Président" associatif correspond au poste racine (Responsable de section)
+  const racine = arbre.find(n => n.parent === null);
+  // Trésorier / Secrétaire : on prend le poste dont le titre contient le mot-clé,
+  // en excluant les postes "Adjoint" pour viser le titulaire principal
+  const trouverPoste = (motCle) => arbre.find(n =>
+    n.titre && n.titre.toLowerCase().includes(motCle) && !n.titre.toLowerCase().includes('adjoint')
+  );
+  const posteTresorier = trouverPoste('trésorier') || trouverPoste('tresorier');
+  const posteSecretaire = trouverPoste('secrétaire') || trouverPoste('secretaire');
+
+  const nomPresident = racine && racine.noms && racine.noms[0] ? racine.noms[0] : '';
+  const nomTresorier = posteTresorier && posteTresorier.noms && posteTresorier.noms[0] ? posteTresorier.noms[0] : '';
+  const nomSecretaire = posteSecretaire && posteSecretaire.noms && posteSecretaire.noms[0] ? posteSecretaire.noms[0] : '';
+
+  return {
+    president: splitNom(nomPresident),
+    tresorier: splitNom(nomTresorier),
+    secretaire: splitNom(nomSecretaire)
+  };
+}
+
+function syncBureauDepuisOrganigramme(forcer) {
+  const f = getSubventionsData().infosFixes;
+  const bureau = getBureauDepuisOrganigramme();
+  ['president', 'tresorier', 'secretaire'].forEach(role => {
+    if (!f[role]) f[role] = { nom: '', prenom: '', tel: '', mail: '' };
+    const trouve = bureau[role];
+    // On ne touche au nom/prénom que si la sync auto est activée pour ce rôle (par défaut oui),
+    // et soit on force, soit le champ est vide
+    const autoOk = f[role].syncAuto !== false;
+    if (autoOk && trouve.nom && (forcer || (!f[role].nom && !f[role].prenom))) {
+      f[role].nom = trouve.nom;
+      f[role].prenom = trouve.prenom;
+    }
+  });
+  return f;
+}
+
+function resyncBureauDepuisOrganigrammeUI() {
+  syncBureauDepuisOrganigramme(true);
+  saveData();
+  showToast('Bureau resynchronisé depuis l\'organigramme');
+  showSection('subventions');
+}
+
+function getSubventionsDefault() {
+  return {
+    infosFixes: {
+      nomAssociation: 'Section JSP — CIS Cruzy-Quarante (Amicale des Sapeurs-Pompiers de Cruzy)',
+      adresse: '',
+      codePostal: '34310',
+      commune: 'Cruzy',
+      mail: '',
+      titulaireCompte: '',
+      banque: '',
+      domiciliation: '',
+      codeBanque: '',
+      codeGuichet: '',
+      numeroCompte: '',
+      cle: '',
+      president: { nom: '', prenom: '', tel: '', mail: '', syncAuto: true },
+      tresorier: { nom: '', prenom: '', tel: '', mail: '', syncAuto: true },
+      secretaire: { nom: '', prenom: '', tel: '', mail: '', syncAuto: true }
+    },
+    parAnnee: {}
+  };
+}
+
+function getSubventionsData() {
+  if (!DB.subventions) DB.subventions = getSubventionsDefault();
+  if (!DB.subventions.infosFixes) DB.subventions.infosFixes = getSubventionsDefault().infosFixes;
+  if (!DB.subventions.parAnnee) DB.subventions.parAnnee = {};
+  const f = DB.subventions.infosFixes;
+  ['president', 'tresorier', 'secretaire'].forEach(role => {
+    if (!f[role]) f[role] = { nom: '', prenom: '', tel: '', mail: '', syncAuto: true };
+    if (f[role].syncAuto === undefined) f[role].syncAuto = true;
+  });
+  // Synchronisation douce : ne remplit que les champs encore vides, ne casse jamais une saisie manuelle existante
+  syncBureauDepuisOrganigramme(false);
+  return DB.subventions;
+}
+
+function getSubventionAnnee(saison) {
+  const sub = getSubventionsData();
+  if (!sub.parAnnee[saison]) {
+    sub.parAnnee[saison] = {
+      participationForum: null,
+      participationTelethon: null,
+      nbMembresActifs: '',
+      nbAdherents: '',
+      montantAdhesion: '',
+      localPermanent: null,
+      sallePonctuelle: null,
+      salleHebdo: null,
+      photocopies: null,
+      photocopiesNb: '',
+      diversPrecisions: '',
+      bilanActivites: '',
+      animationsHebdo: [],
+      animationsPonctuelles: []
+    };
+  }
+  return sub.parAnnee[saison];
+}
+
+function renderSubventions() {
+  const sub = getSubventionsData();
+  const f = sub.infosFixes;
+  const saison = DB.saison;
+  const a = getSubventionAnnee(saison);
+
+  const oui_non = (val, name) => `
+    <div class="form-group">
+      <label style="display:inline;margin-right:14px"></label>
+      <label style="display:inline-flex;align-items:center;gap:5px;margin-right:18px;font-weight:400">
+        <input type="radio" name="${name}" value="oui" ${val===true?'checked':''} style="width:auto"> Oui
+      </label>
+      <label style="display:inline-flex;align-items:center;gap:5px;font-weight:400">
+        <input type="radio" name="${name}" value="non" ${val===false?'checked':''} style="width:auto"> Non
+      </label>
+    </div>`;
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-receipt"></i> Dossier de subvention — Saison ${saison}</h2>
+    <div style="display:flex;gap:8px">
+      <button class="btn-add" style="background:#b91c1c" onclick="genererSubventionPDF()"><i class="ti ti-file-type-pdf"></i> Générer le dossier</button>
+    </div>
+  </div>
+  <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">Renseigne une fois les infos fixes de la section, puis seulement le bilan de l'année à chaque renouvellement. Pense à joindre le PV d'AG, le compte-rendu financier et l'attestation d'assurance au dossier papier.</p>
+
+  <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-id-badge-2"></i> Infos fixes de la section</h3>
+    <div style="display:flex;gap:8px">
+      <button class="btn-add" style="background:#6b7280" onclick="resyncBureauDepuisOrganigrammeUI()"><i class="ti ti-refresh"></i> Resync. organigramme</button>
+      <button class="btn-add" onclick="modalSubventionInfosFixes()"><i class="ti ti-pencil"></i> Modifier</button>
+    </div>
+  </div>
+  <div class="table-card" style="padding:16px 18px;margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:13px">
+      <div><b>Association :</b> ${f.nomAssociation || '—'}</div>
+      <div><b>Adresse :</b> ${f.adresse || '—'} ${f.codePostal||''} ${f.commune||''}</div>
+      <div><b>Mail :</b> ${f.mail || '—'}</div>
+      <div><b>RIB :</b> ${f.codeBanque||'—'} ${f.codeGuichet||''} ${f.numeroCompte||''} ${f.cle||''}</div>
+      <div><b>Président :</b> ${f.president.prenom||f.president.nom ? (f.president.prenom+' '+f.president.nom) : '—'} ${f.president.syncAuto ? '<span style="font-size:11px;color:#16a34a">(auto)</span>' : ''}</div>
+      <div><b>Trésorier :</b> ${f.tresorier.prenom||f.tresorier.nom ? (f.tresorier.prenom+' '+f.tresorier.nom) : '—'} ${f.tresorier.syncAuto ? '<span style="font-size:11px;color:#16a34a">(auto)</span>' : ''}</div>
+      <div><b>Secrétaire :</b> ${f.secretaire.prenom||f.secretaire.nom ? (f.secretaire.prenom+' '+f.secretaire.nom) : '—'} ${f.secretaire.syncAuto ? '<span style="font-size:11px;color:#16a34a">(auto)</span>' : ''}</div>
+      <div><b>Banque :</b> ${f.banque || '—'}</div>
+    </div>
+    <p style="font-size:11px;color:var(--gris-txt);margin-top:10px"><i class="ti ti-info-circle"></i> Les champs marqués <b style="color:#16a34a">(auto)</b> sont repris de l'organigramme du bureau. Modifie-les dans la fiche pour les figer manuellement.</p>
+  </div>
+
+  <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-calendar-stats"></i> Prévisions générales ${saison}</h3></div>
+  <div class="table-card" style="padding:16px 18px;margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">
+      <div class="form-group"><label>Participation au forum des associations (début septembre)</label>${oui_non(a.participationForum,'sub_forum')}</div>
+      <div class="form-group"><label>Participation au Téléthon (début décembre)</label>${oui_non(a.participationTelethon,'sub_telethon')}</div>
+      <div class="form-group"><label>Nombre de membres actifs</label><input type="number" id="sub_nbMembresActifs" value="${a.nbMembresActifs}"></div>
+      <div class="form-group"><label>Nombre d'adhérents</label><input type="number" id="sub_nbAdherents" value="${a.nbAdherents}"></div>
+      <div class="form-group"><label>Montant annuel de l'adhésion (€)</label><input type="number" step="0.01" id="sub_montantAdhesion" value="${a.montantAdhesion}"></div>
+    </div>
+  </div>
+
+  <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-building-community"></i> Prestations de la commune (année écoulée)</h3></div>
+  <div class="table-card" style="padding:16px 18px;margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 24px">
+      <div class="form-group"><label>Mise à disposition de locaux permanents</label>${oui_non(a.localPermanent,'sub_local')}</div>
+      <div class="form-group"><label>Salle polyvalente, de manière ponctuelle</label>${oui_non(a.sallePonctuelle,'sub_sallePonct')}</div>
+      <div class="form-group"><label>Salle polyvalente, de manière hebdomadaire</label>${oui_non(a.salleHebdo,'sub_salleHebdo')}</div>
+      <div class="form-group"><label>Photocopies, flyers</label>${oui_non(a.photocopies,'sub_photocopies')}
+        <input type="text" id="sub_photocopiesNb" placeholder="Nombre approximatif" value="${a.photocopiesNb}" style="margin-top:4px">
+      </div>
+      <div class="form-group" style="grid-column:1/-1"><label>Divers — précisions</label><textarea id="sub_diversPrecisions">${a.diversPrecisions||''}</textarea></div>
+    </div>
+  </div>
+
+  <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-clipboard-text"></i> Bilan des activités réalisées en ${saison}</h3></div>
+  <div class="table-card" style="padding:16px 18px;margin-bottom:24px">
+    <div class="form-group"><textarea id="sub_bilanActivites" style="min-height:140px" placeholder="Décris les animations / activités menées sur la saison...">${a.bilanActivites||''}</textarea></div>
+  </div>
+
+  <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-repeat"></i> Animations hebdomadaires prévues (${niceSaisonSuivante(saison)})</h3>
+    <button class="btn-add" onclick="modalAnimationHebdo(null)"><i class="ti ti-plus"></i> Ajouter</button>
+  </div>
+  <div class="table-card" style="margin-bottom:24px">
+    <table>
+      <thead><tr><th>Activité</th><th>Jours / lieux</th><th>Participants (moy./tranche d'âge)</th><th></th></tr></thead>
+      <tbody>
+        ${a.animationsHebdo.length ? a.animationsHebdo.map((an,i) => `
+          <tr>
+            <td>${an.description||'—'}</td>
+            <td>${an.joursLieux||'—'}</td>
+            <td>${an.participants||'—'}</td>
+            <td style="display:flex;gap:4px">
+              <button class="btn-add" style="padding:4px 9px;font-size:12px;background:var(--bleu-clair)" onclick="modalAnimationHebdo(${i})"><i class="ti ti-pencil"></i></button>
+              <button class="btn-add" style="padding:4px 9px;font-size:12px;background:#b91c1c" onclick="supprimerAnimationHebdo(${i})"><i class="ti ti-trash"></i></button>
+            </td>
+          </tr>`).join('') : `<tr><td colspan="4" style="text-align:center;color:var(--gris-txt);padding:20px">Aucune animation hebdomadaire renseignée</td></tr>`}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-confetti"></i> Animations ponctuelles prévues (${niceSaisonSuivante(saison)})</h3>
+    <button class="btn-add" onclick="modalAnimationPonctuelle(null)"><i class="ti ti-plus"></i> Ajouter</button>
+  </div>
+  <div class="table-card" style="margin-bottom:24px">
+    <table>
+      <thead><tr><th>Animation</th><th>Date / lieu</th><th>Matériel mairie</th><th></th></tr></thead>
+      <tbody>
+        ${a.animationsPonctuelles.length ? a.animationsPonctuelles.map((an,i) => `
+          <tr>
+            <td>${an.description||'—'}</td>
+            <td>${an.dateLieu||'—'}</td>
+            <td>${an.materiel ? (an.materielDetail||'Oui') : 'Non'}</td>
+            <td style="display:flex;gap:4px">
+              <button class="btn-add" style="padding:4px 9px;font-size:12px;background:var(--bleu-clair)" onclick="modalAnimationPonctuelle(${i})"><i class="ti ti-pencil"></i></button>
+              <button class="btn-add" style="padding:4px 9px;font-size:12px;background:#b91c1c" onclick="supprimerAnimationPonctuelle(${i})"><i class="ti ti-trash"></i></button>
+            </td>
+          </tr>`).join('') : `<tr><td colspan="4" style="text-align:center;color:var(--gris-txt);padding:20px">Aucune animation ponctuelle renseignée</td></tr>`}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="text-align:center;margin-top:8px">
+    <button class="btn-save" style="max-width:240px;margin:0 auto" onclick="saveSubventionAnnee()"><i class="ti ti-device-floppy"></i> Enregistrer les prévisions</button>
+  </div>
+  `;
+}
+
+function niceSaisonSuivante(saison) {
+  const m = /^(\d{4})-(\d{4})$/.exec(saison||'');
+  if (!m) return saison;
+  return (parseInt(m[1],10)+1) + '-' + (parseInt(m[2],10)+1);
+}
+
+function lireRadio(name) {
+  const checked = document.querySelector('input[name="'+name+'"]:checked');
+  if (!checked) return null;
+  return checked.value === 'oui';
+}
+
+function saveSubventionAnnee() {
+  const saison = DB.saison;
+  const a = getSubventionAnnee(saison);
+  a.participationForum = lireRadio('sub_forum');
+  a.participationTelethon = lireRadio('sub_telethon');
+  a.nbMembresActifs = document.getElementById('sub_nbMembresActifs').value.trim();
+  a.nbAdherents = document.getElementById('sub_nbAdherents').value.trim();
+  a.montantAdhesion = document.getElementById('sub_montantAdhesion').value.trim();
+  a.localPermanent = lireRadio('sub_local');
+  a.sallePonctuelle = lireRadio('sub_sallePonct');
+  a.salleHebdo = lireRadio('sub_salleHebdo');
+  a.photocopies = lireRadio('sub_photocopies');
+  a.photocopiesNb = document.getElementById('sub_photocopiesNb').value.trim();
+  a.diversPrecisions = document.getElementById('sub_diversPrecisions').value.trim();
+  a.bilanActivites = document.getElementById('sub_bilanActivites').value.trim();
+  saveData();
+  showToast('Prévisions enregistrées');
+  showSection('subventions');
+}
+
+function modalSubventionInfosFixes() {
+  const f = getSubventionsData().infosFixes;
+  openModal(`
+    <h3><i class="ti ti-id-badge-2"></i> Infos fixes de la section</h3>
+    <div class="form-group"><label>Nom de l'association</label><input type="text" id="sif_nom" value="${f.nomAssociation}"></div>
+    <div class="form-group"><label>Adresse (siège social)</label><input type="text" id="sif_adresse" value="${f.adresse}"></div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
+      <div class="form-group"><label>Code postal</label><input type="text" id="sif_cp" value="${f.codePostal}"></div>
+      <div class="form-group"><label>Commune</label><input type="text" id="sif_commune" value="${f.commune}"></div>
+    </div>
+    <div class="form-group"><label>Mail</label><input type="email" id="sif_mail" value="${f.mail}"></div>
+    <h3 style="margin-top:18px;font-size:14px"><i class="ti ti-building-bank"></i> Coordonnées bancaires</h3>
+    <div class="form-group"><label>Nom du titulaire du compte</label><input type="text" id="sif_titulaire" value="${f.titulaireCompte}"></div>
+    <div class="form-group"><label>Banque</label><input type="text" id="sif_banque" value="${f.banque}"></div>
+    <div class="form-group"><label>Domiciliation</label><input type="text" id="sif_domiciliation" value="${f.domiciliation}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:10px">
+      <div class="form-group"><label>Code banque</label><input type="text" id="sif_codeBanque" value="${f.codeBanque}"></div>
+      <div class="form-group"><label>Code guichet</label><input type="text" id="sif_codeGuichet" value="${f.codeGuichet}"></div>
+      <div class="form-group"><label>N° de compte</label><input type="text" id="sif_numCompte" value="${f.numeroCompte}"></div>
+      <div class="form-group"><label>Clé</label><input type="text" id="sif_cle" value="${f.cle}"></div>
+    </div>
+    <h3 style="margin-top:18px;font-size:14px"><i class="ti ti-users-group"></i> Bureau</h3>
+    <p style="font-size:11px;color:var(--gris-txt);margin:-4px 0 10px">Si la synchro auto est cochée, le nom/prénom est repris de l'organigramme à chaque ouverture (sauf si tu décoches puis modifies à la main).</p>
+    <div class="form-group"><label>Président — Nom / Prénom</label>
+      <div style="display:flex;gap:8px"><input type="text" id="sif_pres_nom" placeholder="Nom" value="${f.president.nom}"><input type="text" id="sif_pres_prenom" placeholder="Prénom" value="${f.president.prenom}"></div>
+      <label style="display:inline-flex;align-items:center;gap:5px;font-weight:400;font-size:12px;margin-top:4px"><input type="checkbox" id="sif_pres_sync" ${f.president.syncAuto!==false?'checked':''} style="width:auto"> Synchro auto depuis l'organigramme (poste racine)</label>
+    </div>
+    <div class="form-group"><label>Président — Téléphone / Mail</label>
+      <div style="display:flex;gap:8px"><input type="text" id="sif_pres_tel" placeholder="Téléphone" value="${f.president.tel}"><input type="email" id="sif_pres_mail" placeholder="Mail" value="${f.president.mail}"></div>
+    </div>
+    <div class="form-group"><label>Trésorier — Nom / Prénom</label>
+      <div style="display:flex;gap:8px"><input type="text" id="sif_tres_nom" placeholder="Nom" value="${f.tresorier.nom}"><input type="text" id="sif_tres_prenom" placeholder="Prénom" value="${f.tresorier.prenom}"></div>
+      <label style="display:inline-flex;align-items:center;gap:5px;font-weight:400;font-size:12px;margin-top:4px"><input type="checkbox" id="sif_tres_sync" ${f.tresorier.syncAuto!==false?'checked':''} style="width:auto"> Synchro auto depuis l'organigramme (poste "Trésorier")</label>
+    </div>
+    <div class="form-group"><label>Trésorier — Téléphone / Mail</label>
+      <div style="display:flex;gap:8px"><input type="text" id="sif_tres_tel" placeholder="Téléphone" value="${f.tresorier.tel}"><input type="email" id="sif_tres_mail" placeholder="Mail" value="${f.tresorier.mail}"></div>
+    </div>
+    <div class="form-group"><label>Secrétaire — Nom / Prénom</label>
+      <div style="display:flex;gap:8px"><input type="text" id="sif_secr_nom" placeholder="Nom" value="${f.secretaire.nom}"><input type="text" id="sif_secr_prenom" placeholder="Prénom" value="${f.secretaire.prenom}"></div>
+      <label style="display:inline-flex;align-items:center;gap:5px;font-weight:400;font-size:12px;margin-top:4px"><input type="checkbox" id="sif_secr_sync" ${f.secretaire.syncAuto!==false?'checked':''} style="width:auto"> Synchro auto depuis l'organigramme (poste "Secrétaire")</label>
+    </div>
+    <div class="form-group"><label>Secrétaire — Téléphone / Mail</label>
+      <div style="display:flex;gap:8px"><input type="text" id="sif_secr_tel" placeholder="Téléphone" value="${f.secretaire.tel}"><input type="email" id="sif_secr_mail" placeholder="Mail" value="${f.secretaire.mail}"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveSubventionInfosFixes()">💾 Enregistrer</button>
+    </div>`);
+}
+
+function saveSubventionInfosFixes() {
+  const f = getSubventionsData().infosFixes;
+  f.nomAssociation = document.getElementById('sif_nom').value.trim();
+  f.adresse = document.getElementById('sif_adresse').value.trim();
+  f.codePostal = document.getElementById('sif_cp').value.trim();
+  f.commune = document.getElementById('sif_commune').value.trim();
+  f.mail = document.getElementById('sif_mail').value.trim();
+  f.titulaireCompte = document.getElementById('sif_titulaire').value.trim();
+  f.banque = document.getElementById('sif_banque').value.trim();
+  f.domiciliation = document.getElementById('sif_domiciliation').value.trim();
+  f.codeBanque = document.getElementById('sif_codeBanque').value.trim();
+  f.codeGuichet = document.getElementById('sif_codeGuichet').value.trim();
+  f.numeroCompte = document.getElementById('sif_numCompte').value.trim();
+  f.cle = document.getElementById('sif_cle').value.trim();
+  f.president = {
+    nom: document.getElementById('sif_pres_nom').value.trim(),
+    prenom: document.getElementById('sif_pres_prenom').value.trim(),
+    tel: document.getElementById('sif_pres_tel').value.trim(),
+    mail: document.getElementById('sif_pres_mail').value.trim(),
+    syncAuto: document.getElementById('sif_pres_sync').checked
+  };
+  f.tresorier = {
+    nom: document.getElementById('sif_tres_nom').value.trim(),
+    prenom: document.getElementById('sif_tres_prenom').value.trim(),
+    tel: document.getElementById('sif_tres_tel').value.trim(),
+    mail: document.getElementById('sif_tres_mail').value.trim(),
+    syncAuto: document.getElementById('sif_tres_sync').checked
+  };
+  f.secretaire = {
+    nom: document.getElementById('sif_secr_nom').value.trim(),
+    prenom: document.getElementById('sif_secr_prenom').value.trim(),
+    tel: document.getElementById('sif_secr_tel').value.trim(),
+    mail: document.getElementById('sif_secr_mail').value.trim(),
+    syncAuto: document.getElementById('sif_secr_sync').checked
+  };
+  saveData();
+  closeModal();
+  showSection('subventions');
+}
+
+function modalAnimationHebdo(index) {
+  const a = getSubventionAnnee(DB.saison);
+  const an = index !== null ? a.animationsHebdo[index] : { description:'', joursLieux:'', participants:'' };
+  openModal(`
+    <h3><i class="ti ti-repeat"></i> Animation hebdomadaire</h3>
+    <div class="form-group"><label>Description de l'activité</label><input type="text" id="ah_description" value="${an.description||''}"></div>
+    <div class="form-group"><label>Jours et lieux</label><input type="text" id="ah_joursLieux" value="${an.joursLieux||''}"></div>
+    <div class="form-group"><label>Nombre de participants (moy./tranche d'âge)</label><input type="text" id="ah_participants" value="${an.participants||''}"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveAnimationHebdo(${index === null ? 'null' : index})">💾 Enregistrer</button>
+    </div>`);
+}
+
+function saveAnimationHebdo(index) {
+  const a = getSubventionAnnee(DB.saison);
+  const an = {
+    description: document.getElementById('ah_description').value.trim(),
+    joursLieux: document.getElementById('ah_joursLieux').value.trim(),
+    participants: document.getElementById('ah_participants').value.trim()
+  };
+  if (index === null) a.animationsHebdo.push(an);
+  else a.animationsHebdo[index] = an;
+  saveData();
+  closeModal();
+  showSection('subventions');
+}
+
+function supprimerAnimationHebdo(index) {
+  if (!confirm('Supprimer cette animation hebdomadaire ?')) return;
+  const a = getSubventionAnnee(DB.saison);
+  a.animationsHebdo.splice(index, 1);
+  saveData();
+  showSection('subventions');
+}
+
+function modalAnimationPonctuelle(index) {
+  const a = getSubventionAnnee(DB.saison);
+  const an = index !== null ? a.animationsPonctuelles[index] : { description:'', dateLieu:'', materiel:false, materielDetail:'' };
+  openModal(`
+    <h3><i class="ti ti-confetti"></i> Animation ponctuelle</h3>
+    <div class="form-group"><label>Description (bal, marché, randonnée, loto, sortie...)</label><input type="text" id="ap_description" value="${an.description||''}"></div>
+    <div class="form-group"><label>Date et lieu envisagés</label><input type="text" id="ap_dateLieu" value="${an.dateLieu||''}"></div>
+    <div class="form-group">
+      <label style="display:inline-flex;align-items:center;gap:5px;font-weight:400;margin-right:18px">
+        <input type="checkbox" id="ap_materiel" ${an.materiel?'checked':''} style="width:auto"> Besoin de matériel (podium, gradins, grilles...)
+      </label>
+    </div>
+    <div class="form-group"><label>Si oui, préciser</label><input type="text" id="ap_materielDetail" value="${an.materielDetail||''}"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveAnimationPonctuelle(${index === null ? 'null' : index})">💾 Enregistrer</button>
+    </div>`);
+}
+
+function saveAnimationPonctuelle(index) {
+  const a = getSubventionAnnee(DB.saison);
+  const an = {
+    description: document.getElementById('ap_description').value.trim(),
+    dateLieu: document.getElementById('ap_dateLieu').value.trim(),
+    materiel: document.getElementById('ap_materiel').checked,
+    materielDetail: document.getElementById('ap_materielDetail').value.trim()
+  };
+  if (index === null) a.animationsPonctuelles.push(an);
+  else a.animationsPonctuelles[index] = an;
+  saveData();
+  closeModal();
+  showSection('subventions');
+}
+
+function supprimerAnimationPonctuelle(index) {
+  if (!confirm('Supprimer cette animation ponctuelle ?')) return;
+  const a = getSubventionAnnee(DB.saison);
+  a.animationsPonctuelles.splice(index, 1);
+  saveData();
+  showSection('subventions');
+}
+
+function genererSubventionPDF() {
+  const sub = getSubventionsData();
+  const f = sub.infosFixes;
+  const saison = DB.saison;
+  const a = getSubventionAnnee(saison);
+  const ouiNon = (v) => v === true ? 'OUI' : (v === false ? 'NON' : '…………');
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+  <meta charset="UTF-8"><title>Dossier subvention ${saison} — Section JSP Cruzy</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;padding:14mm;color:#1f2937;font-size:12px;line-height:1.5}
+    @page{size:A4;margin:12mm}
+    h1{font-size:16px;color:#1a3c6e;text-align:center;margin-bottom:2px}
+    h2{font-size:12px;text-align:center;text-transform:uppercase;letter-spacing:.5px;color:#374151;margin-bottom:14px;font-weight:600}
+    h3{font-size:13px;color:#1a3c6e;border-bottom:2px solid #1a3c6e;padding-bottom:3px;margin:18px 0 10px;page-break-after:avoid}
+    .tricolore{display:flex;height:5px;margin-bottom:14px}
+    .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
+    .ligne{display:flex;gap:6px;margin-bottom:5px}
+    .ligne .lbl{font-weight:600;min-width:160px}
+    .ligne .val{flex:1;border-bottom:1px dotted #9ca3af;padding-bottom:1px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+    .pers{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;margin-bottom:8px}
+    .pers .titre{font-weight:700;color:#1a3c6e;margin-bottom:3px}
+    .bloc{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;margin-bottom:10px}
+    table.anim{width:100%;border-collapse:collapse;margin-bottom:10px}
+    table.anim th{background:#1a3c6e;color:white;font-size:10px;text-align:left;padding:5px 7px}
+    table.anim td{border:1px solid #e5e7eb;padding:5px 7px;font-size:11px;vertical-align:top}
+    .pagebreak{page-break-before:always}
+    .footer-note{font-size:9px;color:#9ca3af;margin-top:18px;text-align:center}
+  </style>
+</head><body>
+  <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
+  <h1>Commune de Cruzy</h1>
+  <h2>Demande de subvention ${saison} — Associations culturelles ou sportives</h2>
+
+  <h3>Identification de l'association</h3>
+  <div class="ligne"><span class="lbl">Nom de l'association</span><span class="val">${f.nomAssociation||''}</span></div>
+  <div class="ligne"><span class="lbl">Adresse (siège social)</span><span class="val">${f.adresse||''}</span></div>
+  <div class="grid2">
+    <div class="ligne"><span class="lbl">Code postal</span><span class="val">${f.codePostal||''}</span></div>
+    <div class="ligne"><span class="lbl">Commune</span><span class="val">${f.commune||''}</span></div>
+  </div>
+  <div class="ligne"><span class="lbl">Mail</span><span class="val">${f.mail||''}</span></div>
+
+  <h3>Prévisions générales ${saison}</h3>
+  <div class="grid2">
+    <div class="ligne"><span class="lbl">Participation forum associations</span><span class="val">${ouiNon(a.participationForum)}</span></div>
+    <div class="ligne"><span class="lbl">Participation Téléthon</span><span class="val">${ouiNon(a.participationTelethon)}</span></div>
+  </div>
+
+  <h3>Coordonnées bancaires</h3>
+  <div class="ligne"><span class="lbl">Nom du titulaire du compte</span><span class="val">${f.titulaireCompte||''}</span></div>
+  <div class="ligne"><span class="lbl">Banque</span><span class="val">${f.banque||''}</span></div>
+  <div class="ligne"><span class="lbl">Domiciliation</span><span class="val">${f.domiciliation||''}</span></div>
+  <div class="grid2">
+    <div class="ligne"><span class="lbl">Code banque</span><span class="val">${f.codeBanque||''}</span></div>
+    <div class="ligne"><span class="lbl">Code guichet</span><span class="val">${f.codeGuichet||''}</span></div>
+    <div class="ligne"><span class="lbl">N° de compte</span><span class="val">${f.numeroCompte||''}</span></div>
+    <div class="ligne"><span class="lbl">Clé</span><span class="val">${f.cle||''}</span></div>
+  </div>
+
+  <h3>Bureau</h3>
+  <div class="pers"><div class="titre">Président</div>
+    ${f.president.prenom||f.president.nom||''} ${f.president.nom||''} — Tél : ${f.president.tel||'…'} — Mail : ${f.president.mail||'…'}
+  </div>
+  <div class="pers"><div class="titre">Trésorier</div>
+    ${f.tresorier.prenom||''} ${f.tresorier.nom||''} — Tél : ${f.tresorier.tel||'…'} — Mail : ${f.tresorier.mail||'…'}
+  </div>
+  <div class="pers"><div class="titre">Secrétaire</div>
+    ${f.secretaire.prenom||''} ${f.secretaire.nom||''} — Tél : ${f.secretaire.tel||'…'} — Mail : ${f.secretaire.mail||'…'}
+  </div>
+  <div class="grid2">
+    <div class="ligne"><span class="lbl">Nombre de membres actifs</span><span class="val">${a.nbMembresActifs||''}</span></div>
+    <div class="ligne"><span class="lbl">Nombre d'adhérents</span><span class="val">${a.nbAdherents||''}</span></div>
+  </div>
+  <div class="ligne"><span class="lbl">Montant annuel de l'adhésion</span><span class="val">${a.montantAdhesion ? a.montantAdhesion+' €' : ''}</span></div>
+
+  <div class="pagebreak"></div>
+  <h3>Prestations de la commune perçues en ${saison}</h3>
+  <div class="grid2">
+    <div class="ligne"><span class="lbl">Locaux permanents</span><span class="val">${ouiNon(a.localPermanent)}</span></div>
+    <div class="ligne"><span class="lbl">Salle polyvalente ponctuelle</span><span class="val">${ouiNon(a.sallePonctuelle)}</span></div>
+    <div class="ligne"><span class="lbl">Salle polyvalente hebdomadaire</span><span class="val">${ouiNon(a.salleHebdo)}</span></div>
+    <div class="ligne"><span class="lbl">Photocopies, flyers</span><span class="val">${ouiNon(a.photocopies)}${a.photocopiesNb ? ' — '+a.photocopiesNb : ''}</span></div>
+  </div>
+  ${a.diversPrecisions ? `<div class="bloc"><b>Divers — précisions :</b><br>${a.diversPrecisions.replace(/\n/g,'<br>')}</div>` : ''}
+
+  <h3>Bilan des activités réalisées en ${saison}</h3>
+  <div class="bloc">${(a.bilanActivites||'…').replace(/\n/g,'<br>')}</div>
+
+  <div class="pagebreak"></div>
+  <h3>Animations hebdomadaires prévues (${niceSaisonSuivante(saison)})</h3>
+  ${a.animationsHebdo.length ? `
+  <table class="anim">
+    <thead><tr><th>Description de l'activité</th><th>Jours et lieux</th><th>Participants (moy./tranche d'âge)</th></tr></thead>
+    <tbody>
+      ${a.animationsHebdo.map(an => `<tr><td>${an.description||''}</td><td>${an.joursLieux||''}</td><td>${an.participants||''}</td></tr>`).join('')}
+    </tbody>
+  </table>` : `<p style="color:#9ca3af">Aucune animation hebdomadaire renseignée.</p>`}
+
+  <h3>Animations ponctuelles prévues (${niceSaisonSuivante(saison)})</h3>
+  ${a.animationsPonctuelles.length ? `
+  <table class="anim">
+    <thead><tr><th>Description</th><th>Date et lieu envisagés</th><th>Besoin de matériel</th></tr></thead>
+    <tbody>
+      ${a.animationsPonctuelles.map(an => `<tr><td>${an.description||''}</td><td>${an.dateLieu||''}</td><td>${an.materiel ? (an.materielDetail||'Oui') : 'Non'}</td></tr>`).join('')}
+    </tbody>
+  </table>` : `<p style="color:#9ca3af">Aucune animation ponctuelle renseignée.</p>`}
+
+  <p class="footer-note">Document généré automatiquement le ${now} — Section JSP, CIS Cruzy-Quarante. Pièces à joindre : PV de la dernière AG (rapport moral et financier), compte-rendu financier, attestation d'assurance.</p>
+
+  <script>
+    window.onload = function(){ setTimeout(function(){ window.print(); }, 150); };
   </scr` + `ipt>
 </body></html>`);
   win.document.close();
@@ -5461,12 +6112,14 @@ function showEvtDetail(id) {
   const typeBg = {formation:'#dbeafe',exercice:'#fef3c7',ceremonie:'#dcfce7',controle:'#fee2e2',sortie:'#f3e8ff'};
   const col = typeColors[e.type]||'#374151';
   const bg = typeBg[e.type]||'#f3f4f6';
+  const enVacances = estJourVacances(e.date);
   openModal(`<h3><i class="ti ti-calendar-event"></i> Détail événement</h3>
     <div style="background:${bg};border-radius:10px;padding:16px;margin-bottom:16px">
       <div style="font-size:20px;font-weight:700;color:${col};margin-bottom:6px">${e.titre}</div>
       <div style="font-size:14px;color:#374151;margin-bottom:4px"><i class="ti ti-calendar"></i> ${fmtDate(e.date)}</div>
       <div style="font-size:14px;color:#374151;margin-bottom:4px"><i class="ti ti-map-pin"></i> ${e.lieu}</div>
       <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:20px;background:white;color:${col}">${e.type}</span>
+      ${enVacances ? `<div style="margin-top:10px;font-size:12px;color:#b91c1c"><i class="ti ti-beach"></i> Cet événement tombe pendant les vacances scolaires (${getNomVacances(e.date)})</div>` : ''}
     </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Fermer</button>
