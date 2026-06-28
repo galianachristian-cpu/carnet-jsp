@@ -2045,7 +2045,12 @@ function modalAddJSP() {
       </div>
       <div class="form-group"><label>Ville</label><input id="f_ville" type="text"></div>
     </div>
-    <div class="form-group"><label>Date de naissance</label><input id="f_dob" type="date"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Date de naissance</label><input id="f_dob" type="date"></div>
+      <div class="form-group"><label>Sexe</label>
+        <select id="f_sexe"><option value="M">Garçon</option><option value="F">Fille</option></select>
+      </div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
       <div class="form-group"><label>Tél. père</label><input id="f_telp" type="text"></div>
       <div class="form-group"><label>Tél. mère</label><input id="f_telm" type="text"></div>
@@ -2067,6 +2072,7 @@ function saveJSP() {
     ville: document.getElementById('f_ville').value,
     adresse: document.getElementById('f_adresse') ? document.getElementById('f_adresse').value : '',
     dateNaissance: document.getElementById('f_dob').value,
+    sexe: document.getElementById('f_sexe').value,
     telPere: document.getElementById('f_telp').value,
     telMere: document.getElementById('f_telm').value,
     telJSP: document.getElementById('f_telj').value,
@@ -2094,7 +2100,10 @@ function modalEditJSP(id) {
     +'</div>'
     +'<div class="form-group"><label>Ville</label><input id="f_ville" type="text" value="'+(j.ville||'')+'"></div>'
     +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     +'<div class="form-group"><label>Date de naissance</label><input id="f_dob" type="date" value="'+j.dateNaissance+'"></div>'
+    +'<div class="form-group"><label>Sexe</label><select id="f_sexe"><option value="M" '+(j.sexe==='M'?'selected':'')+'>Garçon</option><option value="F" '+(j.sexe==='F'?'selected':'')+'>Fille</option></select></div>'
+    +'</div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
     +'<div class="form-group"><label>Tél. père</label><input id="f_telp" type="text" value="'+(j.telPere||'')+'"></div>'
     +'<div class="form-group"><label>Tél. mère</label><input id="f_telm" type="text" value="'+(j.telMere||'')+'"></div>'
@@ -2145,6 +2154,7 @@ function updateJSP(id) {
   j.promotion = document.getElementById('f_prom').value;
   j.ville = document.getElementById('f_ville') ? document.getElementById('f_ville').value : (j.ville||'');
   j.dateNaissance = document.getElementById('f_dob').value;
+  j.sexe = document.getElementById('f_sexe') ? document.getElementById('f_sexe').value : (j.sexe||'M');
   j.telPere = document.getElementById('f_telp') ? document.getElementById('f_telp').value : (j.telPere||'');
   j.telMere = document.getElementById('f_telm') ? document.getElementById('f_telm').value : (j.telMere||'');
   j.telJSP = document.getElementById('f_telj') ? document.getElementById('f_telj').value : (j.telJSP||'');
@@ -5487,10 +5497,121 @@ const ICP_PERIODES = [
 const ICP_EPREUVES = [
   { id: 'luc_leger',      label: 'Luc léger',          unite: 'paliers',   icon: '🏃' },
   { id: 'pompes',         label: 'Pompes',              unite: 'rép.',      icon: '💪' },
-  { id: 'abdo',           label: 'Abdominaux',          unite: 'rép.',      icon: '🔥' },
+  { id: 'abdo',           label: 'Abdominaux (1 min)',  unite: 'rép./1min', icon: '🔥' },
   { id: 'killy',          label: 'KILLY (chaise)',       unite: 'sec.',      icon: '🦵' },
   { id: 'grimper_corde',  label: 'Grimper de corde',    unite: 'passé/non', icon: '🧗' }
 ];
+
+// ══════════════════════════════════════════
+//  BARÈME ICP — basé sur le barème officiel
+//  sapeurs-pompiers (arrêté du 6 mai 2000,
+//  tranche 18-29 ans), adapté pour les JSP.
+//  Seuils vides (null) = pas encore de barème
+//  officiel JSP fourni, saisie manuelle de
+//  la note dans ce cas.
+//  Échelle : mini (note 0) → standard (note 14)
+//  → excellent (note 20). Interpolation linéaire.
+// ══════════════════════════════════════════
+const ICP_BAREME = {
+  luc_leger: {
+    M: { mini: 5, standard: 9, excellent: 12 },
+    F: { mini: 4, standard: 8, excellent: 10.5 }
+  },
+  pompes: {
+    M: { mini: 8, standard: 18, excellent: 28 },
+    F: { mini: 4, standard: 8, excellent: 14 }
+  },
+  killy: {
+    // Sens inversé : plus de secondes = mieux, pas de souci ici (mini < standard < excellent)
+    M: { mini: 60, standard: 110, excellent: 150 },
+    F: { mini: 60, standard: 110, excellent: 150 }
+  },
+  abdo: {
+    M: { mini: 15, standard: 25, excellent: 35 },
+    F: { mini: 10, standard: 18, excellent: 28 }
+  },
+  grimper_corde: 'binaire' // 20 si réussi, 0 si non
+};
+
+// Calcule une note /20 à partir d'une performance brute, en interpolant
+// entre les 3 seuils du barème (mini→0, standard→14, excellent→20).
+function calculerNoteICP(epreuveId, sexe, brut) {
+  const bareme = ICP_BAREME[epreuveId];
+  if (!bareme) return null; // pas de barème dispo pour cette épreuve
+
+  // Cas binaire (ex : grimper de corde) — 20 si réussi, 0 si non, peu importe le sexe
+  if (bareme === 'binaire') {
+    const txt = (brut || '').toString().trim().toLowerCase();
+    if (!txt) return null;
+    if (/^(o|oui|pass|réussi|reussi|ok|✓|1)/.test(txt)) return 20;
+    if (/^(n|non|raté|rate|échec|echec|0)/.test(txt)) return 0;
+    return null; // texte non reconnu, pas de suggestion
+  }
+
+  const seuils = bareme[sexe === 'F' ? 'F' : 'M'];
+  if (!seuils) return null;
+  const val = parseFloat(brut);
+  if (isNaN(val)) return null;
+
+  let note;
+  if (val <= seuils.mini) {
+    note = (val / seuils.mini) * 10; // sous le mini : note dégressive entre 0 et 10
+  } else if (val <= seuils.standard) {
+    note = 10 + ((val - seuils.mini) / (seuils.standard - seuils.mini)) * 4; // 10 → 14
+  } else if (val <= seuils.excellent) {
+    note = 14 + ((val - seuils.standard) / (seuils.excellent - seuils.standard)) * 6; // 14 → 20
+  } else {
+    note = 20;
+  }
+  return Math.max(0, Math.min(20, Math.round(note * 2) / 2)); // arrondi au 0.5 le plus proche
+}
+
+// Affiche/actualise la suggestion de note à côté du champ, sans l'appliquer automatiquement
+function suggererNoteICP(jspId, saison, periodeId, epreuveId, sexe) {
+  const brutInput = document.getElementById(`icp-brut-${jspId}-${periodeId}-${epreuveId}`);
+  const suggestionSpan = document.getElementById(`icp-suggestion-${jspId}-${periodeId}-${epreuveId}`);
+  if (!brutInput || !suggestionSpan) return;
+  const note = calculerNoteICP(epreuveId, sexe, brutInput.value);
+  if (note === null) { suggestionSpan.innerHTML = ''; return; }
+  suggestionSpan.innerHTML = `<span style="cursor:pointer;text-decoration:underline" onclick="appliquerNoteSuggereeICP(${jspId},'${saison}','${periodeId}','${epreuveId}',${note})" title="Cliquer pour appliquer">→ ${note}</span>`;
+}
+
+function appliquerNoteSuggereeICP(jspId, saison, periodeId, epreuveId, note) {
+  const noteInput = document.getElementById(`icp-note-${jspId}-${periodeId}-${epreuveId}`);
+  if (noteInput) noteInput.value = note;
+  saveICPField(jspId, saison, periodeId, epreuveId + '_note', note);
+}
+
+function recalculerToutesNotesICP() {
+  if (!DB.icp) DB.icp = [];
+  if (!confirm("Recalculer toutes les notes ICP selon le barème actuel ?\n\nCela va remplacer toutes les notes déjà saisies (toutes saisons, tous JSP) par la note suggérée à partir du résultat brut, pour les épreuves qui ont un barème (Luc Léger, Pompes, Abdominaux, KILLY, Grimper de corde).\n\nCette action ne peut pas être annulée.")) return;
+
+  let nbModifiees = 0, nbIgnorees = 0;
+
+  DB.icp.forEach(entry => {
+    const jsp = DB.jsps.find(j => j.id === entry.jspId);
+    const sexe = jsp ? (jsp.sexe || 'M') : 'M';
+    if (!entry.periodes) return;
+    Object.keys(entry.periodes).forEach(periodeId => {
+      const pd = entry.periodes[periodeId];
+      ICP_EPREUVES.forEach(e => {
+        const brut = pd[e.id + '_brut'];
+        if (brut === undefined || brut === null || brut === '') return;
+        const note = calculerNoteICP(e.id, sexe, brut);
+        if (note !== null) {
+          pd[e.id + '_note'] = note;
+          nbModifiees++;
+        } else {
+          nbIgnorees++;
+        }
+      });
+    });
+  });
+
+  saveData();
+  showSection('icp');
+  showNotifToast(`✅ ${nbModifiees} note(s) recalculée(s)` + (nbIgnorees > 0 ? ` · ${nbIgnorees} ignorée(s) (pas de barème ou brut vide)` : ''));
+}
 
 function getICP(jspId, saison) {
   if (!DB.icp) DB.icp = [];
@@ -5594,6 +5715,7 @@ function renderICP() {
   <div class="section-header">
     <h2><i class="ti ti-run"></i> ICP JSP — ${saison}</h2>
     <div style="display:flex;gap:8px">
+      <button class="btn-add" onclick="recalculerToutesNotesICP()" style="background:#16a34a"><i class="ti ti-refresh"></i> Recalculer selon le barème</button>
       <button class="btn-add" onclick="printICPTableau()" style="background:#6b7280"><i class="ti ti-printer"></i> Tableau global</button>
       <button class="btn-add" onclick="printICPFiche(${selectedId})" style="background:#b91c1c"><i class="ti ti-printer"></i> Fiche JSP</button>
     </div>
@@ -5680,17 +5802,21 @@ function renderICPJsp(j, icp, saison) {
             const note = pd[e.id+'_note'] || '';
             const noteNum = parseFloat(note);
             const noteColor = isNaN(noteNum) ? '#6b7280' : noteNum>=14?'#166534':noteNum>=10?'#b45309':'#b91c1c';
+            const noteSuggeree = calculerNoteICP(e.id, j.sexe, brut);
             return `<tr style="border-bottom:.5px solid var(--gris-bord)">
               <td style="padding:9px 12px;font-weight:600">${e.icon} ${e.label}</td>
               <td style="padding:9px 12px;text-align:center">
-                <input type="text" value="${brut}" placeholder="${e.unite}"
-                  onchange="saveICPField(${j.id},'${saison}','${p.id}','${e.id}_brut',this.value)"
+                <input type="text" id="icp-brut-${j.id}-${p.id}-${e.id}" value="${brut}" placeholder="${e.unite}"
+                  onchange="saveICPField(${j.id},'${saison}','${p.id}','${e.id}_brut',this.value); suggererNoteICP(${j.id},'${saison}','${p.id}','${e.id}','${j.sexe||'M'}')"
                   style="width:80px;padding:5px 8px;border:1.5px solid var(--gris-bord);border-radius:6px;text-align:center;font-size:13px;font-weight:600">
               </td>
               <td style="padding:9px 12px;text-align:center">
-                <input type="number" min="0" max="20" step="0.5" value="${note}" placeholder="/20"
-                  onchange="saveICPField(${j.id},'${saison}','${p.id}','${e.id}_note',this.value)"
-                  style="width:70px;padding:5px 8px;border:1.5px solid var(--gris-bord);border-radius:6px;text-align:center;font-size:14px;font-weight:700;color:${noteColor}">
+                <div style="display:flex;align-items:center;gap:6px;justify-content:center">
+                  <input type="number" id="icp-note-${j.id}-${p.id}-${e.id}" min="0" max="20" step="0.5" value="${note}" placeholder="/20"
+                    onchange="saveICPField(${j.id},'${saison}','${p.id}','${e.id}_note',this.value)"
+                    style="width:70px;padding:5px 8px;border:1.5px solid var(--gris-bord);border-radius:6px;text-align:center;font-size:14px;font-weight:700;color:${noteColor}">
+                  ${noteSuggeree !== null ? `<span id="icp-suggestion-${j.id}-${p.id}-${e.id}" style="font-size:11px;color:var(--gris-txt)" title="Note suggérée selon le barème">→ ${noteSuggeree}</span>` : `<span id="icp-suggestion-${j.id}-${p.id}-${e.id}"></span>`}
+                </div>
               </td>
             </tr>`;
           }).join('')}
