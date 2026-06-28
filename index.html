@@ -4009,10 +4009,14 @@ function getBureauDepuisOrganigramme() {
 }
 
 function syncBureauDepuisOrganigramme(forcer) {
-  const f = getSubventionsData().infosFixes;
+  // Important : ne JAMAIS appeler getSubventionsData() ici, sous peine de boucle infinie
+  // (getSubventionsData appelle déjà cette fonction). On travaille directement sur DB.subventions.
+  if (!DB.subventions) DB.subventions = getSubventionsDefault();
+  if (!DB.subventions.infosFixes) DB.subventions.infosFixes = getSubventionsDefault().infosFixes;
+  const f = DB.subventions.infosFixes;
   const bureau = getBureauDepuisOrganigramme();
   ['president', 'tresorier', 'secretaire'].forEach(role => {
-    if (!f[role]) f[role] = { nom: '', prenom: '', tel: '', mail: '' };
+    if (!f[role]) f[role] = { nom: '', prenom: '', tel: '', mail: '', syncAuto: true };
     const trouve = bureau[role];
     // On ne touche au nom/prénom que si la sync auto est activée pour ce rôle (par défaut oui),
     // et soit on force, soit le champ est vide
