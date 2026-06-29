@@ -411,6 +411,9 @@
         <div class="nav-item" onclick="showSection('resultats')">
           <i class="ti ti-school"></i><span>Résultats</span>
         </div>
+        <div class="nav-item" onclick="showSection('questionnaires')">
+          <i class="ti ti-clipboard-text"></i><span>Questionnaires culture</span>
+        </div>
         <div class="nav-item" onclick="showSection('planning')">
           <i class="ti ti-calendar-event"></i><span>Planning</span>
         </div>
@@ -610,6 +613,7 @@ async function loadFromCloud() {
       if (cloud.organigramme === undefined) cloud.organigramme = null;
       if (!cloud.icp) cloud.icp = [];
       if (cloud.subventions === undefined) cloud.subventions = null;
+      if (!cloud.questionnaireReponses) cloud.questionnaireReponses = [];
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
@@ -640,6 +644,7 @@ function loadData() {
     if (parsed.organigramme === undefined) parsed.organigramme = null;
     if (!parsed.icp) parsed.icp = [];
     if (parsed.subventions === undefined) parsed.subventions = null;
+    if (!parsed.questionnaireReponses) parsed.questionnaireReponses = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
       parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
@@ -1097,6 +1102,7 @@ function loadData() {
     organigramme: null,
     icp: [],
     subventions: null,
+    questionnaireReponses: [],
     absences: [
       {
             "id": 1000,
@@ -1780,6 +1786,7 @@ function showSection(sec) {
     case 'retards': c.innerHTML = renderRetards(); break;
     case 'comportement': c.innerHTML = renderComportement(); break;
     case 'resultats': c.innerHTML = renderResultats(); break;
+    case 'questionnaires': c.innerHTML = renderQuestionnaires(); break;
     case 'planning': c.innerHTML = renderPlanning(window._planningMois||null); break;
     case 'bilans': c.innerHTML = renderBilans(window._bilanJspId||null); break;
     case 'parent-accueil': c.innerHTML = renderParentAccueil(); break;
@@ -2468,6 +2475,271 @@ function saveResultat() {
   if (confirm('Envoyer un email de notification à la famille ?')) {
     notifierResultat(jspId3, date3, mat3, note3, sur3, app3);
   }
+}
+
+// ══════════════════════════════════════════
+//  QUESTIONNAIRES CULTURE — QCM mensuels par niveau
+//  JSP 1 : cycle janvier → décembre (rang 1 = janvier)
+//  JSP 2/3/4 : cycle septembre → août (rang 1 = septembre)
+//  10 questions / mois / niveau, difficulté croissante avec le rang
+// ══════════════════════════════════════════
+
+// Libellé du mois calendaire pour un rang donné (1 à 12), selon le niveau
+function getLabelMoisRang(niveau, rang) {
+  const labelsJanvDec = {1:'Janvier',2:'Février',3:'Mars',4:'Avril',5:'Mai',6:'Juin',7:'Juillet',8:'Août',9:'Septembre',10:'Octobre',11:'Novembre',12:'Décembre'};
+  if (niveau === 'JSP 1') {
+    return labelsJanvDec[rang] || ('Mois '+rang);
+  }
+  // JSP 2/3/4 : rang 1 = septembre ... rang 4 = décembre, rang 5 = janvier ... rang 12 = août
+  const moisCalendaire = rang <= 4 ? rang + 8 : rang - 4;
+  return labelsJanvDec[moisCalendaire] || ('Mois '+rang);
+}
+
+// Banque de questions QCM. Structure : BANQUE_QUESTIONS_CULTURE['JSP 1'][rang] = [ {enonce, choix:[4], bonne:index}, ... ]
+// NB : banque en cours de complétion progressive (10 questions x 12 rangs x 4 niveaux = 480 questions au total).
+const BANQUE_QUESTIONS_CULTURE = {
+  'JSP 1': {
+    1: [
+      { enonce: "Quel numéro compose-t-on pour appeler les sapeurs-pompiers ?", choix: ["15", "17", "18", "112"], bonne: 2 },
+      { enonce: "Que signifie le sigle JSP ?", choix: ["Jeune Sapeur-Pompier", "Jeunesse Solidarité Protection", "Jeune Secouriste Pompier", "Junior Service Pompier"], bonne: 0 },
+      { enonce: "Quelle couleur est le camion principal d'intervention incendie (le FPT) ?", choix: ["Bleu", "Rouge", "Jaune", "Vert"], bonne: 1 },
+      { enonce: "Que veut dire SDIS ?", choix: ["Service Départemental d'Incendie et de Secours", "Section Départementale d'Intervention et de Sécurité", "Service Départemental d'Intervention Spéciale", "Sécurité Défense Incendie et Secours"], bonne: 0 },
+      { enonce: "En arrivant au centre de secours, que doit faire un JSP en premier ?", choix: ["Aller voir ses copains", "Se changer directement", "Se présenter à son chef de section", "Aller voir les camions"], bonne: 2 },
+      { enonce: "Quelle est la couleur de la tenue de feu (tenue de protection incendie) ?", choix: ["Bleu marine", "Jaune fluo et noir", "Blanc", "Vert kaki"], bonne: 1 },
+      { enonce: "Le sigle CIS signifie :", choix: ["Centre d'Intervention et de Secours", "Centre d'Incendie et de Secours", "Comité d'Intervention Sapeurs-pompiers", "Centre d'Information et de Sécurité"], bonne: 1 },
+      { enonce: "Quel est le rôle principal d'un sapeur-pompier ?", choix: ["Réparer les routes", "Porter secours aux personnes en danger", "Surveiller la circulation", "Distribuer le courrier"], bonne: 1 },
+      { enonce: "Comment s'appelle le lieu où vivent et travaillent les sapeurs-pompiers ?", choix: ["La caserne", "Le commissariat", "La mairie", "Le poste"], bonne: 0 },
+      { enonce: "Que doit-on toujours porter en intervention pour se protéger la tête ?", choix: ["Une casquette", "Un casque", "Un bonnet", "Rien de spécial"], bonne: 1 }
+    ]
+  },
+  'JSP 2': {
+    1: [
+      { enonce: "Que signifie le sigle ARI ?", choix: ["Appareil Respiratoire Isolant", "Alarme Rapide Incendie", "Appareil de Réanimation Intensive", "Alerte Risque Incendie"], bonne: 0 },
+      { enonce: "Quelle est la température approximative d'un feu de structure développé ?", choix: ["100°C", "300°C", "600°C et plus", "50°C"], bonne: 2 },
+      { enonce: "Le triangle du feu est composé de :", choix: ["Eau, air, terre", "Combustible, comburant, énergie d'activation", "Fumée, chaleur, flamme", "Bois, gaz, électricité"], bonne: 1 },
+      { enonce: "Que veut dire PSE1 ?", choix: ["Premiers Secours en Équipe niveau 1", "Protection Sécurité Évacuation 1", "Plan de Secours Élargi 1", "Procédure Standard d'Évacuation 1"], bonne: 0 },
+      { enonce: "En cas d'hémorragie externe importante, le premier geste est :", choix: ["Donner à boire à la victime", "Comprimer la plaie", "Appeler la famille", "Allonger la victime sur le ventre"], bonne: 1 },
+      { enonce: "Quel est le rôle du chef d'agrès sur une intervention ?", choix: ["Conduire le véhicule uniquement", "Diriger l'équipe et rendre compte", "Faire la paperasse au retour", "Nettoyer le matériel"], bonne: 1 },
+      { enonce: "La position latérale de sécurité (PLS) sert à :", choix: ["Réchauffer la victime", "Libérer les voies aériennes d'une victime inconsciente qui respire", "Stopper une hémorragie", "Immobiliser une fracture"], bonne: 1 },
+      { enonce: "Que signifie le sigle VSAV ?", choix: ["Véhicule de Secours et d'Assistance aux Victimes", "Véhicule Spécial d'Alerte Volontaire", "Véhicule de Sécurité et d'Aide à la Victime", "Voiture de Secours d'Assistance Vitale"], bonne: 0 },
+      { enonce: "Quelle est la fréquence normale de la respiration chez un adulte au repos ?", choix: ["2 à 5 mvts/min", "12 à 20 mvts/min", "40 à 60 mvts/min", "80 à 100 mvts/min"], bonne: 1 },
+      { enonce: "Sur le lieu d'un accident, le premier réflexe à avoir est de :", choix: ["Foncer aider la victime", "Sécuriser la zone (protéger)", "Filmer la scène", "Attendre les secours sans bouger"], bonne: 1 }
+    ]
+  },
+  'JSP 3': {
+    1: [
+      { enonce: "Que signifie le sigle EPI dans le cadre de la sécurité incendie ?", choix: ["Équipement de Protection Individuelle", "Engin Pompier Incendie", "Équipe Pompier Intervention", "État des Pertes Identifiées"], bonne: 0 },
+      { enonce: "Lors d'un feu de cuisine (friture), le bon geste est de :", choix: ["Jeter de l'eau dessus", "Étouffer avec un couvercle ou une couverture anti-feu", "Souffler dessus", "Ouvrir la fenêtre en grand"], bonne: 1 },
+      { enonce: "Que signifie ABCDE en traumatologie/bilan secouriste ?", choix: ["Une méthode d'évaluation systématique de la victime", "Les 5 véhicules d'intervention", "Les 5 niveaux de gravité", "Un code radio"], bonne: 0 },
+      { enonce: "Le COS, en intervention, désigne :", choix: ["Le Commandant des Opérations de Secours", "Le Centre Opérationnel Spécial", "Le Code des Opérations Standard", "Le Conseil des Officiers Sapeurs-pompiers"], bonne: 0 },
+      { enonce: "Une victime en arrêt cardio-respiratoire doit bénéficier de :", choix: ["Position latérale de sécurité uniquement", "Réanimation cardio-pulmonaire (massage + insufflations)", "Une boisson sucrée", "Un bandage compressif"], bonne: 1 },
+      { enonce: "Le DAE (défibrillateur automatisé externe) sert à :", choix: ["Mesurer la tension artérielle", "Analyser et si besoin délivrer un choc électrique au cœur", "Prendre la température", "Immobiliser une fracture"], bonne: 1 },
+      { enonce: "Sur une échelle aérienne, le mot 'stabilisateurs' désigne :", choix: ["Les vérins qui stabilisent le véhicule au sol", "Les pneus avant", "Le panier de l'échelle", "La pompe à eau"], bonne: 0 },
+      { enonce: "En cas de suspicion de fracture, il faut :", choix: ["Remettre l'os en place soi-même", "Immobiliser le membre sans le bouger inutilement", "Faire marcher la victime pour vérifier", "Masser la zone"], bonne: 1 },
+      { enonce: "Le sigle CODIS désigne :", choix: ["Centre Opérationnel Départemental d'Incendie et de Secours", "Comité Départemental d'Intervention Spéciale", "Code Opérationnel Départemental Incendie Sécurité", "Centre d'Organisation Départementale Inter-Services"], bonne: 0 },
+      { enonce: "Quel est le rôle du binôme de sécurité (binôme RETEX) lors d'une intervention en milieu enfumé ?", choix: ["Filmer l'intervention", "Rester en soutien immédiat de l'équipe engagée pour intervenir en cas de problème", "Gérer la circulation", "Préparer le matériel de nettoyage"], bonne: 1 }
+    ]
+  },
+  'JSP 4': {
+    1: [
+      { enonce: "Le sigle GOC désigne, dans l'organisation des secours :", choix: ["la Gestion Opérationnelle et Commandement", "le Groupement Opérationnel Communal", "la Garantie d'Organisation des Casernes", "le Guide Officiel du Commandant"], bonne: 0 },
+      { enonce: "Lors d'un feu de forêt, le triangle de sécurité de base à respecter avant tout engagement est :", choix: ["Reconnaissance, anticipation, repli toujours possible", "Vitesse, discrétion, silence", "Eau, sable, terre", "Casque, gants, bottes"], bonne: 0 },
+      { enonce: "Le sigle CCF désigne un véhicule de :", choix: ["Camion Citerne Feux de forêts", "Centre de Coordination des Formations", "Camion de Commandement Forestier", "Cellule de Commandement Fixe"], bonne: 0 },
+      { enonce: "Dans une chaîne de secours, le rôle du médecin régulateur du SAMU (15) est de :", choix: ["Conduire l'ambulance", "Évaluer la situation par téléphone et engager les moyens adaptés", "Remplacer les pompiers sur place", "Gérer uniquement les hôpitaux"], bonne: 1 },
+      { enonce: "Le port de l'ARI (appareil respiratoire isolant) est obligatoire :", choix: ["Uniquement en cas de pluie", "Pour toute intervention en atmosphère enfumée ou toxique", "Seulement pour les exercices", "Jamais, c'est facultatif"], bonne: 1 },
+      { enonce: "Le principe du 'marchepied' en secours routier désigne :", choix: ["Une technique de désincarcération progressive et sécurisée d'une victime", "Le marche-pied du camion", "Une formation administrative", "Le protocole d'accueil des stagiaires"], bonne: 0 },
+      { enonce: "En gestion de crise, le terme 'PCC' signifie :", choix: ["Poste de Commandement Communal", "Plan de Continuité des Casernes", "Procédure de Coordination Centrale", "Point de Convergence des Citoyens"], bonne: 0 },
+      { enonce: "Lors d'un accident avec matières dangereuses, le périmètre de sécurité est déterminé en priorité grâce à :", choix: ["L'avis des badauds", "Le code de danger et la fiche de sécurité du produit (plaque orange, pictogrammes)", "La météo du jour suivant", "La couleur du camion impliqué"], bonne: 1 },
+      { enonce: "Le rôle d'un JSP de niveau 4 lors des manœuvres est notamment de :", choix: ["Rester spectateur uniquement", "Aider à l'encadrement et au tutorat des plus jeunes JSP", "Remplacer les sapeurs-pompiers professionnels", "Conduire les véhicules d'intervention"], bonne: 1 },
+      { enonce: "Que désigne le sigle PRV (utilisé en secours à personne) ?", choix: ["Point de Rassemblement des Victimes", "Plan de Régulation des Véhicules", "Protocole de Ravitaillement", "Poste de Réception VSAV"], bonne: 0 }
+    ]
+  }
+};
+
+// Renvoie les 10 questions pour un niveau et un rang donnés (tableau vide si non encore rédigées)
+function getQuestionsCulture(niveau, rang) {
+  return (BANQUE_QUESTIONS_CULTURE[niveau] && BANQUE_QUESTIONS_CULTURE[niveau][rang]) || [];
+}
+
+// Liste des rangs (1 à 12) qui ont déjà un questionnaire rédigé pour un niveau donné
+function getRangsDisponibles(niveau) {
+  const dispo = BANQUE_QUESTIONS_CULTURE[niveau] || {};
+  return Object.keys(dispo).map(Number).sort((a,b)=>a-b);
+}
+
+function renderQuestionnaires() {
+  const promos = ['JSP 1','JSP 2','JSP 3','JSP 4'];
+  const sorted = [...DB.questionnaireReponses].sort((a,b)=>b.date.localeCompare(a.date));
+
+  const cartesNiveaux = promos.map(niveau => {
+    const rangs = getRangsDisponibles(niveau);
+    const boutons = rangs.map(rang => {
+      const label = getLabelMoisRang(niveau, rang);
+      return `<button class="btn-add" style="background:var(--bleu-clair);font-size:12px;padding:6px 10px" onclick="choisirJspPourQuestionnaire('${niveau}',${rang})">${label}</button>`;
+    }).join('');
+    return `<div class="table-card" style="padding:14px 16px;margin-bottom:14px">
+      <div style="font-weight:700;color:var(--bleu);margin-bottom:8px">${niveau}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${boutons || '<span style="font-size:12px;color:var(--gris-txt)">Aucun questionnaire rédigé pour ce niveau pour le moment</span>'}</div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-clipboard-text"></i> Questionnaires culture JSP</h2>
+  </div>
+  <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">10 questions de culture générale (secourisme, incendie, organisation des secours) par mois et par niveau, avec une difficulté progressive. Clique sur le mois souhaité pour faire passer le questionnaire à un JSP — en direct sur tablette, ou pour saisir après-coup les réponses cochées sur une copie papier.</p>
+
+  ${cartesNiveaux}
+
+  <div class="section-header" style="margin-top:24px"><h3 style="font-size:15px"><i class="ti ti-history"></i> Historique des passages</h3></div>
+  <div class="table-card"><table>
+    <thead><tr><th>JSP</th><th>Niveau</th><th>Mois</th><th>Date</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+      ${sorted.length ? sorted.map(r => `<tr>
+        <td><strong>${jspNom(r.jspId)}</strong></td>
+        <td>${r.niveau}</td>
+        <td>${getLabelMoisRang(r.niveau, r.rang)}</td>
+        <td>${fmtDate(r.date)}</td>
+        <td><span class="badge badge-${noteColor(r.note,10)}">${r.note}/10</span> ${noteDots(r.note,10)}</td>
+        <td><button onclick="deleteItem('questionnaireReponses',${r.id},'questionnaires')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
+      </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Aucun questionnaire passé pour le moment</td></tr>`}
+    </tbody>
+  </table></div>`;
+}
+
+// Étape 1 : choisir le JSP avant de lancer le questionnaire (niveau + rang déjà choisis)
+function choisirJspPourQuestionnaire(niveau, rang) {
+  const jspsDuNiveau = DB.jsps.filter(j => j.promotion === niveau);
+  if (!jspsDuNiveau.length) {
+    showToast('Aucun JSP enregistré dans ce niveau (' + niveau + ')');
+    return;
+  }
+  const options = jspsDuNiveau.map(j => `<option value="${j.id}">${j.prenom} ${j.nom}</option>`).join('');
+  openModal(`<h3><i class="ti ti-clipboard-text"></i> ${niveau} — ${getLabelMoisRang(niveau, rang)}</h3>
+    <div class="form-group"><label>JSP</label><select id="q_jsp">${options}</select></div>
+    <div class="form-group"><label>Mode</label>
+      <select id="q_mode">
+        <option value="live">En direct (le JSP répond sur l'écran, correction immédiate)</option>
+        <option value="papier">Saisie après-coup (réponses cochées sur une copie papier)</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="lancerQuestionnaire('${niveau}',${rang})">Continuer</button>
+    </div>`);
+}
+
+function lancerQuestionnaire(niveau, rang) {
+  const jspId = parseInt(document.getElementById('q_jsp').value);
+  const mode = document.getElementById('q_mode').value;
+  if (mode === 'live') modalQuestionnaireLive(niveau, rang, jspId);
+  else modalQuestionnaireSaisie(niveau, rang, jspId);
+}
+
+// Mode "en direct" : une question à la fois, navigation, calcul à la fin
+function modalQuestionnaireLive(niveau, rang, jspId, indexCourant, reponsesData) {
+  indexCourant = indexCourant || 0;
+  reponsesData = reponsesData || [];
+  const questions = getQuestionsCulture(niveau, rang);
+  if (!questions.length) { showToast('Aucune question disponible'); closeModal(); return; }
+  const j = DB.jsps.find(x => x.id === jspId);
+
+  if (indexCourant >= questions.length) {
+    // Fin du questionnaire : calcul de la note
+    const bonnes = reponsesData.filter((r,i) => r === questions[i].bonne).length;
+    finaliserQuestionnaire(niveau, rang, jspId, reponsesData, bonnes);
+    return;
+  }
+
+  const q = questions[indexCourant];
+  const choixHtml = q.choix.map((c,i) => `
+    <button onclick="repondreQuestionnaireLive('${niveau}',${rang},${jspId},${indexCourant},${i},${JSON.stringify(reponsesData).replace(/"/g,'&quot;')})"
+      style="display:block;width:100%;text-align:left;padding:12px 16px;margin-bottom:8px;border-radius:10px;border:1.5px solid var(--gris-bord);background:white;cursor:pointer;font-size:14px;font-family:inherit" 
+      onmouseover="this.style.background='var(--bleu-clair)'" onmouseout="this.style.background='white'">
+      <b style="color:var(--bleu);margin-right:6px">${['A','B','C','D'][i]}</b> ${c}
+    </button>`).join('');
+
+  openModal(`<h3><i class="ti ti-clipboard-text"></i> ${niveau} — ${getLabelMoisRang(niveau, rang)}</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:4px">${j ? j.prenom+' '+j.nom : ''} — Question ${indexCourant+1}/${questions.length}</p>
+    <p style="font-size:16px;font-weight:600;margin-bottom:14px">${q.enonce}</p>
+    ${choixHtml}`);
+}
+
+function repondreQuestionnaireLive(niveau, rang, jspId, indexCourant, choixIndex, reponsesData) {
+  reponsesData = [...reponsesData, choixIndex];
+  modalQuestionnaireLive(niveau, rang, jspId, indexCourant+1, reponsesData);
+}
+
+// Mode "saisie après-coup" : toutes les questions affichées d'un coup, on coche ce qui a été répondu sur papier
+function modalQuestionnaireSaisie(niveau, rang, jspId) {
+  const questions = getQuestionsCulture(niveau, rang);
+  if (!questions.length) { showToast('Aucune question disponible'); closeModal(); return; }
+  const j = DB.jsps.find(x => x.id === jspId);
+
+  const blocsHtml = questions.map((q,i) => `
+    <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--gris-bord)">
+      <p style="font-size:14px;font-weight:600;margin-bottom:6px">${i+1}. ${q.enonce}</p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        ${q.choix.map((c,ci) => `<label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400"><input type="radio" name="qs_${i}" value="${ci}" style="width:auto"> <b>${['A','B','C','D'][ci]}</b> ${c}</label>`).join('')}
+      </div>
+    </div>`).join('');
+
+  openModal(`<h3><i class="ti ti-clipboard-text"></i> ${niveau} — ${getLabelMoisRang(niveau, rang)}</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:12px">${j ? j.prenom+' '+j.nom : ''} — coche les réponses données sur la copie papier</p>
+    <div style="max-height:50vh;overflow-y:auto;padding-right:6px">${blocsHtml}</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="validerQuestionnaireSaisie('${niveau}',${rang},${jspId})">Valider et calculer la note</button>
+    </div>`);
+}
+
+function validerQuestionnaireSaisie(niveau, rang, jspId) {
+  const questions = getQuestionsCulture(niveau, rang);
+  const reponsesData = questions.map((q,i) => {
+    const checked = document.querySelector('input[name="qs_'+i+'"]:checked');
+    return checked ? parseInt(checked.value) : null;
+  });
+  if (reponsesData.includes(null)) {
+    if (!confirm('Certaines questions n\'ont pas de réponse cochée — elles seront comptées comme fausses. Continuer ?')) return;
+  }
+  const bonnes = reponsesData.filter((r,i) => r === questions[i].bonne).length;
+  finaliserQuestionnaire(niveau, rang, jspId, reponsesData, bonnes);
+}
+
+function finaliserQuestionnaire(niveau, rang, jspId, reponsesData, note) {
+  const entry = { id: nextId(DB.questionnaireReponses),
+    jspId: jspId, niveau: niveau, rang: rang,
+    date: new Date().toISOString().slice(0,10),
+    reponses: reponsesData, note: note };
+  DB.questionnaireReponses.push(entry);
+  saveData();
+  closeModal();
+  showSection('questionnaires');
+  if (confirm('Envoyer un email de notification à la famille ?')) {
+    notifierQuestionnaire(jspId, niveau, rang, note);
+  }
+}
+
+async function notifierQuestionnaire(jspId, niveau, rang, note) {
+  const j = DB.jsps.find(x => x.id == jspId);
+  if (!j) return;
+  const msg = `Bonjour,
+
+Un questionnaire de culture JSP a été passé par ${j.prenom} ${j.nom} :
+
+Niveau : ${niveau}
+Mois : ${getLabelMoisRang(niveau, rang)}
+Note : ${note}/10
+
+Retrouvez tous les résultats sur le Carnet JSP : galianachristian-cpu.github.io/carnet-jsp/
+
+Cordialement,
+Chef Galiana
+Section JSP CIS Cruzy-Quarante`;
+
+  const ok = await sendEmailParent(jspId, `Questionnaire culture ${getLabelMoisRang(niveau,rang)} — ${note}/10`, msg);
+  if (ok) showNotifToast('✅ Email envoyé à la famille ' + j.nom);
+  else showNotifToast('❌ Échec envoi email', true);
 }
 
 // ══════════════════════════════════════════
