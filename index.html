@@ -488,6 +488,10 @@
         <div class="nav-item" onclick="showSection('parent-resultats')">
           <i class="ti ti-school"></i><span>Résultats</span>
         </div>
+        <div class="nav-item" onclick="showSection('parent-questionnaires')">
+          <i class="ti ti-clipboard-text"></i><span>Questionnaires</span>
+          <span id="badge-questionnaires" class="badge-nav" style="display:none">0</span>
+        </div>
         <div class="nav-item" onclick="showSection('parent-planning')">
           <i class="ti ti-calendar-event"></i><span>Planning</span>
         </div>
@@ -615,6 +619,7 @@ async function loadFromCloud() {
       if (cloud.subventions === undefined) cloud.subventions = null;
       if (!cloud.questionnaireReponses) cloud.questionnaireReponses = [];
       if (cloud.questionsCulture === undefined) cloud.questionsCulture = null;
+      if (!cloud.questionnairesAssignes) cloud.questionnairesAssignes = [];
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
@@ -647,6 +652,7 @@ function loadData() {
     if (parsed.subventions === undefined) parsed.subventions = null;
     if (!parsed.questionnaireReponses) parsed.questionnaireReponses = [];
     if (parsed.questionsCulture === undefined) parsed.questionsCulture = null;
+    if (!parsed.questionnairesAssignes) parsed.questionnairesAssignes = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
       parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
@@ -1105,6 +1111,7 @@ function loadData() {
     icp: [],
     subventions: null,
     questionnaireReponses: [],
+    questionnairesAssignes: [],
     questionsCulture: null,
     absences: [
       {
@@ -1743,6 +1750,15 @@ function doLogin() {
       const badge = document.getElementById('badge-msgs');
       if (badge && nb > 0) { badge.textContent = nb; badge.style.display = 'inline'; }
     }, 100);
+    // Badge questionnaires assignés en attente
+    setTimeout(() => {
+      const monJSP = getMyJSP();
+      if (monJSP) {
+        const nbQ = DB.questionnairesAssignes.filter(a => a.jspId === monJSP.id && !a.fait).length;
+        const badgeQ = document.getElementById('badge-questionnaires');
+        if (badgeQ && nbQ > 0) { badgeQ.textContent = nbQ; badgeQ.style.display = 'inline'; }
+      }
+    }, 100);
     // Badge règlement intérieur non validé
     setTimeout(() => {
       const monJSP = getMyJSP();
@@ -1797,6 +1813,7 @@ function showSection(sec) {
     case 'parent-retards': c.innerHTML = renderParentRetards(); break;
     case 'parent-comportement': c.innerHTML = renderParentComportement(); break;
     case 'parent-resultats': c.innerHTML = renderParentResultats(); break;
+    case 'parent-questionnaires': c.innerHTML = renderParentQuestionnaires(); break;
     case 'parent-planning': c.innerHTML = renderParentPlanning(window._planningParentMois||null); break;
     case 'parent-bilan': c.innerHTML = renderParentBilan(); break;
     case 'parent-mdp': c.innerHTML = renderChangeMdp(); break;
@@ -3263,10 +3280,29 @@ function renderQuestionnaires() {
       </div>`;
     }).join('');
     return `<div class="table-card" style="padding:14px 16px;margin-bottom:14px">
-      <div style="font-weight:700;color:var(--bleu);margin-bottom:8px">${niveau}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;color:var(--bleu)">${niveau}</div>
+        ${estAdmin ? `<button class="btn-add" style="background:#7c3aed;font-size:12px;padding:5px 10px" onclick="choisirJspPourControleAnnuel('${niveau}')"><i class="ti ti-trophy"></i> Contrôle annuel</button>` : ''}
+      </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">${boutons || '<span style="font-size:12px;color:var(--gris-txt)">Aucun questionnaire rédigé pour ce niveau pour le moment</span>'}</div>
     </div>`;
   }).join('');
+
+  const assignesEnAttente = DB.questionnairesAssignes.filter(a => !a.fait);
+  const tableauAssignes = assignesEnAttente.length ? `
+  <div class="section-header" style="margin-top:24px"><h3 style="font-size:15px"><i class="ti ti-clock"></i> Questionnaires assignés en attente</h3></div>
+  <div class="table-card"><table>
+    <thead><tr><th>JSP</th><th>Niveau</th><th>Mois</th><th>Assigné le</th><th></th></tr></thead>
+    <tbody>
+      ${assignesEnAttente.map(a => `<tr>
+        <td><strong>${jspNom(a.jspId)}</strong></td>
+        <td>${a.niveau}</td>
+        <td>${a.annuel ? '<span style="font-size:11px;background:#7c3aed;color:white;border-radius:10px;padding:1px 7px">Contrôle annuel</span>' : getLabelMoisRang(a.niveau, a.rang)}</td>
+        <td>${fmtDate(a.dateAssignation)}</td>
+        <td><button onclick="deleteItem('questionnairesAssignes',${a.id},'questionnaires')" style="background:none;border:none;cursor:pointer;color:var(--rouge)" title="Annuler"><i class="ti ti-x"></i></button></td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>` : '';
 
   return `
   <div class="section-header">
@@ -3275,19 +3311,27 @@ function renderQuestionnaires() {
   <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">10 questions de culture générale (secourisme, incendie, organisation des secours) par mois et par niveau, avec une difficulté progressive. Clique sur le mois souhaité pour faire passer le questionnaire à un JSP — en direct sur tablette, ou pour saisir après-coup les réponses cochées sur une copie papier.</p>
 
   ${cartesNiveaux}
+  ${tableauAssignes}
 
   <div class="section-header" style="margin-top:24px"><h3 style="font-size:15px"><i class="ti ti-history"></i> Historique des passages</h3></div>
   <div class="table-card"><table>
     <thead><tr><th>JSP</th><th>Niveau</th><th>Mois</th><th>Date</th><th>Note</th><th></th></tr></thead>
     <tbody>
-      ${sorted.length ? sorted.map(r => `<tr>
-        <td><strong>${jspNom(r.jspId)}</strong></td>
-        <td>${r.niveau}</td>
-        <td>${getLabelMoisRang(r.niveau, r.rang)}</td>
-        <td>${fmtDate(r.date)}</td>
-        <td><span class="badge badge-${noteColor(r.note,10)}">${r.note}/10</span> ${noteDots(r.note,10)}</td>
-        <td><button onclick="deleteItem('questionnaireReponses',${r.id},'questionnaires')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
-      </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Aucun questionnaire passé pour le moment</td></tr>`}
+      ${sorted.length ? sorted.map(r => {
+        const estAnnuel = r.annuel === true || r.rang === 'annuel';
+        const sur = estAnnuel ? 20 : 10;
+        const moisLabel = estAnnuel
+          ? `<span style="font-size:11px;background:#7c3aed;color:white;border-radius:10px;padding:1px 7px;font-weight:700">Contrôle annuel</span>`
+          : getLabelMoisRang(r.niveau, r.rang);
+        return `<tr>
+          <td><strong>${jspNom(r.jspId)}</strong></td>
+          <td>${r.niveau}</td>
+          <td>${moisLabel}</td>
+          <td>${fmtDate(r.date)}</td>
+          <td><span class="badge badge-${noteColor(r.note, sur)}">${r.note}/${sur}</span> ${noteDots(r.note, sur)}</td>
+          <td><button onclick="deleteItem('questionnaireReponses',${r.id},'questionnaires')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
+        </tr>`;
+      }).join('') : `<tr class="empty-row"><td colspan="6">Aucun questionnaire passé pour le moment</td></tr>`}
     </tbody>
   </table></div>`;
 }
@@ -3306,6 +3350,8 @@ function choisirJspPourQuestionnaire(niveau, rang) {
       <select id="q_mode">
         <option value="live">En direct (le JSP répond sur l'écran, correction immédiate)</option>
         <option value="papier">Saisie après-coup (réponses cochées sur une copie papier)</option>
+        <option value="mail">Envoyer les questions par mail (pour travailler à la maison)</option>
+        <option value="assigner">Assigner au JSP (il le fait lui-même en se connectant)</option>
       </select>
     </div>
     <div class="modal-btns">
@@ -3318,7 +3364,9 @@ function lancerQuestionnaire(niveau, rang) {
   const jspId = parseInt(document.getElementById('q_jsp').value);
   const mode = document.getElementById('q_mode').value;
   if (mode === 'live') modalQuestionnaireLive(niveau, rang, jspId);
-  else modalQuestionnaireSaisie(niveau, rang, jspId);
+  else if (mode === 'papier') modalQuestionnaireSaisie(niveau, rang, jspId);
+  else if (mode === 'mail') envoyerQuestionnaireParMail(niveau, rang, jspId);
+  else if (mode === 'assigner') assignerQuestionnaire(niveau, rang, jspId);
 }
 
 // Mode "en direct" : une question à la fois, navigation, calcul à la fin
@@ -3423,6 +3471,243 @@ Chef Galiana
 Section JSP CIS Cruzy-Quarante`;
 
   const ok = await sendEmailParent(jspId, `Questionnaire culture ${getLabelMoisRang(niveau,rang)} — ${note}/10`, msg);
+  if (ok) showNotifToast('✅ Email envoyé à la famille ' + j.nom);
+  else showNotifToast('❌ Échec envoi email', true);
+}
+
+// ── Assignation de questionnaire à un JSP ────────────────────────────────────
+function assignerQuestionnaire(niveau, rang, jspId, annuel) {
+  const j = DB.jsps.find(x => x.id === jspId);
+  if (!j) return;
+  // Vérifie qu'il n'est pas déjà assigné et non fait
+  const dejaAssigne = DB.questionnairesAssignes.some(a =>
+    a.jspId === jspId && a.niveau === niveau &&
+    String(a.rang) === String(rang) && !a.fait
+  );
+  if (dejaAssigne) {
+    showToast('Ce questionnaire est déjà assigné à ' + j.prenom + ' ' + j.nom + ' et pas encore fait');
+    closeModal();
+    return;
+  }
+  const entry = {
+    id: nextId(DB.questionnairesAssignes),
+    jspId, niveau, rang: annuel ? 'annuel' : rang,
+    annuel: !!annuel,
+    dateAssignation: new Date().toISOString().slice(0,10),
+    fait: false
+  };
+  DB.questionnairesAssignes.push(entry);
+  saveData();
+  closeModal();
+  showToast('✅ Questionnaire assigné à ' + j.prenom + ' ' + j.nom + ' — il le verra à sa prochaine connexion');
+  if (confirm('Prévenir la famille par email ?')) notifierAssignation(jspId, niveau, rang, annuel);
+}
+
+async function notifierAssignation(jspId, niveau, rang, annuel) {
+  const j = DB.jsps.find(x => x.id == jspId);
+  if (!j) return;
+  const label = annuel ? 'Contrôle annuel' : getLabelMoisRang(niveau, rang);
+  const msg = `Bonjour,
+
+Un questionnaire de culture JSP a été assigné à ${j.prenom} ${j.nom} :
+
+Niveau : ${niveau}
+Mois : ${label}
+
+${j.prenom} peut le faire directement sur l'application en se connectant avec ses identifiants habituels :
+galianachristian-cpu.github.io/carnet-jsp/
+
+Cordialement,
+Chef Galiana
+Section JSP CIS Cruzy-Quarante`;
+
+  const ok = await sendEmailParent(jspId, `Questionnaire JSP assigné — ${niveau} / ${label}`, msg);
+  if (ok) showNotifToast('✅ Email envoyé à la famille ' + j.nom);
+  else showNotifToast('❌ Échec envoi email', true);
+}
+
+// ── Envoi du questionnaire par mail ──────────────────────────────────────────
+async function envoyerQuestionnaireParMail(niveau, rang, jspId) {
+  const j = DB.jsps.find(x => x.id === jspId);
+  const questions = getQuestionsCulture(niveau, rang);
+  if (!questions.length) { showToast('Aucune question disponible'); closeModal(); return; }
+
+  const lettres = ['A', 'B', 'C', 'D'];
+  const corps = questions.map((q, i) =>
+    `Q${i+1}. ${q.enonce}\n` +
+    q.choix.map((c, ci) => `   ${lettres[ci]}. ${c}`).join('\n')
+  ).join('\n\n');
+
+  const msg = `Bonjour,
+
+Voici le questionnaire de culture JSP du mois de ${getLabelMoisRang(niveau, rang)} pour ${j ? j.prenom + ' ' + j.nom : ''} (${niveau}).
+
+Réponds aux questions sur papier, puis apporte ta feuille à la prochaine séance.
+
+═══════════════════════════════
+${corps}
+═══════════════════════════════
+
+Bon travail !
+Chef Galiana
+Section JSP CIS Cruzy-Quarante`;
+
+  closeModal();
+  const ok = await sendEmailParent(jspId,
+    `Questionnaire JSP — ${niveau} / ${getLabelMoisRang(niveau, rang)}`, msg);
+  if (ok) showNotifToast('✅ Questionnaire envoyé par mail à la famille ' + (j ? j.nom : ''));
+  else showNotifToast('❌ Échec envoi email', true);
+}
+
+// ── Contrôle annuel ───────────────────────────────────────────────────────────
+// Tire aléatoirement nbQuestions questions sur l'ensemble des 12 mois d'un niveau
+function piocherQuestionsAnnuelles(niveau, nbQuestions) {
+  const rangs = getRangsDisponibles(niveau);
+  const toutes = [];
+  rangs.forEach(rang => {
+    getQuestionsCulture(niveau, rang).forEach(q => {
+      toutes.push({ ...q, _rang: rang, _label: getLabelMoisRang(niveau, rang) });
+    });
+  });
+  // Mélange Fisher-Yates
+  for (let i = toutes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [toutes[i], toutes[j]] = [toutes[j], toutes[i]];
+  }
+  return toutes.slice(0, Math.min(nbQuestions, toutes.length));
+}
+
+function choisirJspPourControleAnnuel(niveau) {
+  const jspsDuNiveau = DB.jsps.filter(j => j.promotion === niveau);
+  if (!jspsDuNiveau.length) { showToast('Aucun JSP dans ce niveau'); return; }
+  const rangs = getRangsDisponibles(niveau);
+  const totalQ = rangs.reduce((s, r) => s + getQuestionsCulture(niveau, r).length, 0);
+  const options = jspsDuNiveau.map(j => `<option value="${j.id}">${j.prenom} ${j.nom}</option>`).join('');
+
+  openModal(`<h3><i class="ti ti-trophy"></i> Contrôle annuel — ${niveau}</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:12px">${totalQ} questions disponibles sur les ${rangs.length} mois. Le contrôle en piochera 20 au hasard, toutes périodes confondues. Note sur 20.</p>
+    <div class="form-group"><label>JSP</label><select id="qa_jsp">${options}</select></div>
+    <div class="form-group"><label>Mode</label>
+      <select id="qa_mode">
+        <option value="live">En direct (le JSP répond sur l'écran, correction immédiate)</option>
+        <option value="papier">Saisie après-coup (réponses cochées sur papier)</option>
+        <option value="assigner">Assigner au JSP (il le fait lui-même en se connectant)</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="lancerControleAnnuel('${niveau}')">Lancer le contrôle</button>
+    </div>`);
+}
+
+function lancerControleAnnuel(niveau) {
+  const jspId = parseInt(document.getElementById('qa_jsp').value);
+  const mode = document.getElementById('qa_mode').value;
+  if (mode === 'assigner') { assignerQuestionnaire(niveau, null, jspId, true); return; }
+  const questions = piocherQuestionsAnnuelles(niveau, 20);
+  if (!questions.length) { showToast('Pas assez de questions disponibles'); return; }
+  if (mode === 'live') modalControleAnnuelLive(niveau, jspId, questions, 0, []);
+  else modalControleAnnuelSaisie(niveau, jspId, questions);
+}
+
+// Mode live contrôle annuel (question par question, sur 20)
+function modalControleAnnuelLive(niveau, jspId, questions, indexCourant, reponsesData) {
+  const j = DB.jsps.find(x => x.id === jspId);
+  if (indexCourant >= questions.length) {
+    const bonnes = reponsesData.filter((r, i) => r === questions[i].bonne).length;
+    finaliserControleAnnuel(niveau, jspId, questions, reponsesData, bonnes);
+    return;
+  }
+  const q = questions[indexCourant];
+  const choixHtml = q.choix.map((c, i) => `
+    <button onclick="repondreControleAnnuelLive('${niveau}',${jspId},${indexCourant},${i},${JSON.stringify(reponsesData)},${JSON.stringify(questions).replace(/'/g,'\\u0027')})"
+      style="display:block;width:100%;text-align:left;padding:12px 16px;margin-bottom:8px;border-radius:10px;border:1.5px solid var(--gris-bord);background:white;cursor:pointer;font-size:14px;font-family:inherit"
+      onmouseover="this.style.background='var(--bleu-clair)'" onmouseout="this.style.background='white'">
+      <b style="color:var(--bleu);margin-right:6px">${['A','B','C','D'][i]}</b> ${c}
+    </button>`).join('');
+
+  openModal(`<h3><i class="ti ti-trophy"></i> Contrôle annuel — ${niveau}</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:4px">${j ? j.prenom+' '+j.nom : ''} — Question ${indexCourant+1}/${questions.length} <span style="font-size:11px">(${q._label})</span></p>
+    <p style="font-size:16px;font-weight:600;margin-bottom:14px">${q.enonce}</p>
+    ${choixHtml}`);
+}
+
+function repondreControleAnnuelLive(niveau, jspId, indexCourant, choixIndex, reponsesData, questions) {
+  reponsesData = [...reponsesData, choixIndex];
+  modalControleAnnuelLive(niveau, jspId, questions, indexCourant + 1, reponsesData);
+}
+
+// Mode saisie après-coup contrôle annuel
+function modalControleAnnuelSaisie(niveau, jspId, questions) {
+  const j = DB.jsps.find(x => x.id === jspId);
+  const blocsHtml = questions.map((q, i) => `
+    <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--gris-bord)">
+      <p style="font-size:13px;font-weight:600;margin-bottom:2px">${i+1}. ${q.enonce} <span style="font-size:11px;color:var(--gris-txt)">(${q._label})</span></p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        ${q.choix.map((c, ci) => `<label style="display:flex;align-items:center;gap:5px;font-size:13px;font-weight:400"><input type="radio" name="qa_${i}" value="${ci}" style="width:auto"> <b>${['A','B','C','D'][ci]}</b> ${c}</label>`).join('')}
+      </div>
+    </div>`).join('');
+
+  openModal(`<h3><i class="ti ti-trophy"></i> Contrôle annuel — ${niveau}</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:12px">${j ? j.prenom+' '+j.nom : ''} — ${questions.length} questions sur 20</p>
+    <div style="max-height:52vh;overflow-y:auto;padding-right:6px">${blocsHtml}</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="validerControleAnnuelSaisie('${niveau}',${jspId},${JSON.stringify(questions).replace(/'/g,'\\u0027')})">Valider et calculer la note</button>
+    </div>`);
+}
+
+function validerControleAnnuelSaisie(niveau, jspId, questions) {
+  const reponsesData = questions.map((q, i) => {
+    const checked = document.querySelector('input[name="qa_'+i+'"]:checked');
+    return checked ? parseInt(checked.value) : null;
+  });
+  if (reponsesData.includes(null)) {
+    if (!confirm('Certaines questions n\'ont pas de réponse — comptées comme fausses. Continuer ?')) return;
+  }
+  const bonnes = reponsesData.filter((r, i) => r !== null && r === questions[i].bonne).length;
+  finaliserControleAnnuel(niveau, jspId, questions, reponsesData, bonnes);
+}
+
+function finaliserControleAnnuel(niveau, jspId, questions, reponsesData, bonnes) {
+  // Note sur 20 : bonnes réponses × 20 / nombre de questions
+  const noteSur20 = Math.round((bonnes / questions.length) * 20 * 10) / 10;
+  const entry = {
+    id: nextId(DB.questionnaireReponses),
+    jspId: jspId, niveau: niveau, rang: 'annuel',
+    date: new Date().toISOString().slice(0, 10),
+    reponses: reponsesData, note: noteSur20, sur: 20,
+    nbQuestions: questions.length, annuel: true
+  };
+  DB.questionnaireReponses.push(entry);
+  saveData();
+  closeModal();
+  showSection('questionnaires');
+  showToast(`Contrôle annuel enregistré — ${noteSur20}/20`);
+  if (confirm('Envoyer un email de notification à la famille ?')) {
+    notifierControleAnnuel(jspId, niveau, noteSur20);
+  }
+}
+
+async function notifierControleAnnuel(jspId, niveau, note) {
+  const j = DB.jsps.find(x => x.id == jspId);
+  if (!j) return;
+  const msg = `Bonjour,
+
+Un contrôle annuel de culture JSP a été passé par ${j.prenom} ${j.nom} :
+
+Niveau : ${niveau}
+Note : ${note}/20
+
+Ce contrôle regroupe des questions tirées au sort sur l'ensemble de l'année de formation.
+
+Retrouvez tous les résultats sur le Carnet JSP : galianachristian-cpu.github.io/carnet-jsp/
+
+Cordialement,
+Chef Galiana
+Section JSP CIS Cruzy-Quarante`;
+
+  const ok = await sendEmailParent(jspId, `Contrôle annuel JSP ${niveau} — ${note}/20`, msg);
   if (ok) showNotifToast('✅ Email envoyé à la famille ' + j.nom);
   else showNotifToast('❌ Échec envoi email', true);
 }
@@ -3891,6 +4176,137 @@ function renderParentResultats() {
         </tr>`).join('') : `<tr class="empty-row"><td colspan="4">Aucun résultat enregistré</td></tr>`}
       </tbody>
     </table></div>`;
+}
+
+function renderParentQuestionnaires() {
+  const j = getMyJSP();
+  const enAttente = DB.questionnairesAssignes.filter(a => a.jspId === j.id && !a.fait);
+  const historique = DB.questionnaireReponses.filter(r => r.jspId === j.id)
+    .sort((a,b) => b.date.localeCompare(a.date));
+
+  const blocAttente = enAttente.length ? `
+    <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px;color:#b45309"><i class="ti ti-bell"></i> À faire (${enAttente.length})</h3></div>
+    ${enAttente.map(a => {
+      const label = a.annuel
+        ? '<span style="font-size:12px;background:#7c3aed;color:white;border-radius:10px;padding:2px 10px;font-weight:700">Contrôle annuel</span>'
+        : `<strong>${getLabelMoisRang(a.niveau, a.rang)}</strong>`;
+      return `<div class="table-card" style="padding:16px 18px;margin-bottom:12px;border:2px solid #fde68a">
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">${a.niveau} — ${label}</div>
+        <div style="font-size:12px;color:var(--gris-txt);margin-bottom:10px">Assigné le ${fmtDate(a.dateAssignation)}</div>
+        <button class="btn-add" onclick="lancerQuestionnairePourJSP(${a.id})"><i class="ti ti-play"></i> Commencer le questionnaire</button>
+      </div>`;
+    }).join('')}` : `<div class="table-card" style="padding:16px;text-align:center;color:var(--gris-txt);margin-bottom:16px"><i class="ti ti-check"></i> Aucun questionnaire en attente</div>`;
+
+  const blocHistorique = historique.length ? `
+    <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-history"></i> Mes résultats</h3></div>
+    <div class="table-card"><table>
+      <thead><tr><th>Date</th><th>Niveau</th><th>Mois</th><th>Note</th></tr></thead>
+      <tbody>
+        ${historique.map(r => {
+          const estAnnuel = r.annuel === true || r.rang === 'annuel';
+          const sur = estAnnuel ? 20 : 10;
+          const moisLabel = estAnnuel
+            ? '<span style="font-size:11px;background:#7c3aed;color:white;border-radius:10px;padding:1px 7px">Contrôle annuel</span>'
+            : getLabelMoisRang(r.niveau, r.rang);
+          return `<tr>
+            <td>${fmtDate(r.date)}</td>
+            <td>${r.niveau}</td>
+            <td>${moisLabel}</td>
+            <td><span class="badge badge-${noteColor(r.note, sur)}">${r.note}/${sur}</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>` : '';
+
+  return `<div class="section-header"><h2><i class="ti ti-clipboard-text"></i> Questionnaires de ${j.prenom}</h2></div>
+    <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">Fais tes questionnaires assignés par ton chef de section directement depuis cette page.</p>
+    ${blocAttente}
+    ${blocHistorique}`;
+}
+
+// Lance le questionnaire depuis la vue parent (JSP connecté)
+function lancerQuestionnairePourJSP(assignationId) {
+  const a = DB.questionnairesAssignes.find(x => x.id === assignationId);
+  if (!a) return;
+  const j = getMyJSP();
+  if (a.annuel) {
+    const questions = piocherQuestionsAnnuelles(a.niveau, 20);
+    modalQuestionnaireLiveJSP(a, questions, 0, []);
+  } else {
+    const questions = getQuestionsCulture(a.niveau, a.rang);
+    if (!questions.length) { showToast('Questionnaire indisponible'); return; }
+    modalQuestionnaireLiveJSP(a, questions, 0, []);
+  }
+}
+
+function modalQuestionnaireLiveJSP(assignation, questions, indexCourant, reponsesData) {
+  if (indexCourant >= questions.length) {
+    finaliserQuestionnairePourJSP(assignation, questions, reponsesData);
+    return;
+  }
+  const q = questions[indexCourant];
+  const sur = assignation.annuel ? 20 : 10;
+  const choixHtml = q.choix.map((c, i) => `
+    <button onclick="repondreQuestionnaireLiveJSP(${assignation.id},${indexCourant},${i},${JSON.stringify(reponsesData)},${JSON.stringify(questions).replace(/'/g,'\\u0027')})"
+      style="display:block;width:100%;text-align:left;padding:12px 16px;margin-bottom:8px;border-radius:10px;border:1.5px solid var(--gris-bord);background:white;cursor:pointer;font-size:14px;font-family:inherit"
+      onmouseover="this.style.background='var(--bleu-clair)'" onmouseout="this.style.background='white'">
+      <b style="color:var(--bleu);margin-right:6px">${['A','B','C','D'][i]}</b> ${c}
+    </button>`).join('');
+
+  openModal(`<h3><i class="ti ti-clipboard-text"></i> ${assignation.niveau} — ${assignation.annuel ? 'Contrôle annuel' : getLabelMoisRang(assignation.niveau, assignation.rang)}</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:4px">Question ${indexCourant+1}/${questions.length}${assignation.annuel ? ' — sur '+sur : ''}</p>
+    <p style="font-size:16px;font-weight:600;margin-bottom:14px">${q.enonce}</p>
+    ${choixHtml}`);
+}
+
+function repondreQuestionnaireLiveJSP(assignationId, indexCourant, choixIndex, reponsesData, questions) {
+  const a = DB.questionnairesAssignes.find(x => x.id === assignationId);
+  reponsesData = [...reponsesData, choixIndex];
+  modalQuestionnaireLiveJSP(a, questions, indexCourant + 1, reponsesData);
+}
+
+function finaliserQuestionnairePourJSP(assignation, questions, reponsesData) {
+  const bonnes = reponsesData.filter((r, i) => r === questions[i].bonne).length;
+  const sur = assignation.annuel ? 20 : 10;
+  const note = assignation.annuel
+    ? Math.round((bonnes / questions.length) * 20 * 10) / 10
+    : bonnes;
+
+  // Enregistre le résultat
+  DB.questionnaireReponses.push({
+    id: nextId(DB.questionnaireReponses),
+    jspId: assignation.jspId,
+    niveau: assignation.niveau,
+    rang: assignation.annuel ? 'annuel' : assignation.rang,
+    date: new Date().toISOString().slice(0, 10),
+    reponses: reponsesData,
+    note, sur,
+    annuel: !!assignation.annuel
+  });
+  // Marque l'assignation comme faite
+  assignation.fait = true;
+  saveData();
+
+  // Mise à jour du badge
+  const nbRestants = DB.questionnairesAssignes.filter(a => a.jspId === assignation.jspId && !a.fait).length;
+  const badge = document.getElementById('badge-questionnaires');
+  if (badge) {
+    if (nbRestants > 0) { badge.textContent = nbRestants; badge.style.display = 'inline'; }
+    else badge.style.display = 'none';
+  }
+
+  closeModal();
+  // Affiche le résultat
+  const pct = Math.round((bonnes / questions.length) * 100);
+  openModal(`<h3><i class="ti ti-trophy"></i> Résultat</h3>
+    <div style="text-align:center;padding:20px">
+      <div style="font-size:48px;font-weight:700;color:${noteColor(note,sur)==='vert'?'#16a34a':noteColor(note,sur)==='orange'?'#b45309':'#b91c1c'}">${note}/${sur}</div>
+      <div style="font-size:16px;color:var(--gris-txt);margin:8px 0">${bonnes} bonne${bonnes>1?'s':''} réponse${bonnes>1?'s':''} sur ${questions.length} (${pct}%)</div>
+      <div style="font-size:14px;margin-top:8px">${pct>=80?'Excellent travail ! 🎉':pct>=50?'Bon travail, continue comme ça 👍':'Révise bien pour la prochaine fois 💪'}</div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-save" onclick="closeModal();showSection('parent-questionnaires')">Voir mes questionnaires</button>
+    </div>`);
 }
 
 function renderParentPlanning(moisActif) {
