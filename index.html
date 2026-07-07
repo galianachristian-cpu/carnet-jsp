@@ -7090,7 +7090,7 @@ function imprimerFeuilleAppel() {
   // Imprimer
   const contenu = document.getElementById('feuille-print').outerHTML;
   const win = window.open('', '_blank');
-  win.document.write('<html><head><title>Feuille d\'appel JSP</title>'
+  win.document.write('<html><head><meta charset="UTF-8"><title>Feuille d\'appel JSP</title>'
     +'<style>body{font-family:Arial,sans-serif;margin:20px}@media print{body{margin:10mm}}</style>'
     +'</head><body>'+contenu+'<scr'+'ipt>window.onload=function(){window.print()}</scr'+'ipt></body></html>');
   win.document.close();
