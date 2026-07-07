@@ -1805,7 +1805,8 @@ function showSection(sec) {
     case 'retards': c.innerHTML = renderRetards(); break;
     case 'comportement': c.innerHTML = renderComportement(); break;
     case 'resultats': c.innerHTML = renderResultats(); break;
-    case 'questionnaires': c.innerHTML = renderQuestionnaires(); break;
+    case 'questionnaires': c.innerHTML = renderQuestionnaires('questionnaires'); break;
+    case 'questionnaires-bilan': c.innerHTML = renderQuestionnaires('bilan'); break;
     case 'planning': c.innerHTML = renderPlanning(window._planningMois||null); break;
     case 'bilans': c.innerHTML = renderBilans(window._bilanJspId||null); break;
     case 'parent-accueil': c.innerHTML = renderParentAccueil(); break;
@@ -3264,13 +3265,27 @@ function reinitialiserQuestionsMois(niveau, rang) {
   modalGererQuestionsMois(niveau, rang);
 }
 
-function renderQuestionnaires() {
+function renderQuestionnaires(onglet) {
+  onglet = onglet || 'questionnaires';
   const promos = ['JSP 1','JSP 2','JSP 3','JSP 4'];
   const sorted = [...DB.questionnaireReponses].sort((a,b)=>b.date.localeCompare(a.date));
+  const estAdmin = currentUser && currentUser.role === 'admin';
+
+  const onglets = `<div style="display:flex;gap:6px;margin-bottom:20px">
+    <button onclick="showSection('questionnaires')" style="padding:7px 18px;border-radius:8px;border:1.5px solid ${onglet==='questionnaires'?'var(--bleu)':'var(--gris-bord)'};background:${onglet==='questionnaires'?'var(--bleu)':'white'};color:${onglet==='questionnaires'?'white':'#374151'};font-size:13px;font-weight:${onglet==='questionnaires'?'700':'500'};cursor:pointer"><i class="ti ti-clipboard-text"></i> Questionnaires</button>
+    <button onclick="showSection('questionnaires-bilan')" style="padding:7px 18px;border-radius:8px;border:1.5px solid ${onglet==='bilan'?'var(--bleu)':'var(--gris-bord)'};background:${onglet==='bilan'?'var(--bleu)':'white'};color:${onglet==='bilan'?'white':'#374151'};font-size:13px;font-weight:${onglet==='bilan'?'700':'500'};cursor:pointer"><i class="ti ti-chart-bar"></i> Bilan annuel</button>
+  </div>`;
+
+  const header = `<div class="section-header">
+    <h2><i class="ti ti-clipboard-text"></i> Questionnaires culture JSP</h2>
+  </div>`;
+
+  if (onglet === 'bilan') {
+    return header + onglets + renderBilanQuestionnaires(promos, estAdmin);
+  }
 
   const cartesNiveaux = promos.map(niveau => {
     const rangs = getRangsDisponibles(niveau);
-    const estAdmin = currentUser && currentUser.role === 'admin';
     const boutons = rangs.map(rang => {
       const label = getLabelMoisRang(niveau, rang);
       const nbQ = getQuestionsCulture(niveau, rang).length;
@@ -3304,15 +3319,10 @@ function renderQuestionnaires() {
     </tbody>
   </table></div>` : '';
 
-  return `
-  <div class="section-header">
-    <h2><i class="ti ti-clipboard-text"></i> Questionnaires culture JSP</h2>
-  </div>
-  <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">10 questions de culture générale (secourisme, incendie, organisation des secours) par mois et par niveau, avec une difficulté progressive. Clique sur le mois souhaité pour faire passer le questionnaire à un JSP — en direct sur tablette, ou pour saisir après-coup les réponses cochées sur une copie papier.</p>
-
+  return header + onglets + `
+  <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">10 questions de culture générale par mois et par niveau. Passe le questionnaire en direct, saisis les réponses après-coup, envoie par mail ou assigne au JSP pour qu'il le fasse depuis son compte.</p>
   ${cartesNiveaux}
   ${tableauAssignes}
-
   <div class="section-header" style="margin-top:24px"><h3 style="font-size:15px"><i class="ti ti-history"></i> Historique des passages</h3></div>
   <div class="table-card"><table>
     <thead><tr><th>JSP</th><th>Niveau</th><th>Mois</th><th>Date</th><th>Note</th><th></th></tr></thead>
@@ -3334,6 +3344,110 @@ function renderQuestionnaires() {
       }).join('') : `<tr class="empty-row"><td colspan="6">Aucun questionnaire passé pour le moment</td></tr>`}
     </tbody>
   </table></div>`;
+}
+
+function renderBilanQuestionnaires(promos, estAdmin) {
+  const COULEURS = { vert: '#dcfce7', orange: '#fef3c7', rouge: '#fee2e2', vide: '#f9fafb' };
+  const TEXTES  = { vert: '#166534', orange: '#92400e', rouge: '#b91c1c', vide: '#9ca3af' };
+
+  // Pour chaque niveau, tableau JSP × mois + contrôle annuel + stats
+  const blocsNiveaux = promos.map(niveau => {
+    const jspsNiveau = DB.jsps.filter(j => j.promotion === niveau);
+    if (!jspsNiveau.length) return '';
+    const rangs = getRangsDisponibles(niveau);
+    if (!rangs.length) return '';
+
+    // En-têtes des colonnes (mois + contrôle annuel)
+    const entetes = rangs.map(r =>
+      `<th style="font-size:10px;padding:5px 4px;white-space:nowrap;text-align:center;background:#1a3c6e;color:white">${getLabelMoisRang(niveau, r).slice(0,3)}</th>`
+    ).join('') + `<th style="font-size:10px;padding:5px 4px;background:#7c3aed;color:white;text-align:center">Annuel</th>`
+      + `<th style="font-size:10px;padding:5px 4px;background:#374151;color:white;text-align:center">Moy.</th>`;
+
+    // Lignes par JSP
+    const lignes = jspsNiveau.map(j => {
+      const reponsesJSP = DB.questionnaireReponses.filter(r => r.jspId === j.id && r.niveau === niveau);
+
+      // Note pour chaque mois (la plus récente si plusieurs passages)
+      const notesMois = rangs.map(rang => {
+        const passages = reponsesJSP.filter(r => String(r.rang) === String(rang) && !r.annuel);
+        if (!passages.length) return null;
+        return passages.sort((a,b) => b.date.localeCompare(a.date))[0];
+      });
+
+      // Contrôle annuel (le plus récent)
+      const annuels = reponsesJSP.filter(r => r.annuel === true || r.rang === 'annuel');
+      const annuel = annuels.length ? annuels.sort((a,b) => b.date.localeCompare(a.date))[0] : null;
+
+      // Cellules mois
+      const cellulesMois = notesMois.map(r => {
+        if (!r) return `<td style="background:${COULEURS.vide};text-align:center;font-size:11px;color:${TEXTES.vide}">—</td>`;
+        const couleur = noteColor(r.note, 10);
+        return `<td style="background:${COULEURS[couleur]};text-align:center;font-size:12px;font-weight:700;color:${TEXTES[couleur]}">${r.note}/10</td>`;
+      }).join('');
+
+      // Cellule contrôle annuel
+      const celluleAnnuel = annuel
+        ? `<td style="background:${COULEURS[noteColor(annuel.note,20)]};text-align:center;font-size:12px;font-weight:700;color:${TEXTES[noteColor(annuel.note,20)]}">${annuel.note}/20</td>`
+        : `<td style="background:${COULEURS.vide};text-align:center;font-size:11px;color:${TEXTES.vide}">—</td>`;
+
+      // Moyenne sur 20 (mois convertis sur 20 + annuel si présent)
+      const toutesNotes = [...notesMois.filter(Boolean).map(r => r.note/10*20), ...(annuel ? [annuel.note] : [])];
+      const moy = toutesNotes.length ? (toutesNotes.reduce((s,n)=>s+n,0)/toutesNotes.length).toFixed(1) : null;
+      const celluleMoy = moy
+        ? `<td style="background:${COULEURS[noteColor(parseFloat(moy),20)]};text-align:center;font-size:12px;font-weight:700;color:${TEXTES[noteColor(parseFloat(moy),20)]}">${moy}/20</td>`
+        : `<td style="background:${COULEURS.vide};text-align:center;font-size:11px;color:${TEXTES.vide}">—</td>`;
+
+      // Points forts / faibles
+      const avecNote = notesMois.map((r,i) => r ? {rang: rangs[i], note: r.note, sur:10} : null).filter(Boolean);
+      const meilleur = avecNote.length ? avecNote.reduce((a,b) => a.note>=b.note?a:b) : null;
+      const faible   = avecNote.length ? avecNote.reduce((a,b) => a.note<=b.note?a:b) : null;
+
+      return `<tr>
+        <td style="font-size:12px;font-weight:600;white-space:nowrap;padding:5px 8px">${j.prenom} ${j.nom}</td>
+        ${cellulesMois}
+        ${celluleAnnuel}
+        ${celluleMoy}
+      </tr>`;
+    }).join('');
+
+    // Résumé par JSP (points forts/faibles)
+    const resumesJSP = jspsNiveau.map(j => {
+      const reponsesJSP = DB.questionnaireReponses.filter(r => r.jspId === j.id && r.niveau === niveau && !r.annuel);
+      if (!reponsesJSP.length) return '';
+      const avecNote = rangs.map(rang => {
+        const passages = reponsesJSP.filter(r => String(r.rang) === String(rang));
+        if (!passages.length) return null;
+        const r = passages.sort((a,b) => b.date.localeCompare(a.date))[0];
+        return { rang, label: getLabelMoisRang(niveau, rang), note: r.note };
+      }).filter(Boolean);
+      if (!avecNote.length) return '';
+      const sorted = [...avecNote].sort((a,b) => b.note - a.note);
+      const top3 = sorted.slice(0,3);
+      const bot3 = sorted.slice(-3).reverse();
+      return `<div style="font-size:12px;margin-bottom:6px">
+        <b>${j.prenom} ${j.nom}</b> —
+        <span style="color:#166534">✅ Points forts : ${top3.map(x=>x.label+' ('+x.note+'/10)').join(', ')}</span>
+        ${bot3.some(x => x.note < 7) ? ` &nbsp; <span style="color:#b91c1c">⚠️ À revoir : ${bot3.filter(x=>x.note<7).map(x=>x.label+' ('+x.note+'/10)').join(', ')}</span>` : ''}
+      </div>`;
+    }).join('');
+
+    return `<div class="section-header" style="margin-top:20px"><h3 style="font-size:15px"><i class="ti ti-users"></i> ${niveau}</h3></div>
+    <div style="overflow-x:auto;margin-bottom:8px">
+      <table style="border-collapse:collapse;width:100%;min-width:600px">
+        <thead><tr>
+          <th style="font-size:11px;padding:5px 8px;background:#374151;color:white;text-align:left">JSP</th>
+          ${entetes}
+        </tr></thead>
+        <tbody style="border:1px solid var(--gris-bord)">${lignes}</tbody>
+      </table>
+    </div>
+    ${resumesJSP ? `<div class="table-card" style="padding:12px 16px;margin-bottom:4px">${resumesJSP}</div>` : ''}`;
+  }).join('');
+
+  const aucuneDonnee = !DB.questionnaireReponses.length;
+  return aucuneDonnee
+    ? `<div class="table-card" style="padding:24px;text-align:center;color:var(--gris-txt)"><i class="ti ti-chart-bar" style="font-size:32px;opacity:.3"></i><br>Aucun questionnaire passé pour le moment — le bilan s'affichera au fur et à mesure des passages.</div>`
+    : blocsNiveaux;
 }
 
 // Étape 1 : choisir le JSP avant de lancer le questionnaire (niveau + rang déjà choisis)
