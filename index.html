@@ -414,6 +414,9 @@
         <div class="nav-item" onclick="showSection('questionnaires')">
           <i class="ti ti-clipboard-text"></i><span>Questionnaires culture</span>
         </div>
+        <div class="nav-item" onclick="showSection('competitions')">
+          <i class="ti ti-trophy"></i><span>Compétitions</span>
+        </div>
         <div class="nav-item" onclick="showSection('planning')">
           <i class="ti ti-calendar-event"></i><span>Planning</span>
         </div>
@@ -620,6 +623,7 @@ async function loadFromCloud() {
       if (!cloud.questionnaireReponses) cloud.questionnaireReponses = [];
       if (cloud.questionsCulture === undefined) cloud.questionsCulture = null;
       if (!cloud.questionnairesAssignes) cloud.questionnairesAssignes = [];
+      if (!cloud.competitions) cloud.competitions = [];
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
@@ -653,6 +657,7 @@ function loadData() {
     if (!parsed.questionnaireReponses) parsed.questionnaireReponses = [];
     if (parsed.questionsCulture === undefined) parsed.questionsCulture = null;
     if (!parsed.questionnairesAssignes) parsed.questionnairesAssignes = [];
+    if (!parsed.competitions) parsed.competitions = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
       parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
@@ -1112,6 +1117,7 @@ function loadData() {
     subventions: null,
     questionnaireReponses: [],
     questionnairesAssignes: [],
+    competitions: [],
     questionsCulture: null,
     absences: [
       {
@@ -1806,6 +1812,7 @@ function showSection(sec) {
     case 'comportement': c.innerHTML = renderComportement(); break;
     case 'resultats': c.innerHTML = renderResultats(); break;
     case 'questionnaires': c.innerHTML = renderQuestionnaires('questionnaires'); break;
+    case 'competitions': c.innerHTML = renderCompetitions(); break;
     case 'questionnaires-bilan': c.innerHTML = renderQuestionnaires('bilan'); break;
     case 'planning': c.innerHTML = renderPlanning(window._planningMois||null); break;
     case 'bilans': c.innerHTML = renderBilans(window._bilanJspId||null); break;
@@ -1879,7 +1886,10 @@ function renderDashboard() {
   const prochains = DB.planning.filter(p => p.date >= new Date().toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,3);
   return `
     <div class="section-header"><h2><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Tableau de bord</h2>
-    <button id="btnSyncAppel" class="btn-add" style="background:#16a34a;font-size:13px" onclick="syncAbsencesFromAppel()"><i class="ti ti-refresh"></i> Sync depuis appli d\'appel</button></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-add" style="background:#b91c1c;font-size:13px" onclick="genererBilanAnnuelPDF()"><i class="ti ti-file-type-pdf"></i> Bilan annuel PDF</button>
+      <button id="btnSyncAppel" class="btn-add" style="background:#16a34a;font-size:13px" onclick="syncAbsencesFromAppel()"><i class="ti ti-refresh"></i> Sync depuis appli d\'appel</button>
+    </div></div>
     <div class="stats-grid">
       <div class="stat-card bleu"><div class="stat-val">${totalJSP}</div><div class="stat-lbl">JSP inscrits</div></div>
       <div class="stat-card rouge"><div class="stat-val">${absNE}</div><div class="stat-lbl">Absences non excusées</div></div>
@@ -3824,6 +3834,287 @@ Section JSP CIS Cruzy-Quarante`;
   const ok = await sendEmailParent(jspId, `Contrôle annuel JSP ${niveau} — ${note}/20`, msg);
   if (ok) showNotifToast('✅ Email envoyé à la famille ' + j.nom);
   else showNotifToast('❌ Échec envoi email', true);
+}
+
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  COMPÉTITIONS JSP
+// ══════════════════════════════════════════
+function renderCompetitions() {
+  const comps = [...(DB.competitions||[])].sort((a,b) => b.date.localeCompare(a.date));
+
+  const lignes = comps.map(c => {
+    const nbEpreuves = (c.epreuves||[]).length;
+    const nbParticipants = [...new Set((c.resultatsIndividuels||[]).map(r=>r.jspId))].length;
+    return `<tr onclick="showCompetition(${c.id})" style="cursor:pointer">
+      <td><strong>${c.nom}</strong></td>
+      <td>${fmtDate(c.date)}</td>
+      <td>${c.lieu||'—'}</td>
+      <td>${(c.niveaux||[]).join(', ')||'—'}</td>
+      <td style="text-align:center">${nbEpreuves}</td>
+      <td style="text-align:center">${nbParticipants}</td>
+      <td>${c.classementSection ? `<span class="badge badge-${c.classementSection<=3?'vert':'bleu'}">${c.classementSection}${c.classementSection===1?'er':'ème'} / ${c.nbCentres||'?'}</span>` : '<span style="color:var(--gris-txt);font-size:12px">—</span>'}</td>
+      <td><button class="btn-add" style="padding:4px 8px;font-size:11px;background:#b91c1c" onclick="event.stopPropagation();supprimerCompetition(${c.id})"><i class="ti ti-trash"></i></button></td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-trophy"></i> Compétitions JSP</h2>
+    <button class="btn-add" onclick="modalNouvelleCompetition()"><i class="ti ti-plus"></i> Nouvelle compétition</button>
+  </div>
+  <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">Gérez les compétitions départementales JSP : épreuves, résultats individuels par JSP et classement collectif de la section.</p>
+
+  <div class="table-card">
+    <table>
+      <thead><tr>
+        <th>Compétition</th><th>Date</th><th>Lieu</th><th>Niveaux</th>
+        <th style="text-align:center">Épreuves</th><th style="text-align:center">Participants</th>
+        <th>Classement section</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${comps.length ? lignes : '<tr class="empty-row"><td colspan="8">Aucune compétition enregistrée — clique sur "Nouvelle compétition" pour commencer</td></tr>'}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function modalNouvelleCompetition() {
+  const niveauxOpts = ['JSP 1','JSP 2','JSP 3','JSP 4'].map(n =>
+    `<label style="display:inline-flex;align-items:center;gap:5px;margin-right:12px;font-weight:400"><input type="checkbox" name="comp_niv" value="${n}" style="width:auto"> ${n}</label>`
+  ).join('');
+
+  openModal(`<h3><i class="ti ti-trophy"></i> Nouvelle compétition</h3>
+    <div class="form-group"><label>Nom de la compétition</label><input type="text" id="comp_nom" placeholder="Ex: Challenge départemental JSP SDIS 34"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Date</label><input type="date" id="comp_date"></div>
+      <div class="form-group"><label>Lieu</label><input type="text" id="comp_lieu" placeholder="Ex: Montpellier"></div>
+    </div>
+    <div class="form-group"><label>Niveaux concernés</label><div style="margin-top:6px">${niveauxOpts}</div></div>
+    <div class="form-group"><label>Épreuves (une par ligne, avec note max entre parenthèses)</label>
+      <textarea id="comp_epreuves" rows="5" placeholder="Ex:\nSecourisme (20)\nSport pompier (20)\nIncendie (20)\nCulture JSP (10)"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Classement section (facultatif)</label><input type="number" id="comp_classement" placeholder="Ex: 3" min="1"></div>
+      <div class="form-group"><label>Nombre de centres participants</label><input type="number" id="comp_nb_centres" placeholder="Ex: 12" min="1"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveNouvelleCompetition()">💾 Créer la compétition</button>
+    </div>`);
+}
+
+function saveNouvelleCompetition() {
+  const nom = document.getElementById('comp_nom').value.trim();
+  const date = document.getElementById('comp_date').value;
+  if (!nom || !date) { showToast('Nom et date obligatoires'); return; }
+
+  const niveaux = [...document.querySelectorAll('input[name="comp_niv"]:checked')].map(el => el.value);
+  const lignesEpreuves = document.getElementById('comp_epreuves').value.trim().split('\n').filter(l=>l.trim());
+  const epreuves = lignesEpreuves.map((l,i) => {
+    const match = l.match(/^(.+?)\s*\((\d+)\)\s*$/);
+    return match
+      ? { id: i+1, nom: match[1].trim(), noteMax: parseInt(match[2]) }
+      : { id: i+1, nom: l.trim(), noteMax: 20 };
+  });
+
+  const classement = parseInt(document.getElementById('comp_classement').value) || null;
+  const nbCentres = parseInt(document.getElementById('comp_nb_centres').value) || null;
+
+  DB.competitions.push({
+    id: nextId(DB.competitions),
+    nom, date,
+    lieu: document.getElementById('comp_lieu').value.trim(),
+    niveaux, epreuves,
+    classementSection: classement,
+    nbCentres,
+    resultatsIndividuels: []
+  });
+  saveData();
+  closeModal();
+  showSection('competitions');
+}
+
+function showCompetition(id) {
+  const c = DB.competitions.find(x => x.id === id);
+  if (!c) return;
+
+  // JSP participants (niveaux concernés)
+  const jspsParticipants = DB.jsps.filter(j => (c.niveaux||[]).includes(j.promotion));
+
+  // Tableau résultats individuels
+  const enteteEpreuves = (c.epreuves||[]).map(e =>
+    `<th style="text-align:center;font-size:11px">${e.nom}<br><span style="font-weight:400;opacity:.8">/${e.noteMax}</span></th>`
+  ).join('');
+
+  const noteMax = (c.epreuves||[]).reduce((s,e) => s+e.noteMax, 0);
+
+  const lignesJSP = jspsParticipants.map(j => {
+    const resJ = (c.resultatsIndividuels||[]).filter(r => r.jspId === j.id);
+    const cellules = (c.epreuves||[]).map(e => {
+      const r = resJ.find(r => r.epreuveId === e.id);
+      return `<td style="text-align:center">
+        <input type="number" min="0" max="${e.noteMax}" step="0.5"
+          value="${r ? r.note : ''}"
+          style="width:52px;text-align:center;border:1px solid var(--gris-bord);border-radius:6px;padding:4px;font-size:13px"
+          onchange="sauvegarderNoteCompetition(${id},${j.id},${e.id},this.value,${e.noteMax})">
+      </td>`;
+    }).join('');
+
+    const total = (c.epreuves||[]).reduce((s,e) => {
+      const r = resJ.find(r => r.epreuveId === e.id);
+      return s + (r ? parseFloat(r.note)||0 : 0);
+    }, 0);
+    const aDesNotes = resJ.length > 0;
+
+    return `<tr>
+      <td><strong>${j.prenom} ${j.nom}</strong><br><span style="font-size:11px;color:var(--gris-txt)">${j.promotion}</span></td>
+      ${cellules}
+      <td style="text-align:center">
+        ${aDesNotes ? `<span class="badge badge-${noteColor(total,noteMax)}" style="font-size:12px">${total}/${noteMax}</span>` : '<span style="color:var(--gris-txt);font-size:12px">—</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+
+  const classementHTML = c.classementSection
+    ? `<div class="table-card" style="padding:16px 18px;margin-bottom:20px;display:flex;align-items:center;gap:16px">
+        <div style="font-size:36px">${c.classementSection===1?'🥇':c.classementSection===2?'🥈':c.classementSection===3?'🥉':'🏅'}</div>
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--bleu)">${c.classementSection}${c.classementSection===1?'er':'ème'} sur ${c.nbCentres||'?'} centres</div>
+          <div style="font-size:13px;color:var(--gris-txt)">Classement collectif de la section CIS Cruzy-Quarante</div>
+        </div>
+        <button class="btn-add" style="margin-left:auto;background:#6b7280" onclick="modalEditerClassement(${id})"><i class="ti ti-pencil"></i> Modifier</button>
+      </div>`
+    : `<div class="table-card" style="padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+        <span style="color:var(--gris-txt);font-size:13px">Classement collectif non renseigné</span>
+        <button class="btn-add" style="margin-left:auto" onclick="modalEditerClassement(${id})"><i class="ti ti-plus"></i> Ajouter le classement</button>
+      </div>`;
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="section-header">
+      <h2><i class="ti ti-trophy"></i> ${c.nom}</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn-add" style="background:#6b7280" onclick="showSection('competitions')">← Retour</button>
+        <button class="btn-add" style="background:#b91c1c" onclick="exporterCompetitionPDF(${id})"><i class="ti ti-file-type-pdf"></i> Export PDF</button>
+      </div>
+    </div>
+    <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">${fmtDate(c.date)} · ${c.lieu||'—'} · ${(c.niveaux||[]).join(', ')}</p>
+
+    ${classementHTML}
+
+    <div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-list-numbers"></i> Résultats individuels</h3></div>
+    <p style="font-size:12px;color:var(--gris-txt);margin-bottom:10px">Saisis directement les notes dans le tableau — elles sont enregistrées automatiquement.</p>
+    <div style="overflow-x:auto">
+      <table class="table-card" style="min-width:500px">
+        <thead><tr>
+          <th>JSP</th>
+          ${enteteEpreuves}
+          <th style="text-align:center">Total</th>
+        </tr></thead>
+        <tbody>${lignesJSP || '<tr class="empty-row"><td colspan="10">Aucun JSP dans les niveaux concernés</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+function sauvegarderNoteCompetition(compId, jspId, epreuveId, valeur, noteMax) {
+  const c = DB.competitions.find(x => x.id === compId);
+  if (!c) return;
+  if (!c.resultatsIndividuels) c.resultatsIndividuels = [];
+  const note = Math.min(parseFloat(valeur)||0, noteMax);
+  const idx = c.resultatsIndividuels.findIndex(r => r.jspId === jspId && r.epreuveId === epreuveId);
+  if (idx >= 0) c.resultatsIndividuels[idx].note = note;
+  else c.resultatsIndividuels.push({ jspId, epreuveId, note });
+  saveData();
+  // Recalcul total affiché
+  showCompetition(compId);
+}
+
+function modalEditerClassement(compId) {
+  const c = DB.competitions.find(x => x.id === compId);
+  if (!c) return;
+  openModal(`<h3><i class="ti ti-trophy"></i> Classement collectif</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Classement de la section</label><input type="number" id="cl_rang" value="${c.classementSection||''}" min="1" placeholder="Ex: 3"></div>
+      <div class="form-group"><label>Nombre de centres</label><input type="number" id="cl_centres" value="${c.nbCentres||''}" min="1" placeholder="Ex: 12"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveClassement(${compId})">💾 Enregistrer</button>
+    </div>`);
+}
+
+function saveClassement(compId) {
+  const c = DB.competitions.find(x => x.id === compId);
+  if (!c) return;
+  c.classementSection = parseInt(document.getElementById('cl_rang').value)||null;
+  c.nbCentres = parseInt(document.getElementById('cl_centres').value)||null;
+  saveData();
+  closeModal();
+  showCompetition(compId);
+}
+
+function supprimerCompetition(id) {
+  if (!confirm('Supprimer cette compétition et tous ses résultats ?')) return;
+  DB.competitions = DB.competitions.filter(c => c.id !== id);
+  saveData();
+  showSection('competitions');
+}
+
+function exporterCompetitionPDF(id) {
+  const c = DB.competitions.find(x => x.id === id);
+  if (!c) return;
+  const now = new Date().toLocaleDateString('fr-FR');
+  const jspsParticipants = DB.jsps.filter(j => (c.niveaux||[]).includes(j.promotion));
+  const noteMax = (c.epreuves||[]).reduce((s,e) => s+e.noteMax, 0);
+
+  const enteteEpreuves = (c.epreuves||[]).map(e =>
+    `<th style="text-align:center;font-size:11px;padding:6px 4px">${e.nom}<br>/${e.noteMax}</th>`
+  ).join('');
+
+  const lignes = jspsParticipants.map(j => {
+    const resJ = (c.resultatsIndividuels||[]).filter(r => r.jspId === j.id);
+    const cellules = (c.epreuves||[]).map(e => {
+      const r = resJ.find(r => r.epreuveId === e.id);
+      return `<td style="text-align:center;font-size:12px">${r ? r.note : '—'}</td>`;
+    }).join('');
+    const total = (c.epreuves||[]).reduce((s,e) => {
+      const r = resJ.find(r => r.epreuveId === e.id);
+      return s + (r ? parseFloat(r.note)||0 : 0);
+    }, 0);
+    return `<tr><td style="font-size:12px;font-weight:600">${j.prenom} ${j.nom} <span style="font-weight:400;font-size:10px;color:#6b7280">(${j.promotion})</span></td>${cellules}<td style="text-align:center;font-weight:700;font-size:12px">${resJ.length?total+'/'+ noteMax:'—'}</td></tr>`;
+  }).join('');
+
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+  <meta charset="UTF-8"><title>${c.nom}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;padding:12mm;color:#1f2937;font-size:12px}
+    @page{size:A4;margin:10mm}
+    .tricolore{display:flex;height:5px;margin-bottom:14px}
+    .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
+    h1{font-size:18px;color:#1a3c6e;margin-bottom:4px}
+    table{width:100%;border-collapse:collapse;margin-top:16px}
+    thead th{background:#1a3c6e;color:white;padding:7px 8px;font-size:11px}
+    tbody td{padding:6px 8px;border-bottom:1px solid #f3f4f6}
+    .classement{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14px;font-weight:700;color:#166534}
+    .footer{font-size:9px;color:#9ca3af;text-align:center;margin-top:20px}
+    .btn{background:#1a3c6e;color:white;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;margin-bottom:12px}
+    @media print{.btn{display:none}}
+  </style></head><body>
+  <button class="btn" onclick="window.print()">🖨️ Imprimer / PDF</button>
+  <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
+  <h1>${c.nom}</h1>
+  <p style="font-size:12px;color:#6b7280">${fmtDate(c.date)} · ${c.lieu||'—'} · Section JSP CIS Cruzy-Quarante · SDIS 34</p>
+  ${c.classementSection ? `<div class="classement">${c.classementSection===1?'🥇':c.classementSection===2?'🥈':c.classementSection===3?'🥉':'🏅'} Classement collectif : ${c.classementSection}${c.classementSection===1?'er':'ème'} sur ${c.nbCentres||'?'} centres</div>` : ''}
+  <table>
+    <thead><tr><th style="text-align:left">JSP</th>${enteteEpreuves}<th style="text-align:center">Total</th></tr></thead>
+    <tbody>${lignes}</tbody>
+  </table>
+  <div class="footer">Document généré le ${now} — Carnet JSP · CIS Cruzy-Quarante · SDIS 34</div>
+  <scr` + `ipt>window.onload=function(){setTimeout(function(){window.print()},200)}</scr` + `ipt>
+  </body></html>`);
+  win.document.close();
 }
 
 // ══════════════════════════════════════════
@@ -6028,6 +6319,171 @@ function genererSubventionPDF() {
 }
 
 
+function genererBilanAnnuelPDF() {
+  const saison = DB.saison;
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+  const jsps = DB.jsps || [];
+  const absences = DB.absences || [];
+  const resultats = DB.resultats || [];
+  const icp = DB.icp || [];
+  const planning = (DB.planning || []).filter(e => e.date && e.date.startsWith(saison.slice(0,4)) || e.date && e.date >= saison.slice(0,4)+'-09' || true).sort((a,b)=>a.date.localeCompare(b.date));
+  const seancesPlanning = (DB.planning || []).filter(e => e.type === 'formation' || e.type === 'exercice' || e.type === 'controle');
+  const comportements = DB.comportements || [];
+  const questionnaireReponses = DB.questionnaireReponses || [];
+
+  const fmtDate = d => d ? d.split('-').reverse().join('/') : '—';
+  const noteColor = (n,s) => n/s >= 0.8 ? '#166534' : n/s >= 0.5 ? '#b45309' : '#b91c1c';
+  const noteBg   = (n,s) => n/s >= 0.8 ? '#dcfce7' : n/s >= 0.5 ? '#fef3c7' : '#fee2e2';
+
+  // ── Statistiques globales ──
+  const nbJsps = jsps.length;
+  const seancesUniques = [...new Set(absences.map(a=>a.date))].length;
+  const totalPresences = jsps.reduce((sum, j) => {
+    const abs = absences.filter(a => a.jspId === j.id && !a.excuse);
+    return sum + Math.max(0, seancesUniques - abs.length);
+  }, 0);
+  const tauxPresenceGlobal = seancesUniques > 0 && nbJsps > 0
+    ? Math.round(totalPresences / (seancesUniques * nbJsps) * 100) : 100;
+
+  // ── Fiches JSP ──
+  const promos = ['JSP 1','JSP 2','JSP 3','JSP 4'];
+  const fichesHTML = promos.map(promo => {
+    const jspsDuNiveau = jsps.filter(j => j.promotion === promo);
+    if (!jspsDuNiveau.length) return '';
+
+    const lignesJSP = jspsDuNiveau.map(j => {
+      // Absences
+      const absJ = absences.filter(a => a.jspId === j.id);
+      const nbAbsNonExcuses = absJ.filter(a => !a.excuse && a.statut !== 'retard').length;
+      const nbRetards = absJ.filter(a => a.statut === 'retard').length;
+      const nbExcuses = absJ.filter(a => a.excuse).length;
+      const presences = Math.max(0, seancesUniques - nbAbsNonExcuses - nbExcuses);
+      const tauxPres = seancesUniques > 0 ? Math.round(presences / seancesUniques * 100) : 100;
+
+      // Résultats scolaires
+      const resJ = resultats.filter(r => r.jspId === j.id);
+      const moyRes = resJ.length ? (resJ.reduce((s,r) => s + r.note/r.sur*20, 0)/resJ.length).toFixed(1) : null;
+
+      // Questionnaires culture
+      const qJ = questionnaireReponses.filter(r => r.jspId === j.id);
+      const qMensuels = qJ.filter(r => !r.annuel);
+      const qAnnuel = qJ.find(r => r.annuel);
+      const moyQ = qMensuels.length ? (qMensuels.reduce((s,r) => s + r.note/10*20, 0)/qMensuels.length).toFixed(1) : null;
+
+      // ICP
+      const icpJ = icp.filter(i => i.jspId === j.id).sort((a,b) => a.date.localeCompare(b.date));
+      const dernierICP = icpJ.length ? icpJ[icpJ.length-1] : null;
+
+      // Comportements
+      const compJ = comportements.filter(c => c.jspId === j.id);
+
+      return `
+      <tr style="page-break-inside:avoid">
+        <td style="font-weight:700;font-size:12px">${j.prenom} ${j.nom}</td>
+        <td style="text-align:center">
+          <span style="background:${tauxPres>=80?'#dcfce7':tauxPres>=60?'#fef3c7':'#fee2e2'};color:${tauxPres>=80?'#166534':tauxPres>=60?'#b45309':'#b91c1c'};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${tauxPres}%</span>
+          <div style="font-size:10px;color:#6b7280;margin-top:2px">${presences}P · ${nbAbsNonExcuses}A · ${nbRetards}R · ${nbExcuses}E</div>
+        </td>
+        <td style="text-align:center">
+          ${moyRes ? `<span style="background:${noteBg(parseFloat(moyRes),20)};color:${noteColor(parseFloat(moyRes),20)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${moyRes}/20</span><div style="font-size:10px;color:#6b7280;margin-top:2px">${resJ.length} note(s)</div>` : '<span style="font-size:11px;color:#9ca3af">—</span>'}
+        </td>
+        <td style="text-align:center">
+          ${moyQ ? `<span style="background:${noteBg(parseFloat(moyQ),20)};color:${noteColor(parseFloat(moyQ),20)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${moyQ}/20</span>` : '<span style="font-size:11px;color:#9ca3af">—</span>'}
+          ${qAnnuel ? `<div style="font-size:10px;color:#7c3aed;margin-top:2px">Annuel : ${qAnnuel.note}/20</div>` : ''}
+        </td>
+        <td style="text-align:center">
+          ${dernierICP ? `<span style="background:${noteBg(dernierICP.total||0,100)};color:${noteColor(dernierICP.total||0,100)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${dernierICP.total||0}/100</span>` : '<span style="font-size:11px;color:#9ca3af">—</span>'}
+        </td>
+        <td style="text-align:center;font-size:11px;color:${compJ.length>0?'#b91c1c':'#166534'}">${compJ.length > 0 ? compJ.length + ' signalement(s)' : '✓ RAS'}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+    <div style="margin-bottom:22px;page-break-inside:avoid">
+      <div style="background:#1a3c6e;color:white;padding:8px 12px;font-size:13px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+        <span>${promo}</span>
+        <span style="font-weight:400;font-size:11px">${jspsDuNiveau.length} JSP</span>
+      </div>
+      <table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb;border-top:none">
+        <thead><tr style="background:#f9fafb">
+          <th style="padding:6px 8px;font-size:10px;text-align:left;border-bottom:1px solid #e5e7eb">JSP</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Présence</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Résultats</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Culture</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">ICP</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Comportement</th>
+        </tr></thead>
+        <tbody>${lignesJSP}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  // ── Planning / séances ──
+  const lignesPlanning = (DB.planning||[]).sort((a,b)=>a.date.localeCompare(b.date)).map(e =>
+    `<tr><td style="font-size:11px">${fmtDate(e.date)}</td><td style="font-size:11px">${e.titre}</td><td style="font-size:11px">${e.type}</td><td style="font-size:11px">${e.lieu||'—'}</td></tr>`
+  ).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+  <meta charset="UTF-8"><title>Bilan annuel JSP — Saison ${saison}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;padding:12mm;color:#1f2937;font-size:12px}
+    @page{size:A4 portrait;margin:10mm}
+    @media print{.no-print{display:none}.page-break{page-break-before:always}}
+    .tricolore{display:flex;height:5px;margin-bottom:14px}
+    .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
+    .stat-card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;text-align:center}
+    .stat-val{font-size:22px;font-weight:800;color:#1a3c6e}
+    .stat-lbl{font-size:10px;color:#6b7280;margin-top:2px}
+    h2{font-size:15px;color:#1a3c6e;border-bottom:2px solid #1a3c6e;padding-bottom:4px;margin:18px 0 12px}
+    table{width:100%;border-collapse:collapse}
+    thead th{background:#1a3c6e;color:white;padding:7px 8px;font-size:11px;text-align:left}
+    tbody td{padding:6px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+    .footer{font-size:9px;color:#9ca3af;text-align:center;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:8px}
+    .btn-print{background:#1a3c6e;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;margin-bottom:14px}
+  </style>
+</head><body>
+  <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimer / Exporter PDF</button>
+
+  <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+    <div>
+      <div style="font-size:20px;font-weight:800;color:#1a3c6e">Bilan annuel — Section JSP</div>
+      <div style="font-size:12px;color:#6b7280">CIS Cruzy-Quarante · SDIS 34 · Saison ${saison}</div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:#6b7280">
+      Édité le ${now}<br>Chef de section : Galiana Christian
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">
+    <div class="stat-card"><div class="stat-val">${nbJsps}</div><div class="stat-lbl">JSP en formation</div></div>
+    <div class="stat-card"><div class="stat-val">${tauxPresenceGlobal}%</div><div class="stat-lbl">Taux de présence global</div></div>
+    <div class="stat-card"><div class="stat-val">${seancesUniques}</div><div class="stat-lbl">Séances tenues</div></div>
+    <div class="stat-card"><div class="stat-val">${(DB.planning||[]).length}</div><div class="stat-lbl">Activités planifiées</div></div>
+  </div>
+
+  <h2>Suivi individuel par niveau</h2>
+  <p style="font-size:10px;color:#6b7280;margin-bottom:14px">P=Présent · A=Absent non excusé · R=Retard · E=Excusé · ICP=Indice de Condition Physique (/100)</p>
+  ${fichesHTML}
+
+  <div class="page-break"></div>
+  <h2>Planning de la saison ${saison}</h2>
+  <table>
+    <thead><tr><th>Date</th><th>Activité</th><th>Type</th><th>Lieu</th></tr></thead>
+    <tbody>${lignesPlanning || '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:12px">Aucune activité planifiée</td></tr>'}</tbody>
+  </table>
+
+  <div class="footer">Document généré automatiquement par Carnet JSP — Section JSP CIS Cruzy-Quarante (SDIS 34) · Saison ${saison}</div>
+  <script>
+    window.onload = function() { setTimeout(function(){ window.print(); }, 300); };
+  </scr` + `ipt>
+</body></html>`);
+  win.document.close();
+}
+
 function genererBilanFinancePDF() {
   const saison = DB.saison;
   const lignes = getFinanceSaison(saison).filter(f => f.type === 'depense' || f.type === 'recette');
@@ -7107,47 +7563,85 @@ function getMessages() {
 
 function renderMessagerie() {
   const msgs = getMessages();
-  const jspOpts = '<option value="tous">Tous les parents</option>'
-    + DB.jsps.map(j => '<option value="'+j.id+'">'+j.prenom+' '+j.nom+' ('+j.promotion+')</option>').join('');
-
-  // Trier par date desc
   const sorted = [...msgs].sort((a,b) => b.ts - a.ts);
 
-  return '<div class="section-header"><h2><i class="ti ti-message" aria-hidden="true"></i> Messagerie</h2></div>'
-    // Formulaire envoi
-    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;margin-bottom:16px">'
-    +'<div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:14px"><i class="ti ti-send"></i> Nouveau message</div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'
-    +'<div class="form-group"><label>Destinataire</label>'
-    +'<select id="msg_dest" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px">'+jspOpts+'</select></div>'
-    +'<div class="form-group"><label>Sujet</label>'
-    +'<input type="text" id="msg_sujet" placeholder="Ex: Rappel séance..." style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>'
-    +'</div>'
-    +'<div class="form-group" style="margin-bottom:12px"><label>Message</label>'
-    +'<textarea id="msg_corps" rows="4" placeholder="Votre message..." style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-family:Arial,sans-serif;font-size:14px;resize:vertical"></textarea></div>'
-    +'<div style="display:flex;gap:10px">'
-    +'<button class="btn-add" onclick="envoyerMessage()"><i class="ti ti-send"></i> Envoyer dans l\'appli</button>'
-    +'<button class="btn-add" style="background:#166534" onclick="envoyerMessageEmail()"><i class="ti ti-mail"></i> Envoyer par email</button>'
-    +'</div></div>'
+  // Sélecteur destinataire groupé par niveau
+  const promos = ['JSP 1','JSP 2','JSP 3','JSP 4'];
+  const optsGroupes = '<option value="tous">📢 Tous les parents (section entière)</option>'
+    + promos.map(p => {
+        const jspsDuNiveau = DB.jsps.filter(j => j.promotion === p);
+        if (!jspsDuNiveau.length) return '';
+        return `<optgroup label="${p}">`
+          + `<option value="niveau:${p}">👥 Tous les parents ${p}</option>`
+          + jspsDuNiveau.map(j => `<option value="${j.id}">${j.prenom} ${j.nom}</option>`).join('')
+          + '</optgroup>';
+      }).join('');
 
-    // Historique
-    +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden">'
-    +'<div style="background:var(--bleu);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-history"></i> Messages envoyés ('+msgs.length+')</div>'
-    +(sorted.length ? sorted.map(m => {
-      const dest = m.jspId === 'tous' ? 'Tous les parents'
-        : (DB.jsps.find(j=>j.id==m.jspId) ? 'Famille '+DB.jsps.find(j=>j.id==m.jspId).nom : '—');
-      const d = new Date(m.ts);
-      const dateStr = d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-      return '<div style="padding:14px 16px;border-bottom:.5px solid var(--gris-bord)">'
-        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
-        +'<div><span style="font-weight:700;color:var(--bleu)">'+m.sujet+'</span>'
-        +' <span style="background:var(--bleu-pale);color:var(--bleu);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600">'+dest+'</span></div>'
-        +'<div style="font-size:11px;color:var(--gris-txt)">'+dateStr+'</div></div>'
-        +'<div style="font-size:13px;color:#374151;white-space:pre-wrap">'+m.corps+'</div>'
-        +'</div>';
-    }).join('')
-    : '<div style="text-align:center;color:var(--gris-txt);padding:32px;font-size:14px"><i class="ti ti-message-off" style="font-size:32px;display:block;margin-bottom:8px"></i>Aucun message envoyé</div>')
-    +'</div>';
+  const lignesMsgs = sorted.map(m => {
+    const dest = m.jspId === 'tous' ? 'Tous les parents'
+      : m.jspId && m.jspId.startsWith('niveau:') ? 'Parents ' + m.jspId.replace('niveau:','')
+      : (DB.jsps.find(j=>j.id==m.jspId) ? 'Famille '+DB.jsps.find(j=>j.id==m.jspId).nom : '—');
+    const d = new Date(m.ts);
+    const dateStr = d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const accuses = m.accuses || [];
+
+    // Calculer qui doit accuser réception
+    let jspsCibles = [];
+    if (m.jspId === 'tous') jspsCibles = DB.jsps;
+    else if (m.jspId && m.jspId.startsWith('niveau:')) jspsCibles = DB.jsps.filter(j => j.promotion === m.jspId.replace('niveau:',''));
+    else { const jFound = DB.jsps.find(j=>j.id==m.jspId); if(jFound) jspsCibles=[jFound]; }
+
+    const nbCibles = jspsCibles.length;
+    const nbLus = accuses.length;
+    const nonLus = jspsCibles.filter(j => !accuses.find(a => a.jspId === j.id));
+
+    const statutHTML = nbCibles > 0
+      ? `<div style="margin-top:8px;font-size:12px">
+          <span style="color:#166534;font-weight:600">✅ Lu : ${nbLus}/${nbCibles}</span>
+          ${nonLus.length ? `<span style="color:#b91c1c;margin-left:10px">⏳ En attente : ${nonLus.map(j=>j.prenom+' '+j.nom).join(', ')}</span>` : ''}
+         </div>`
+      : '';
+
+    const accusesDetail = accuses.length ? `<div style="margin-top:6px;font-size:11px;color:#6b7280">${accuses.map(a => {
+      const jA = DB.jsps.find(j=>j.id===a.jspId);
+      return (jA ? jA.prenom+' '+jA.nom : '?') + ' — ' + new Date(a.ts).toLocaleDateString('fr-FR') + ' à ' + new Date(a.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    }).join(' · ')}</div>` : '';
+
+    return `<div style="padding:14px 16px;border-bottom:.5px solid var(--gris-bord)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div><span style="font-weight:700;color:var(--bleu)">${m.sujet}</span>
+        <span style="background:var(--bleu-pale);color:var(--bleu);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;margin-left:6px">${dest}</span></div>
+        <div style="font-size:11px;color:var(--gris-txt)">${dateStr}</div>
+      </div>
+      <div style="font-size:13px;color:#374151;white-space:pre-wrap">${m.corps}</div>
+      ${statutHTML}
+      ${accusesDetail}
+    </div>`;
+  }).join('');
+
+  return `<div class="section-header"><h2><i class="ti ti-message" aria-hidden="true"></i> Carnet de liaison</h2></div>
+    <div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:14px"><i class="ti ti-send"></i> Nouveau message</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="form-group"><label>Destinataire</label>
+          <select id="msg_dest" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px">${optsGroupes}</select>
+        </div>
+        <div class="form-group"><label>Sujet</label>
+          <input type="text" id="msg_sujet" placeholder="Ex: Rappel séance, Convocation..." style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px"><label>Message</label>
+        <textarea id="msg_corps" rows="4" placeholder="Votre message..." style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-family:Arial,sans-serif;font-size:14px;resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-add" onclick="envoyerMessage()"><i class="ti ti-send"></i> Envoyer dans l'appli (avec accusé)</button>
+        <button class="btn-add" style="background:#166534" onclick="envoyerMessageEmail()"><i class="ti ti-mail"></i> Envoyer + email</button>
+      </div>
+    </div>
+    <div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden">
+      <div style="background:var(--bleu);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-history"></i> Messages envoyés (${msgs.length})</div>
+      ${sorted.length ? lignesMsgs : '<div style="text-align:center;color:var(--gris-txt);padding:32px;font-size:14px"><i class="ti ti-message-off" style="font-size:32px;display:block;margin-bottom:8px"></i>Aucun message envoyé</div>'}
+    </div>`;
 }
 
 function envoyerMessage() {
@@ -7156,9 +7650,9 @@ function envoyerMessage() {
   const corps = document.getElementById('msg_corps').value.trim();
   if (!sujet || !corps) { alert('Sujet et message obligatoires.'); return; }
   if (!DB.messages) DB.messages = [];
-  DB.messages.push({ id: Date.now(), jspId: dest, sujet, corps, ts: Date.now(), lu: false });
+  DB.messages.push({ id: Date.now(), jspId: dest, sujet, corps, ts: Date.now(), lu: false, accuses: [] });
   saveData();
-  showNotifToast('✅ Message envoyé dans l\'appli !');
+  showNotifToast('✅ Message envoyé — les familles verront un badge de notification à leur prochaine connexion');
   document.getElementById('msg_sujet').value = '';
   document.getElementById('msg_corps').value = '';
   showSection('messagerie');
@@ -7169,61 +7663,82 @@ async function envoyerMessageEmail() {
   const sujet = document.getElementById('msg_sujet').value.trim();
   const corps = document.getElementById('msg_corps').value.trim();
   if (!sujet || !corps) { alert('Sujet et message obligatoires.'); return; }
-
-  // Sauvegarder dans l'appli aussi
   if (!DB.messages) DB.messages = [];
-  DB.messages.push({ id: Date.now(), jspId: dest, sujet, corps, ts: Date.now(), lu: false });
+  DB.messages.push({ id: Date.now(), jspId: dest, sujet, corps, ts: Date.now(), lu: false, accuses: [] });
   saveData();
 
-  if (dest === 'tous') {
-    // Envoyer à tous les JSP qui ont un email
-    const jspsAvecEmail = DB.jsps.filter(j => j.email);
-    let envoyes = 0;
-    for (const j of jspsAvecEmail) {
-      const ok = await sendEmailParent(j.id, sujet, corps);
-      if (ok) envoyes++;
-    }
-    showNotifToast('✅ '+envoyes+' emails envoyés !');
-  } else {
-    const ok = await sendEmailParent(parseInt(dest), sujet, corps);
-    if (ok) showNotifToast('✅ Email envoyé !');
-    else showNotifToast('❌ Échec envoi email', true);
+  let jspsCibles = [];
+  if (dest === 'tous') jspsCibles = DB.jsps;
+  else if (dest.startsWith('niveau:')) jspsCibles = DB.jsps.filter(j => j.promotion === dest.replace('niveau:',''));
+  else { const jFound = DB.jsps.find(j=>j.id==dest); if(jFound) jspsCibles=[jFound]; }
+
+  const jspsAvecEmail = jspsCibles.filter(j => j.email);
+  let envoyes = 0;
+  for (const j of jspsAvecEmail) {
+    const ok = await sendEmailParent(j.id, sujet, corps);
+    if (ok) envoyes++;
   }
+  showNotifToast('✅ Message enregistré + '+envoyes+' email(s) envoyé(s)');
   showSection('messagerie');
+}
+
+function accuserReception(msgId) {
+  const j = getMyJSP();
+  if (!j) return;
+  const msg = (DB.messages||[]).find(m => m.id === msgId);
+  if (!msg) return;
+  if (!msg.accuses) msg.accuses = [];
+  if (msg.accuses.find(a => a.jspId === j.id)) {
+    showToast('Vous avez déjà accusé réception de ce message');
+    return;
+  }
+  msg.accuses.push({ jspId: j.id, ts: Date.now() });
+  msg.lu = true;
+  saveData();
+  showToast('✅ Accusé de réception enregistré');
+  showSection('parent-messages');
 }
 
 function renderParentMessages() {
   const j = getMyJSP();
   if (!j) return '<p>Aucun JSP associé.</p>';
-  const msgs = (DB.messages||[]).filter(m => m.jspId == j.id || m.jspId === 'tous')
+  const msgs = (DB.messages||[]).filter(m => m.jspId == j.id || m.jspId === 'tous' || (m.jspId && m.jspId.startsWith('niveau:') && m.jspId.replace('niveau:','') === j.promotion))
     .sort((a,b) => b.ts - a.ts);
 
-  // Marquer comme lus
-  msgs.forEach(m => { m.lu = true; });
-  saveData();
-
   const initiales = j.prenom[0]+j.nom[0];
-  let html2 = '<div class="enfant-card"><div class="enfant-avatar">'+initiales+'</div>'
-    +'<div><h2>Messages de la section</h2><p>'+j.prenom+' '+j.nom+' — '+j.promotion+'</p></div></div>';
+  let html2 = `<div class="enfant-card"><div class="enfant-avatar">${initiales}</div>
+    <div><h2>Carnet de liaison</h2><p>${j.prenom} ${j.nom} — ${j.promotion}</p></div></div>`;
 
   if (!msgs.length) {
-    html2 += '<div style="text-align:center;background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:40px;color:var(--gris-txt)">'
-      +'<i class="ti ti-message-off" style="font-size:40px;display:block;margin-bottom:12px"></i>'
-      +'<p style="font-size:15px">Aucun message pour le moment.</p></div>';
+    html2 += '<div style="text-align:center;background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:40px;color:var(--gris-txt)"><i class="ti ti-message-off" style="font-size:40px;display:block;margin-bottom:12px"></i><p style="font-size:15px">Aucun message pour le moment.</p></div>';
     return html2;
   }
 
   html2 += '<div style="display:flex;flex-direction:column;gap:12px">';
   msgs.forEach(m => {
     const d = new Date(m.ts);
-    const dateStr = d.toLocaleDateString("fr-FR")+' à '+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-    html2 += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;border-left:4px solid var(--bleu)">'
-      +'<div style="display:flex;justify-content:space-between;margin-bottom:8px">'
-      +'<div style="font-size:15px;font-weight:700;color:var(--bleu)">'+m.sujet+'</div>'
-      +'<div style="font-size:11px;color:var(--gris-txt)">'+dateStr+'</div></div>'
-      +'<div style="font-size:14px;color:#374151;white-space:pre-wrap;line-height:1.6">'+m.corps+'</div>'
-      +'<div style="margin-top:10px;font-size:12px;color:var(--gris-txt)"><i class="ti ti-user"></i> Chef Galiana — Section JSP CIS Cruzy-Quarante</div>'
-      +'</div>';
+    const dateStr = d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    const dejaAccuse = (m.accuses||[]).find(a => a.jspId === j.id);
+    const nonLu = !(m.lu || dejaAccuse);
+
+    html2 += `<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;border-left:4px solid ${nonLu?'#b91c1c':'var(--bleu)'}">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          ${nonLu ? '<span style="background:#fee2e2;color:#b91c1c;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700">NOUVEAU</span>' : ''}
+          <div style="font-size:15px;font-weight:700;color:var(--bleu)">${m.sujet}</div>
+        </div>
+        <div style="font-size:11px;color:var(--gris-txt)">${dateStr}</div>
+      </div>
+      <div style="font-size:14px;color:#374151;white-space:pre-wrap;line-height:1.6">${m.corps}</div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+        ${dejaAccuse
+          ? `<span style="font-size:12px;color:#166534;font-weight:600">✅ Lu et approuvé le ${new Date(dejaAccuse.ts).toLocaleDateString('fr-FR')}</span>`
+          : `<button class="btn-add" style="font-size:12px;padding:6px 14px;background:#166534" onclick="accuserReception(${m.id})"><i class="ti ti-check"></i> Lu et approuvé</button>
+             <span style="font-size:11px;color:var(--gris-txt)">Appuyez pour confirmer la lecture</span>`
+        }
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:var(--gris-txt)"><i class="ti ti-user"></i> Chef Galiana — Section JSP CIS Cruzy-Quarante</div>
+    </div>`;
   });
   html2 += '</div>';
   return html2;
@@ -7233,7 +7748,11 @@ function renderParentMessages() {
 function countUnreadMessages() {
   const j = getMyJSP();
   if (!j || !DB.messages) return 0;
-  return DB.messages.filter(m => (m.jspId == j.id || m.jspId === 'tous') && !m.lu).length;
+  return DB.messages.filter(m => {
+    if (!(m.jspId == j.id || m.jspId === 'tous' || (m.jspId && m.jspId.startsWith('niveau:') && m.jspId.replace('niveau:','') === j.promotion))) return false;
+    const dejaAccuse = (m.accuses||[]).find(a => a.jspId === j.id);
+    return !dejaAccuse && !m.lu;
+  }).length;
 }
 
 
@@ -7898,33 +8417,76 @@ function renderICPJsp(j, icp, saison) {
 
   const moys = ICP_PERIODES.map(p => ({ ...p, moy: moyPeriode(p.id) }));
 
-  // Graphe progression mini (barres SVG)
-  const barData = ICP_EPREUVES.map(e => {
-    const vals = ICP_PERIODES.map(p => {
-      const n = parseFloat((periodes[p.id]||{})[e.id+'_note']);
-      return isNaN(n) ? null : n;
-    });
-    return { e, vals };
+  // ── Graphe de progression en courbes ──────────────────────────────────────
+  // Calcule la note globale /20 pour chaque période (moyenne des épreuves notées)
+  function noteGlobale(pid) {
+    const p = periodes[pid] || {};
+    const notes = ICP_EPREUVES.map(e => parseFloat(p[e.id + '_note'])).filter(n => !isNaN(n));
+    return notes.length ? notes.reduce((a,b)=>a+b,0)/notes.length : null;
+  }
+
+  const pointsPeriodes = ICP_PERIODES.map(p => ({ ...p, val: noteGlobale(p.id) }));
+  const avecDonnees = pointsPeriodes.filter(p => p.val !== null);
+
+  // Graphe SVG courbe de progression
+  const W = 320, H = 140, PAD = { t:20, r:20, b:35, l:40 };
+  const gW = W - PAD.l - PAD.r;
+  const gH = H - PAD.t - PAD.b;
+  const nbPts = ICP_PERIODES.length;
+  const xPt = i => PAD.l + (i/(nbPts-1)) * gW;
+  const yPt = v => PAD.t + (1 - v/20) * gH;
+
+  // Lignes de grille horizontales (0, 5, 10, 15, 20)
+  const grille = [0,5,10,15,20].map(v => {
+    const y = yPt(v);
+    return `<line x1="${PAD.l}" y1="${y}" x2="${W-PAD.r}" y2="${y}" stroke="#e5e7eb" stroke-width="1"/>
+      <text x="${PAD.l-5}" y="${y+4}" text-anchor="end" font-size="9" fill="#9ca3af">${v}</text>`;
+  }).join('');
+
+  // Zones colorées (rouge<10, orange 10-14, vert>14)
+  const zones = `
+    <rect x="${PAD.l}" y="${yPt(20)}" width="${gW}" height="${yPt(14)-yPt(20)}" fill="#dcfce7" opacity=".3"/>
+    <rect x="${PAD.l}" y="${yPt(14)}" width="${gW}" height="${yPt(10)-yPt(14)}" fill="#fef3c7" opacity=".3"/>
+    <rect x="${PAD.l}" y="${yPt(10)}" width="${gW}" height="${yPt(0)-yPt(10)}" fill="#fee2e2" opacity=".3"/>`;
+
+  // Courbe principale
+  const ptsCourbe = ICP_PERIODES.map((p, i) => {
+    const v = noteGlobale(p.id);
+    return v !== null ? { x: xPt(i), y: yPt(v), v, p } : null;
   });
 
-  const graphSVG = `
-  <svg viewBox="0 0 340 120" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:340px">
-    ${ICP_EPREUVES.map((e, ei) => {
-      const x0 = ei * 68 + 4;
-      return ICP_PERIODES.map((p, pi) => {
-        const val = parseFloat((periodes[p.id]||{})[e.id+'_note']);
-        if (isNaN(val)) return '';
-        const h = Math.round((val/20)*80);
-        const colors = ['#2563b0','#b45309','#166534'];
-        return `<rect x="${x0+pi*20}" y="${100-h}" width="16" height="${h}" rx="3" fill="${colors[pi]}" opacity="0.85"/>
-          <text x="${x0+pi*20+8}" y="${95-h}" text-anchor="middle" font-size="8" fill="${colors[pi]}" font-weight="700">${val}</text>`;
-      }).join('');
-    }).join('')}
-    ${ICP_EPREUVES.map((e, ei) => {
-      const x0 = ei * 68 + 34;
-      return `<text x="${x0}" y="114" text-anchor="middle" font-size="9" fill="#6b7280">${e.icon}</text>`;
-    }).join('')}
-  </svg>`;
+  let pathD = '';
+  let prevPt = null;
+  const circles = ptsCourbe.map((pt, i) => {
+    if (!pt) return '';
+    if (!prevPt) { pathD += `M ${pt.x} ${pt.y}`; }
+    else { pathD += ` L ${pt.x} ${pt.y}`; }
+    prevPt = pt;
+    const col = pt.v >= 14 ? '#166534' : pt.v >= 10 ? '#b45309' : '#b91c1c';
+    return `<circle cx="${pt.x}" cy="${pt.y}" r="5" fill="${col}" stroke="white" stroke-width="2"/>
+      <text x="${pt.x}" y="${pt.y-9}" text-anchor="middle" font-size="10" fill="${col}" font-weight="700">${pt.v.toFixed(1)}</text>`;
+  }).join('');
+
+  const courbe = pathD ? `<path d="${pathD}" fill="none" stroke="#1a3c6e" stroke-width="2.5" stroke-linejoin="round"/>` : '';
+
+  // Labels périodes en bas
+  const labelsX = ICP_PERIODES.map((p, i) =>
+    `<text x="${xPt(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="#374151">${p.icon} ${p.label.split(' ')[0]}</text>`
+  ).join('');
+
+  const graphSVG = avecDonnees.length === 0
+    ? `<div style="text-align:center;padding:20px;color:var(--gris-txt);font-size:13px;background:var(--gris-bg);border-radius:10px">Aucune donnée ICP saisie pour cette saison</div>`
+    : `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${W}px;border-radius:10px;background:white;border:.5px solid var(--gris-bord)">
+        ${zones}${grille}${courbe}${circles}${labelsX}
+        <text x="${PAD.l/2}" y="${H/2}" text-anchor="middle" font-size="9" fill="#9ca3af" transform="rotate(-90,${PAD.l/2},${H/2})">Note /20</text>
+      </svg>`;
+
+  // Légende des zones
+  const legendeZones = `<div style="display:flex;gap:12px;margin-top:6px;font-size:11px">
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#dcfce7;border-radius:3px;display:inline-block"></span>≥14 Bon</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#fef3c7;border-radius:3px;display:inline-block"></span>10-14 Moyen</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;background:#fee2e2;border-radius:3px;display:inline-block"></span>&lt;10 Insuffisant</span>
+  </div>`;
 
   // Tableau de saisie par période
   const saisieHTML = ICP_PERIODES.map(p => {
@@ -7996,19 +8558,12 @@ function renderICPJsp(j, icp, saison) {
       </div>
     </div>
 
-    <!-- Graphe progression -->
-    ${barData.some(b => b.vals.some(v => v!==null)) ? `
-    <div style="background:var(--gris-bg);border-radius:8px;padding:14px;margin-bottom:20px">
-      <div style="font-size:12px;font-weight:700;color:var(--bleu);margin-bottom:10px">📊 Progression par épreuve</div>
-      <div style="display:flex;align-items:flex-end;gap:8px">
-        ${graphSVG}
-        <div style="font-size:10px;color:var(--gris-txt);line-height:2">
-          <div><span style="display:inline-block;width:10px;height:10px;background:#2563b0;border-radius:2px;margin-right:4px"></span>Début</div>
-          <div><span style="display:inline-block;width:10px;height:10px;background:#b45309;border-radius:2px;margin-right:4px"></span>Milieu</div>
-          <div><span style="display:inline-block;width:10px;height:10px;background:#166534;border-radius:2px;margin-right:4px"></span>Fin</div>
-        </div>
-      </div>
-    </div>` : ''}
+    <!-- Graphe progression en courbes -->
+    <div style="background:var(--gris-bg);border-radius:10px;padding:14px;margin-bottom:20px">
+      <div style="font-size:13px;font-weight:700;color:var(--bleu);margin-bottom:10px">📈 Progression sur l'année (note globale /20)</div>
+      ${graphSVG}
+      ${legendeZones}
+    </div>
 
     ${saisieHTML}
   </div>`;
