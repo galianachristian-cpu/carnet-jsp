@@ -2060,26 +2060,69 @@ function renderJSPs() {
         <button class="btn-add" onclick="modalAddJSP()"><i class="ti ti-plus"></i> Ajouter un JSP</button>
       </div>
     </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="position:relative;flex:1;min-width:200px">
+        <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gris-txt);font-size:15px"></i>
+        <input type="text" id="jsp_search" placeholder="Rechercher un JSP (nom, prénom, ville...)"
+          style="width:100%;padding:9px 12px 9px 34px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"
+          oninput="filtrerJSPs()">
+      </div>
+      <select id="jsp_filtre_niveau" onchange="filtrerJSPs()"
+        style="padding:9px 12px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px;min-width:120px">
+        <option value="">Tous les niveaux</option>
+        <option>JSP 1</option><option>JSP 2</option><option>JSP 3</option><option>JSP 4</option>
+      </select>
+      <div id="jsp_compteur" style="display:flex;align-items:center;font-size:13px;color:var(--gris-txt);white-space:nowrap">
+        ${DB.jsps.length} JSP
+      </div>
+    </div>
+
     <div class="table-card"><table>
       <thead><tr><th></th><th>Prénom Nom</th><th>Grade</th><th>Ville</th><th>Adresse</th><th>Tél. père</th><th>Tél. mère</th><th>Tél. JSP</th><th>Email</th><th>Actions</th></tr></thead>
-      <tbody>
-        ${DB.jsps.length ? DB.jsps.map(j => `<tr>
-          <td>${j.photo
-            ? '<img src="'+j.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover">'
-            : '<div style="width:34px;height:34px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>'}</td>
-          <td><strong>${j.prenom} ${j.nom}</strong></td>
-          <td><span class="badge badge-bleu">${j.promotion||'—'}</span></td>
-          <td>${j.ville||'—'}</td>
-          <td style="font-size:12px;color:var(--gris-txt)">${j.adresse||'—'}</td>
-          <td style="font-size:12px">${j.telPere||'—'}</td>
-          <td style="font-size:12px">${j.telMere||'—'}</td>
-          <td style="font-size:13px">${j.telJSP||'—'}</td>
-          <td style="font-size:12px;color:var(--bleu-clair)">${j.email?'<a href="mailto:'+j.email+'" style="color:var(--bleu-clair)">'+j.email+'</a>':'—'}</td>
-          <td><button class="btn-add" style="padding:5px 10px;font-size:12px" onclick="modalEditJSP(${j.id})"><i class="ti ti-edit"></i></button>
-              <button class="btn-danger" style="padding:5px 10px;font-size:12px;margin-left:6px;border-radius:6px" onclick="deleteJSP(${j.id})"><i class="ti ti-trash"></i></button></td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="10"><i class="ti ti-users-off"></i> Aucun JSP enregistré</td></tr>`}
+      <tbody id="jsp_tbody">
+        ${renderLignesJSPs(DB.jsps)}
       </tbody>
     </table></div>`;
+}
+
+function renderLignesJSPs(jsps) {
+  if (!jsps.length) return `<tr class="empty-row"><td colspan="10"><i class="ti ti-users-off"></i> Aucun JSP trouvé</td></tr>`;
+  return jsps.map(j => `<tr>
+    <td>${j.photo
+      ? '<img src="'+j.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover">'
+      : '<div style="width:34px;height:34px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>'}</td>
+    <td><strong>${j.prenom} ${j.nom}</strong></td>
+    <td><span class="badge badge-bleu">${j.promotion||'—'}</span></td>
+    <td>${j.ville||'—'}</td>
+    <td style="font-size:12px;color:var(--gris-txt)">${j.adresse||'—'}</td>
+    <td style="font-size:12px">${j.telPere||'—'}</td>
+    <td style="font-size:12px">${j.telMere||'—'}</td>
+    <td style="font-size:13px">${j.telJSP||'—'}</td>
+    <td style="font-size:12px;color:var(--bleu-clair)">${j.email?'<a href="mailto:'+j.email+'" style="color:var(--bleu-clair)">'+j.email+'</a>':'—'}</td>
+    <td>
+      <button class="btn-add" style="padding:5px 10px;font-size:12px" onclick="modalEditJSP(${j.id})"><i class="ti ti-edit"></i></button>
+      <button class="btn-danger" style="padding:5px 10px;font-size:12px;margin-left:6px;border-radius:6px" onclick="deleteJSP(${j.id})"><i class="ti ti-trash"></i></button>
+    </td>
+  </tr>`).join('');
+}
+
+function filtrerJSPs() {
+  const q = (document.getElementById('jsp_search')?.value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const niv = document.getElementById('jsp_filtre_niveau')?.value||'';
+  const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  const filtres = DB.jsps.filter(j => {
+    const matchQ = !q || norm(j.prenom+' '+j.nom).includes(q) || norm(j.nom+' '+j.prenom).includes(q) || norm(j.ville).includes(q) || norm(j.email).includes(q);
+    const matchNiv = !niv || j.promotion === niv;
+    return matchQ && matchNiv;
+  });
+
+  const tbody = document.getElementById('jsp_tbody');
+  if (tbody) tbody.innerHTML = renderLignesJSPs(filtres);
+
+  const cpt = document.getElementById('jsp_compteur');
+  if (cpt) cpt.textContent = filtres.length + (filtres.length < DB.jsps.length ? ' / '+DB.jsps.length : '') + ' JSP';
 }
 
 function modalAddJSP() {
