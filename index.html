@@ -4305,7 +4305,7 @@ function renderPlanning(moisActif) {
     const isPast = dateStr<today;
     const isVacances = estJourVacances(dateStr);
     const bgCase = isToday ? '#dbeafe' : (isVacances ? '#fef2f2' : (isPast && !dayEvts.length ? 'var(--gris-bg)' : 'white'));
-    calHtml += '<div title="'+(isVacances?'Vacances scolaires':'')+'" style="min-height:64px;border-radius:8px;padding:4px;border:1px solid '+(isVacances?'#fecaca':'var(--gris-bord)')+';background:'+bgCase+'">';
+    calHtml += `<div onclick="modalAddPlanning('${dateStr}')" style="min-height:64px;border-radius:8px;padding:4px;cursor:pointer;border:1px solid ${isVacances?'#fecaca':'var(--gris-bord)'};background:${bgCase}">`;
     calHtml += '<div style="font-size:12px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'var(--bleu)':isVacances?'#b91c1c':isPast?'var(--gris-txt)':'#1f2937')+';margin-bottom:3px">'+d+(isVacances?' <i class="ti ti-beach" style="font-size:10px"></i>':'')+'</div>';
     dayEvts.forEach(e => {
       calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+e.titre+'</div>';
@@ -4376,9 +4376,9 @@ function renderPlanning(moisActif) {
     +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">'+calHtml+listeHtml+'</div>';
 }
 
-function modalAddPlanning() {
+function modalAddPlanning(datePreremplie) {
   openModal(`<h3><i class="ti ti-calendar-plus"></i> Nouvel événement</h3>
-    <div class="form-group"><label>Date</label><input id="f_date" type="date"></div>
+    <div class="form-group"><label>Date</label><input id="f_date" type="date" value="${datePreremplie||''}"></div>
     <div class="form-group"><label>Titre</label><input id="f_titre" type="text" placeholder="Exercice incendie..."></div>
     <div class="form-group"><label>Type</label>
       <select id="f_type"><option value="formation">Formation</option><option value="exercice">Exercice</option><option value="controle">Contrôle</option><option value="ceremonie">Cérémonie</option><option value="sortie">Sortie</option></select></div>
@@ -6368,9 +6368,7 @@ function genererBilanAnnuelPDF() {
   const jsps = DB.jsps || [];
   const absences = DB.absences || [];
   const resultats = DB.resultats || [];
-  const icp = DB.icp || [];
-  const planning = (DB.planning || []).filter(e => e.date && e.date.startsWith(saison.slice(0,4)) || e.date && e.date >= saison.slice(0,4)+'-09' || true).sort((a,b)=>a.date.localeCompare(b.date));
-  const seancesPlanning = (DB.planning || []).filter(e => e.type === 'formation' || e.type === 'exercice' || e.type === 'controle');
+  const icpData = DB.icp || [];
   const comportements = DB.comportements || [];
   const questionnaireReponses = DB.questionnaireReponses || [];
 
@@ -6378,7 +6376,20 @@ function genererBilanAnnuelPDF() {
   const noteColor = (n,s) => n/s >= 0.8 ? '#166534' : n/s >= 0.5 ? '#b45309' : '#b91c1c';
   const noteBg   = (n,s) => n/s >= 0.8 ? '#dcfce7' : n/s >= 0.5 ? '#fef3c7' : '#fee2e2';
 
-  // ── Statistiques globales ──
+  const PERIODES = [
+    { id: 'debut',  label: 'Début',  col: '#2563b0' },
+    { id: 'milieu', label: 'Milieu', col: '#b45309' },
+    { id: 'fin',    label: 'Fin',    col: '#166534' }
+  ];
+  const EPREUVES = [
+    { id: 'luc_leger',     label: 'Luc Léger',    unite: 'paliers' },
+    { id: 'pompes',        label: 'Pompes',        unite: 'rép.' },
+    { id: 'abdo',          label: 'Abdos',         unite: 'rép./min' },
+    { id: 'killy',         label: 'Killy',         unite: 'sec.' },
+    { id: 'grimper_corde', label: 'Corde',         unite: 'P/NP' }
+  ];
+
+  // ── Stats globales ──
   const nbJsps = jsps.length;
   const seancesUniques = [...new Set(absences.map(a=>a.date))].length;
   const totalPresences = jsps.reduce((sum, j) => {
@@ -6388,72 +6399,69 @@ function genererBilanAnnuelPDF() {
   const tauxPresenceGlobal = seancesUniques > 0 && nbJsps > 0
     ? Math.round(totalPresences / (seancesUniques * nbJsps) * 100) : 100;
 
-  // ── Fiches JSP ──
   const promos = ['JSP 1','JSP 2','JSP 3','JSP 4'];
+
+  // Calcul note globale ICP pour un JSP et une période
+  const noteGlobaleICP = (periodes, pid) => {
+    const p = periodes[pid] || {};
+    const notes = EPREUVES.map(e => parseFloat(p[e.id+'_note'])).filter(n => !isNaN(n));
+    return notes.length ? notes.reduce((a,b)=>a+b,0)/notes.length : null;
+  };
+
+  // ── Tableau de synthèse ──
   const fichesHTML = promos.map(promo => {
     const jspsDuNiveau = jsps.filter(j => j.promotion === promo);
     if (!jspsDuNiveau.length) return '';
 
     const lignesJSP = jspsDuNiveau.map(j => {
-      // Absences
       const absJ = absences.filter(a => a.jspId === j.id);
-      const nbAbsNonExcuses = absJ.filter(a => !a.excuse && a.statut !== 'retard').length;
-      const nbRetards = absJ.filter(a => a.statut === 'retard').length;
-      const nbExcuses = absJ.filter(a => a.excuse).length;
-      const presences = Math.max(0, seancesUniques - nbAbsNonExcuses - nbExcuses);
-      const tauxPres = seancesUniques > 0 ? Math.round(presences / seancesUniques * 100) : 100;
+      const nbAbs = absJ.filter(a => !a.excuse && a.statut !== 'retard').length;
+      const nbRet = absJ.filter(a => a.statut === 'retard').length;
+      const nbExc = absJ.filter(a => a.excuse).length;
+      const pres = Math.max(0, seancesUniques - nbAbs - nbExc);
+      const tauxPres = seancesUniques > 0 ? Math.round(pres / seancesUniques * 100) : 100;
 
-      // Résultats scolaires
       const resJ = resultats.filter(r => r.jspId === j.id);
-      const moyRes = resJ.length ? (resJ.reduce((s,r) => s + r.note/r.sur*20, 0)/resJ.length).toFixed(1) : null;
+      const moyRes = resJ.length ? (resJ.reduce((s,r) => s+r.note/r.sur*20, 0)/resJ.length).toFixed(1) : null;
 
-      // Questionnaires culture
       const qJ = questionnaireReponses.filter(r => r.jspId === j.id);
       const qMensuels = qJ.filter(r => !r.annuel);
       const qAnnuel = qJ.find(r => r.annuel);
-      const moyQ = qMensuels.length ? (qMensuels.reduce((s,r) => s + r.note/10*20, 0)/qMensuels.length).toFixed(1) : null;
+      const moyQ = qMensuels.length ? (qMensuels.reduce((s,r) => s+r.note/10*20, 0)/qMensuels.length).toFixed(1) : null;
 
-      // ICP
-      const icpJ = icp.filter(i => i.jspId === j.id).sort((a,b) => a.date.localeCompare(b.date));
-      const dernierICP = icpJ.length ? icpJ[icpJ.length-1] : null;
+      const icpJ = icpData.find(x => x.jspId === j.id && x.saison === saison);
+      const periodes = icpJ ? (icpJ.periodes || icpJ) : {};
+      const nFin = noteGlobaleICP(periodes,'fin') || noteGlobaleICP(periodes,'milieu') || noteGlobaleICP(periodes,'debut');
 
-      // Comportements
       const compJ = comportements.filter(c => c.jspId === j.id);
 
-      return `
-      <tr style="page-break-inside:avoid">
+      return `<tr>
         <td style="font-weight:700;font-size:12px">${j.prenom} ${j.nom}</td>
         <td style="text-align:center">
           <span style="background:${tauxPres>=80?'#dcfce7':tauxPres>=60?'#fef3c7':'#fee2e2'};color:${tauxPres>=80?'#166534':tauxPres>=60?'#b45309':'#b91c1c'};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${tauxPres}%</span>
-          <div style="font-size:10px;color:#6b7280;margin-top:2px">${presences}P · ${nbAbsNonExcuses}A · ${nbRetards}R · ${nbExcuses}E</div>
+          <div style="font-size:10px;color:#6b7280;margin-top:2px">${pres}P·${nbAbs}A·${nbRet}R·${nbExc}E</div>
         </td>
+        <td style="text-align:center">${moyRes?`<span style="background:${noteBg(parseFloat(moyRes),20)};color:${noteColor(parseFloat(moyRes),20)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${moyRes}/20</span>`:'<span style="color:#9ca3af;font-size:11px">—</span>'}</td>
         <td style="text-align:center">
-          ${moyRes ? `<span style="background:${noteBg(parseFloat(moyRes),20)};color:${noteColor(parseFloat(moyRes),20)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${moyRes}/20</span><div style="font-size:10px;color:#6b7280;margin-top:2px">${resJ.length} note(s)</div>` : '<span style="font-size:11px;color:#9ca3af">—</span>'}
+          ${moyQ?`<span style="background:${noteBg(parseFloat(moyQ),20)};color:${noteColor(parseFloat(moyQ),20)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${moyQ}/20</span>`:'<span style="color:#9ca3af;font-size:11px">—</span>'}
+          ${qAnnuel?`<div style="font-size:10px;color:#7c3aed">Annuel:${qAnnuel.note}/20</div>`:''}
         </td>
-        <td style="text-align:center">
-          ${moyQ ? `<span style="background:${noteBg(parseFloat(moyQ),20)};color:${noteColor(parseFloat(moyQ),20)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${moyQ}/20</span>` : '<span style="font-size:11px;color:#9ca3af">—</span>'}
-          ${qAnnuel ? `<div style="font-size:10px;color:#7c3aed;margin-top:2px">Annuel : ${qAnnuel.note}/20</div>` : ''}
-        </td>
-        <td style="text-align:center">
-          ${dernierICP ? `<span style="background:${noteBg(dernierICP.total||0,100)};color:${noteColor(dernierICP.total||0,100)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${dernierICP.total||0}/100</span>` : '<span style="font-size:11px;color:#9ca3af">—</span>'}
-        </td>
-        <td style="text-align:center;font-size:11px;color:${compJ.length>0?'#b91c1c':'#166534'}">${compJ.length > 0 ? compJ.length + ' signalement(s)' : '✓ RAS'}</td>
+        <td style="text-align:center">${nFin!==null?`<span style="background:${noteBg(nFin,20)};color:${noteColor(nFin,20)};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${nFin.toFixed(1)}/20</span>`:'<span style="color:#9ca3af;font-size:11px">—</span>'}</td>
+        <td style="text-align:center;font-size:11px;color:${compJ.length>0?'#b91c1c':'#166534'}">${compJ.length>0?compJ.length+' signt':'✓ RAS'}</td>
       </tr>`;
     }).join('');
 
-    return `
-    <div style="margin-bottom:22px;page-break-inside:avoid">
-      <div style="background:#1a3c6e;color:white;padding:8px 12px;font-size:13px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
-        <span>${promo}</span>
-        <span style="font-weight:400;font-size:11px">${jspsDuNiveau.length} JSP</span>
+    return `<div style="margin-bottom:20px;page-break-inside:avoid">
+      <div style="background:#1a3c6e;color:white;padding:7px 12px;font-size:13px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+        <span>${promo}</span><span style="font-weight:400;font-size:11px">${jspsDuNiveau.length} JSP</span>
       </div>
       <table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb;border-top:none">
         <thead><tr style="background:#f9fafb">
           <th style="padding:6px 8px;font-size:10px;text-align:left;border-bottom:1px solid #e5e7eb">JSP</th>
           <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Présence</th>
           <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Résultats</th>
-          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Culture</th>
-          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">ICP</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Culture JSP</th>
+          <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">ICP moy./20</th>
           <th style="padding:6px 8px;font-size:10px;text-align:center;border-bottom:1px solid #e5e7eb">Comportement</th>
         </tr></thead>
         <tbody>${lignesJSP}</tbody>
@@ -6461,7 +6469,74 @@ function genererBilanAnnuelPDF() {
     </div>`;
   }).join('');
 
-  // ── Planning / séances ──
+  // ── Section ICP détaillée ──
+  const icpDetailHTML = promos.map(promo => {
+    const jspsDuNiveau = jsps.filter(j => j.promotion === promo);
+    const jspAvecICP = jspsDuNiveau.filter(j => icpData.find(x => x.jspId === j.id && x.saison === saison));
+    if (!jspAvecICP.length) return '';
+
+    const entetesEpreuves = EPREUVES.map(e =>
+      `<th style="text-align:center;font-size:9px;padding:5px 3px;background:#374151;color:white">${e.label}<br><span style="font-weight:400;opacity:.8">${e.unite}</span></th>`
+    ).join('');
+
+    const lignes = jspAvecICP.map(j => {
+      const icpJ = icpData.find(x => x.jspId === j.id && x.saison === saison);
+      const periodes = icpJ ? (icpJ.periodes || icpJ) : {};
+      const nD = noteGlobaleICP(periodes,'debut');
+      const nM = noteGlobaleICP(periodes,'milieu');
+      const nF = noteGlobaleICP(periodes,'fin');
+
+      const progression = nD !== null && nF !== null
+        ? (nF-nD > 0.5 ? '📈 +' + (nF-nD).toFixed(1) : nF-nD < -0.5 ? '📉 '+(nF-nD).toFixed(1) : '➡️ stable')
+        : '—';
+
+      const cellNote = (n) => n !== null
+        ? `<span style="font-weight:700;color:${noteColor(n,20)}">${n.toFixed(1)}</span>`
+        : '<span style="color:#d1d5db">—</span>';
+
+      const cellEpreuves = EPREUVES.map(e => {
+        const vals = PERIODES.map(p => {
+          const pid = periodes[p.id] || {};
+          const val = pid[e.id+'_valeur'] || pid[e.id+'_rep'] || pid[e.id+'_sec'] || '';
+          const note = parseFloat(pid[e.id+'_note']);
+          return { val, note: isNaN(note) ? null : note, col: p.col };
+        });
+        return `<td style="text-align:center;font-size:10px;padding:4px 3px">
+          ${vals.map(v => v.val !== '' || v.note !== null
+            ? `<div style="color:${v.col};font-size:10px">${v.val !== '' ? v.val : (v.note !== null ? v.note : '—')}</div>`
+            : '<div style="color:#d1d5db">—</div>'
+          ).join('')}
+        </td>`;
+      }).join('');
+
+      return `<tr>
+        <td style="font-weight:700;font-size:11px;padding:5px 6px;white-space:nowrap">${j.prenom} ${j.nom}</td>
+        <td style="text-align:center;padding:5px 4px">${cellNote(nD)}<div style="font-size:9px;color:#2563b0">Début</div></td>
+        <td style="text-align:center;padding:5px 4px">${cellNote(nM)}<div style="font-size:9px;color:#b45309">Milieu</div></td>
+        <td style="text-align:center;padding:5px 4px">${cellNote(nF)}<div style="font-size:9px;color:#166534">Fin</div></td>
+        ${cellEpreuves}
+        <td style="text-align:center;font-size:11px;font-weight:600;padding:5px 4px">${progression}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div style="margin-bottom:20px;page-break-inside:avoid">
+      <div style="background:#374151;color:white;padding:7px 12px;font-size:12px;font-weight:700;border-radius:6px 6px 0 0">${promo} — Aptitudes physiques (ICP)</div>
+      <div style="font-size:9px;color:#6b7280;padding:4px 8px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none">Valeurs par épreuve : Début (bleu) · Milieu (orange) · Fin d'année (vert)</div>
+      <table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb;border-top:none">
+        <thead><tr>
+          <th style="padding:5px 6px;font-size:9px;text-align:left;background:#374151;color:white">JSP</th>
+          <th style="text-align:center;font-size:9px;padding:5px 4px;background:#374151;color:white">Moy. Début</th>
+          <th style="text-align:center;font-size:9px;padding:5px 4px;background:#374151;color:white">Moy. Milieu</th>
+          <th style="text-align:center;font-size:9px;padding:5px 4px;background:#374151;color:white">Moy. Fin</th>
+          ${entetesEpreuves}
+          <th style="text-align:center;font-size:9px;padding:5px 4px;background:#374151;color:white">Progression</th>
+        </tr></thead>
+        <tbody>${lignes}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  // ── Planning ──
   const lignesPlanning = (DB.planning||[]).sort((a,b)=>a.date.localeCompare(b.date)).map(e =>
     `<tr><td style="font-size:11px">${fmtDate(e.date)}</td><td style="font-size:11px">${e.titre}</td><td style="font-size:11px">${e.type}</td><td style="font-size:11px">${e.lieu||'—'}</td></tr>`
   ).join('');
@@ -6488,19 +6563,14 @@ function genererBilanAnnuelPDF() {
   </style>
 </head><body>
   <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimer / Exporter PDF</button>
-
   <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
-
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
     <div>
       <div style="font-size:20px;font-weight:800;color:#1a3c6e">Bilan annuel — Section JSP</div>
       <div style="font-size:12px;color:#6b7280">CIS Cruzy-Quarante · SDIS 34 · Saison ${saison}</div>
     </div>
-    <div style="text-align:right;font-size:11px;color:#6b7280">
-      Édité le ${now}<br>Chef de section : Galiana Christian
-    </div>
+    <div style="text-align:right;font-size:11px;color:#6b7280">Édité le ${now}<br>Chef de section : Galiana Christian</div>
   </div>
-
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">
     <div class="stat-card"><div class="stat-val">${nbJsps}</div><div class="stat-lbl">JSP en formation</div></div>
     <div class="stat-card"><div class="stat-val">${tauxPresenceGlobal}%</div><div class="stat-lbl">Taux de présence global</div></div>
@@ -6508,21 +6578,24 @@ function genererBilanAnnuelPDF() {
     <div class="stat-card"><div class="stat-val">${(DB.planning||[]).length}</div><div class="stat-lbl">Activités planifiées</div></div>
   </div>
 
-  <h2>Suivi individuel par niveau</h2>
-  <p style="font-size:10px;color:#6b7280;margin-bottom:14px">P=Présent · A=Absent non excusé · R=Retard · E=Excusé · ICP=Indice de Condition Physique (/100)</p>
+  <h2>1. Suivi individuel par niveau</h2>
+  <p style="font-size:10px;color:#6b7280;margin-bottom:14px">P=Présent · A=Absent · R=Retard · E=Excusé · ICP=moyenne sur 20 (meilleure période disponible)</p>
   ${fichesHTML}
 
   <div class="page-break"></div>
-  <h2>Planning de la saison ${saison}</h2>
+  <h2>2. Aptitudes physiques — Détail ICP par JSP</h2>
+  <p style="font-size:10px;color:#6b7280;margin-bottom:14px">Progression sur les 3 périodes de la saison ${saison}. La flèche compare le début et la fin d'année.</p>
+  ${icpDetailHTML || '<p style="color:#9ca3af;font-size:12px;padding:16px 0">Aucune donnée ICP saisie pour cette saison.</p>'}
+
+  <div class="page-break"></div>
+  <h2>3. Planning de la saison ${saison}</h2>
   <table>
     <thead><tr><th>Date</th><th>Activité</th><th>Type</th><th>Lieu</th></tr></thead>
-    <tbody>${lignesPlanning || '<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:12px">Aucune activité planifiée</td></tr>'}</tbody>
+    <tbody>${lignesPlanning||'<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:12px">Aucune activité planifiée</td></tr>'}</tbody>
   </table>
 
   <div class="footer">Document généré automatiquement par Carnet JSP — Section JSP CIS Cruzy-Quarante (SDIS 34) · Saison ${saison}</div>
-  <script>
-    window.onload = function() { setTimeout(function(){ window.print(); }, 300); };
-  </scr` + `ipt>
+  <scr`+`ipt>window.onload=function(){setTimeout(function(){window.print()},300)}</scr`+`ipt>
 </body></html>`);
   win.document.close();
 }
