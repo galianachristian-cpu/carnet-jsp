@@ -10165,6 +10165,12 @@ function printTableauHabillement() {
 function closeModal(e) {
   if (!e || e.target.id==='modalBg') document.getElementById('modalBg').classList.add('hidden');
 }
+
+// Chargement des données cloud dès l'ouverture de la page (avant toute tentative
+// de connexion), pour que les comptes créés depuis un autre appareil ou navigateur
+// soient immédiatement reconnus, même si aucune connexion n'a encore eu lieu ici.
+loadFromCloud();
+
 </script>
 </body>
 </html>
