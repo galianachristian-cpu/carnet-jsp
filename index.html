@@ -433,6 +433,9 @@
         <div class="nav-item" onclick="showSection('admin-mdp')">
           <i class="ti ti-lock"></i><span>Mots de passe</span>
         </div>
+        <div class="nav-item" onclick="showSection('comptes-speciaux')">
+          <i class="ti ti-shield-lock"></i><span>Comptes spéciaux</span>
+        </div>
         <div class="nav-item" onclick="showSection('historique')">
           <i class="ti ti-history"></i><span>Historique</span>
         </div>
@@ -518,26 +521,7 @@
           <i class="ti ti-lock"></i><span>Mot de passe</span>
         </div>
       </div>
-      <div id="sidebarHabillement" class="hidden">
-        <div class="sidebar-section">Équipement</div>
-        <div class="nav-item active" onclick="showSection('habillement')">
-          <i class="ti ti-shirt"></i><span>Habillement</span>
-        </div>
-        <div class="sidebar-section">Section JSP</div>
-        <div class="nav-item" onclick="showSection('organigramme')">
-          <i class="ti ti-sitemap"></i><span>Organigramme</span>
-        </div>
-      </div>
-      <div id="sidebarFinance" class="hidden">
-        <div class="sidebar-section">Gestion</div>
-        <div class="nav-item active" onclick="showSection('finance')">
-          <i class="ti ti-cash"></i><span>Finance</span>
-        </div>
-        <div class="sidebar-section">Section JSP</div>
-        <div class="nav-item" onclick="showSection('organigramme')">
-          <i class="ti ti-sitemap"></i><span>Organigramme</span>
-        </div>
-      </div>
+      <div id="sidebarSpecial" class="hidden"></div>
     </div>
 
     <!-- Content -->
@@ -1731,6 +1715,7 @@ function doLogin() {
   if (!DB.connexionsLog) DB.connexionsLog = [];
   DB.connexionsLog.push({ login: user.login, nom: user.nom, role: user.role, date: new Date().toISOString() });
   if (DB.connexionsLog.length > 500) DB.connexionsLog = DB.connexionsLog.slice(-500);
+  migrerComptesSpeciaux();
   saveData();
   document.getElementById('loginWrap').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -1740,14 +1725,13 @@ function doLogin() {
     showSection('dashboard');
     // Chargement cloud au démarrage
     initCloudSync().then(() => { migrerQuestionsCultureSiNecessaire(); showSection('dashboard'); });
-  } else if (user.role === 'habillement') {
-    document.getElementById('sidebarHabillement').classList.remove('hidden');
-    showSection('habillement');
-    initCloudSync().then(() => { showSection('habillement'); });
-  } else if (user.role === 'finance') {
-    document.getElementById('sidebarFinance').classList.remove('hidden');
-    showSection('finance');
-    initCloudSync().then(() => { showSection('finance'); });
+  } else if (user.role === 'special') {
+    buildSidebarSpecial(user);
+    document.getElementById('sidebarSpecial').classList.remove('hidden');
+    const premierModule = MODULES_ACCES.find(m => user.acces && user.acces[m.key]);
+    const sectionDepart = premierModule ? premierModule.section : 'organigramme';
+    showSection(sectionDepart);
+    initCloudSync().then(() => { showSection(sectionDepart); });
   } else {
     document.getElementById('sidebarParent').classList.remove('hidden');
     // Badge messages non lus
@@ -1789,14 +1773,73 @@ function doLogout() {
   document.getElementById('loginPass').value = '';
   document.getElementById('sidebarAdmin').classList.add('hidden');
   document.getElementById('sidebarParent').classList.add('hidden');
-  document.getElementById('sidebarHabillement').classList.add('hidden');
-  document.getElementById('sidebarFinance').classList.add('hidden');
+  document.getElementById('sidebarSpecial').classList.add('hidden');
   document.getElementById('loginError').classList.add('hidden');
 }
 
 // ══════════════════════════════════════════
-//  NAVIGATION
+//  COMPTES SPÉCIAUX — accès configurables
 // ══════════════════════════════════════════
+const MODULES_ACCES = [
+  { key:'dashboard', label:'Tableau de bord', icon:'ti-layout-dashboard', section:'dashboard', groupe:'Suivi JSP' },
+  { key:'absences', label:'Absences', icon:'ti-calendar-x', section:'absences', groupe:'Suivi JSP' },
+  { key:'retards', label:'Retards', icon:'ti-clock-exclamation', section:'retards', groupe:'Suivi JSP' },
+  { key:'comportement', label:'Comportement', icon:'ti-alert-triangle', section:'comportement', groupe:'Suivi JSP' },
+  { key:'resultats', label:'Résultats', icon:'ti-school', section:'resultats', groupe:'Suivi JSP' },
+  { key:'questionnaires', label:'Questionnaires culture', icon:'ti-clipboard-text', section:'questionnaires', groupe:'Suivi JSP' },
+  { key:'competitions', label:'Compétitions', icon:'ti-trophy', section:'competitions', groupe:'Suivi JSP' },
+  { key:'planning', label:'Planning', icon:'ti-calendar-event', section:'planning', groupe:'Suivi JSP' },
+  { key:'bilans', label:'Bilans annuels', icon:'ti-clipboard-list', section:'bilans', groupe:'Suivi JSP' },
+  { key:'jsps', label:'JSP (fiches)', icon:'ti-users', section:'jsps', groupe:'Administration' },
+  { key:'trombinoscope', label:'Trombinoscope', icon:'ti-photo', section:'trombinoscope', groupe:'Administration' },
+  { key:'historique', label:'Historique', icon:'ti-history', section:'historique', groupe:'Administration' },
+  { key:'connexions', label:'Connexions', icon:'ti-user-check', section:'connexions', groupe:'Administration' },
+  { key:'reglement', label:'Règlement intérieur', icon:'ti-file-text', section:'reglement', groupe:'Administration' },
+  { key:'export', label:'Export Excel', icon:'ti-file-spreadsheet', section:'export', groupe:'Administration' },
+  { key:'feuille-appel', label:"Feuille d'appel", icon:'ti-printer', section:'feuille-appel', groupe:'Administration' },
+  { key:'messagerie', label:'Messagerie', icon:'ti-message', section:'messagerie', groupe:'Administration' },
+  { key:'envoi-identifiants', label:'Envoi identifiants', icon:'ti-key', section:'envoi-identifiants', groupe:'Administration' },
+  { key:'habillement', label:'Habillement', icon:'ti-shirt', section:'habillement', groupe:'Équipement' },
+  { key:'icp', label:'ICP JSP', icon:'ti-run', section:'icp', groupe:'Équipement' },
+  { key:'finance', label:'Finance', icon:'ti-cash', section:'finance', groupe:'Association' },
+  { key:'organigramme', label:'Organigramme', icon:'ti-sitemap', section:'organigramme', groupe:'Association' },
+  { key:'subventions', label:'Subventions', icon:'ti-receipt', section:'subventions', groupe:'Association' }
+];
+
+// Migration des anciens comptes habillement/finance (rôle figé) vers le
+// nouveau modèle à accès configurables. Idempotent : ne fait rien si déjà migré.
+function migrerComptesSpeciaux() {
+  let changed = false;
+  DB.users.forEach(u => {
+    if (u.role === 'habillement' && !u.acces) {
+      u.acces = { habillement: true, organigramme: true };
+      u.role = 'special';
+      changed = true;
+    } else if (u.role === 'finance' && !u.acces) {
+      u.acces = { finance: true, organigramme: true };
+      u.role = 'special';
+      changed = true;
+    }
+  });
+  if (changed) saveData();
+}
+
+// Construit dynamiquement la sidebar d'un compte spécial en fonction
+// des accès cochés par l'admin pour ce compte.
+function buildSidebarSpecial(user) {
+  const acces = user.acces || {};
+  const items = MODULES_ACCES.filter(m => acces[m.key]);
+  let html = '<div class="sidebar-section">Mon espace</div>';
+  items.forEach((m, i) => {
+    html += `<div class="nav-item${i === 0 ? ' active' : ''}" onclick="showSection('${m.section}')"><i class="ti ${m.icon}"></i><span>${m.label}</span></div>`;
+  });
+  if (!items.length) {
+    html += '<div style="padding:12px;font-size:13px;color:var(--gris-txt)">Aucun accès configuré. Contacte l\'administrateur.</div>';
+  }
+  document.getElementById('sidebarSpecial').innerHTML = html;
+}
+
+
 function showSection(sec) {
   currentSection = sec;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -1826,6 +1869,7 @@ function showSection(sec) {
     case 'parent-bilan': c.innerHTML = renderParentBilan(); break;
     case 'parent-mdp': c.innerHTML = renderChangeMdp(); break;
     case 'admin-mdp': c.innerHTML = renderAdminMdp(); break;
+    case 'comptes-speciaux': c.innerHTML = renderComptesSpeciaux(); break;
     case 'export': c.innerHTML = renderExport(); break;
     case 'historique': c.innerHTML = renderHistorique(); break;
     case 'connexions': c.innerHTML = renderConnexions(); break;
@@ -5161,7 +5205,7 @@ function renderEnvoiIdentifiants() {
     });
   });
 
-  const comptesSpeciaux = DB.users.filter(u => u.role === 'habillement' || u.role === 'finance');
+  const comptesSpeciaux = DB.users.filter(u => u.role === 'special');
 
   return `
   <div class="section-header">
@@ -7097,32 +7141,22 @@ function renderAdminMdp() {
     ).join('')
     +'</tbody></table></div></div>'
     + (() => {
-        const habUser = DB.users.find(u => u.role === 'habillement');
-        if (!habUser) return '';
-        return '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden;margin-top:16px">'
-          +'<div style="background:var(--orange);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-shirt"></i> Compte Bureau Habillement</div>'
-          +'<table style="width:100%;border-collapse:collapse;font-size:14px">'
-          +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Nom</th><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
-          +'<tbody><tr>'
-          +'<td style="padding:9px 14px;font-weight:600">'+habUser.nom+'</td>'
-          +'<td style="padding:9px 14px;color:var(--bleu)">'+habUser.login+'</td>'
-          +'<td style="padding:9px 14px"><input type="text" id="mdp_parent_'+habUser.login+'" value="'+habUser.pass+'" style="border:1px solid var(--gris-bord);border-radius:6px;padding:5px 8px;font-size:13px;width:140px"></td>'
-          +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+habUser.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
-          +'</tr></tbody></table></div>';
-      })()
-    + (() => {
-        const finUser = DB.users.find(u => u.role === 'finance');
-        if (!finUser) return '';
-        return '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden;margin-top:16px">'
-          +'<div style="background:#16a34a;color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-cash"></i> Compte Bureau Finance</div>'
-          +'<table style="width:100%;border-collapse:collapse;font-size:14px">'
-          +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Nom</th><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
-          +'<tbody><tr>'
-          +'<td style="padding:9px 14px;font-weight:600">'+finUser.nom+'</td>'
-          +'<td style="padding:9px 14px;color:var(--bleu)">'+finUser.login+'</td>'
-          +'<td style="padding:9px 14px"><input type="text" id="mdp_parent_'+finUser.login+'" value="'+finUser.pass+'" style="border:1px solid var(--gris-bord);border-radius:6px;padding:5px 8px;font-size:13px;width:140px"></td>'
-          +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+finUser.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
-          +'</tr></tbody></table></div>';
+        const comptesSpeciaux = DB.users.filter(u => u.role === 'special');
+        if (!comptesSpeciaux.length) return '';
+        return comptesSpeciaux.map(u => {
+          const accesLbl = MODULES_ACCES.filter(m => u.acces && u.acces[m.key]).map(m => m.label).join(', ') || 'Aucun accès';
+          return '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden;margin-top:16px">'
+            +'<div style="background:#7c3aed;color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-shield-lock"></i> '+u.nom+'</div>'
+            +'<table style="width:100%;border-collapse:collapse;font-size:14px">'
+            +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;text-align:left;font-size:13px">Accès</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
+            +'<tbody><tr>'
+            +'<td style="padding:9px 14px;color:var(--bleu)">'+u.login+'</td>'
+            +'<td style="padding:9px 14px"><input type="text" id="mdp_parent_'+u.login+'" value="'+u.pass+'" style="border:1px solid var(--gris-bord);border-radius:6px;padding:5px 8px;font-size:13px;width:140px"></td>'
+            +'<td style="padding:9px 14px;font-size:12px;color:var(--gris-txt)">'+accesLbl+'</td>'
+            +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+u.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
+            +'</tr></tbody></table></div>';
+        }).join('')
+          + '<p style="font-size:12px;color:var(--gris-txt);margin-top:8px"><i class="ti ti-info-circle"></i> Pour modifier les accès (menus visibles) d\'un compte spécial, rendez-vous dans <strong>Comptes spéciaux</strong>.</p>';
       })();
 }
 
@@ -8088,7 +8122,7 @@ function validerReglement() {
 function renderConnexions() {
   if (!DB.connexionsLog) DB.connexionsLog = [];
   const parents = DB.users.filter(u => u.role === 'parent');
-  const special = DB.users.filter(u => u.role === 'habillement' || u.role === 'finance');
+  const special = DB.users.filter(u => u.role === 'special');
 
   const jamaisConnecte = parents.filter(u => !u.derniereConnexion).length;
   const actifs7j = parents.filter(u => joursDepuis(u.derniereConnexion) <= 7).length;
@@ -8262,6 +8296,118 @@ function deleteItem(collection, id, section) {
 function openModal(html) {
   document.getElementById('modalContent').innerHTML = html;
   document.getElementById('modalBg').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+//  COMPTES SPÉCIAUX — gestion (admin)
+// ══════════════════════════════════════════
+function renderComptesSpeciaux() {
+  const comptes = DB.users.filter(u => u.role === 'special');
+  const badge = m => `<span class="badge badge-bleu" style="margin:2px;display:inline-block"><i class="ti ${m.icon}"></i> ${m.label}</span>`;
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-shield-lock"></i> Comptes spéciaux</h2>
+    <button class="btn-add" onclick="ouvrirModalCompteSpecial()"><i class="ti ti-plus"></i> Nouveau compte</button>
+  </div>
+  <p style="font-size:13px;color:var(--gris-txt);margin-bottom:18px">
+    Crée des comptes avec un accès limité à certaines sections de l'application (secrétariat, habillement, finance...) : coche simplement les menus que ce compte doit voir dans sa barre latérale.
+  </p>
+  <div class="table-card">
+    <table>
+      <thead><tr><th>Nom</th><th>Login</th><th>Accès accordés</th><th style="width:120px">Action</th></tr></thead>
+      <tbody>
+        ${comptes.map(u => `
+          <tr>
+            <td style="font-weight:600;vertical-align:top">${u.nom}</td>
+            <td style="color:var(--bleu);vertical-align:top">${u.login}</td>
+            <td>${MODULES_ACCES.filter(m => u.acces && u.acces[m.key]).map(badge).join(' ') || '<span style="color:var(--gris-txt)">Aucun accès</span>'}</td>
+            <td style="text-align:center;vertical-align:top;white-space:nowrap">
+              <button class="btn-add" style="padding:5px 10px;font-size:12px" onclick="ouvrirModalCompteSpecial('${u.login}')" title="Modifier"><i class="ti ti-edit"></i></button>
+              <button class="btn-add" style="padding:5px 10px;font-size:12px;background:var(--rouge)" onclick="supprimerCompteSpecial('${u.login}')" title="Supprimer"><i class="ti ti-trash"></i></button>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--gris-txt);padding:16px">Aucun compte spécial créé pour le moment</td></tr>'}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function ouvrirModalCompteSpecial(loginExistant) {
+  const u = loginExistant ? DB.users.find(x => x.login === loginExistant) : null;
+  const acces = (u && u.acces) || {};
+  const groupes = [...new Set(MODULES_ACCES.map(m => m.groupe))];
+
+  const grille = groupes.map(g => `
+    <div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--gris-txt);text-transform:uppercase;margin-bottom:6px">${g}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${MODULES_ACCES.filter(m => m.groupe === g).map(m => `
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" class="acces-module" value="${m.key}" ${acces[m.key] ? 'checked' : ''}>
+            <i class="ti ${m.icon}"></i> ${m.label}
+          </label>`).join('')}
+      </div>
+    </div>`).join('');
+
+  openModal(`
+    <h3 style="margin-bottom:14px"><i class="ti ti-shield-lock"></i> ${u ? 'Modifier le compte' : 'Nouveau compte spécial'}</h3>
+    <input type="hidden" id="cs_loginOriginal" value="${loginExistant || ''}">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="form-group"><label>Nom du compte</label><input type="text" id="cs_nom" value="${u ? u.nom.replace(/"/g,'&quot;') : ''}" placeholder="Ex : Secrétariat" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
+      <div class="form-group"><label>Login</label><input type="text" id="cs_login" value="${u ? u.login : ''}" placeholder="Ex : secretariat" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
+      <div class="form-group"><label>Mot de passe</label><input type="text" id="cs_pass" value="${u ? u.pass : ''}" placeholder="Mot de passe" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
+    </div>
+    <div id="cs_erreur" style="color:var(--rouge);font-size:13px;margin-bottom:10px;display:none"></div>
+    <div style="max-height:340px;overflow-y:auto;border:.5px solid var(--gris-bord);border-radius:8px;padding:14px;margin-bottom:16px">
+      ${grille}
+    </div>
+    <div style="text-align:right">
+      <button class="btn-add" style="background:#6b7280" onclick="closeModal()">Annuler</button>
+      <button class="btn-add" onclick="enregistrerCompteSpecial()"><i class="ti ti-check"></i> Enregistrer</button>
+    </div>
+  `);
+}
+
+function enregistrerCompteSpecial() {
+  const loginOriginal = document.getElementById('cs_loginOriginal').value;
+  const nom = document.getElementById('cs_nom').value.trim();
+  const login = document.getElementById('cs_login').value.trim().toLowerCase();
+  const pass = document.getElementById('cs_pass').value;
+  const errDiv = document.getElementById('cs_erreur');
+
+  if (!nom || !login || !pass) {
+    errDiv.textContent = 'Nom, login et mot de passe sont obligatoires.';
+    errDiv.style.display = 'block'; return;
+  }
+  const doublon = DB.users.find(u => u.login === login && u.login !== loginOriginal);
+  if (doublon) {
+    errDiv.textContent = 'Ce login est déjà utilisé par un autre compte.';
+    errDiv.style.display = 'block'; return;
+  }
+
+  const acces = {};
+  document.querySelectorAll('.acces-module:checked').forEach(cb => { acces[cb.value] = true; });
+  if (Object.keys(acces).length === 0) {
+    errDiv.textContent = 'Coche au moins un accès pour ce compte.';
+    errDiv.style.display = 'block'; return;
+  }
+
+  if (loginOriginal) {
+    const u = DB.users.find(x => x.login === loginOriginal);
+    u.nom = nom; u.login = login; u.pass = pass; u.acces = acces; u.role = 'special';
+  } else {
+    DB.users.push({ login, pass, nom, role: 'special', acces });
+  }
+  saveData();
+  closeModal();
+  showSection('comptes-speciaux');
+}
+
+function supprimerCompteSpecial(login) {
+  if (!confirm('Supprimer ce compte spécial ? Cette action est irréversible.')) return;
+  DB.users = DB.users.filter(u => u.login !== login);
+  saveData();
+  showSection('comptes-speciaux');
 }
 
 // ══════════════════════════════════════════
@@ -10033,6 +10179,12 @@ function printTableauHabillement() {
 function closeModal(e) {
   if (!e || e.target.id==='modalBg') document.getElementById('modalBg').classList.add('hidden');
 }
+
+// Chargement des données cloud dès l'ouverture de la page (avant toute tentative
+// de connexion), pour que les comptes créés depuis un autre appareil ou navigateur
+// soient immédiatement reconnus, même si aucune connexion n'a encore eu lieu ici.
+loadFromCloud();
+
 </script>
 </body>
 </html>
