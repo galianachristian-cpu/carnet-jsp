@@ -7970,7 +7970,7 @@ const REGLEMENT_HTML = `
 <p style="margin-top:16px"><em>Le présent règlement a été établi par le conseil d'administration en date du 1ᵉʳ janvier 2025.</em></p>
 
 <h3>TENUES ET TARIFS</h3>
-<p><strong>Tenue de manœuvre :</strong> Pantalon TSI 39,90 € · Veste TSI 48,00 € · Rangers Swatt 52,50 € · Casque 92,50 € · Gants 12,00 € · Ceinture 5,20 € · Galon 2,50 €</p>
+<p><strong>Tenue de manœuvre :</strong> Pantalon TSI 39,90 € · Veste TSI 48,00 € · Polo TSI 20,00 € · Rangers Swatt 52,50 € · Casque 92,50 € · Gants 12,00 € · Ceinture 5,20 € · Galon 2,50 €</p>
 <p><strong>Tenue de sport :</strong> pantalon de survêtement, tee-shirt, coupe-vent, chaussures adaptées à la course à pied (à la charge des parents).</p>
 `;
 
@@ -8870,11 +8870,12 @@ function printICPTableau() {
 // ══════════════════════════════════════════
 const STOCK_ARTICLES = [
   { id: 'veste',         label: 'Veste TSI',      champ: 'veste',         tailles: ['XS','S','M','L','XL','XXL','3XL'] },
-  { id: 'pantalon',      label: 'Pantalon TSI',   champ: 'pantalon',      tailles: ['XS','S','M','L','XL','XXL','3XL'] },
-  { id: 'casque',        label: 'Casque',         champ: 'casque',        tailles: ['T1 (50-54 cm)','T2 (55-58 cm)','T3 (59-62 cm)','T4 (63+ cm)'] },
+  { id: 'poloTsi',       label: 'Polo TSI',       champ: 'poloTsi',       tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  { id: 'pantalon',      label: 'Pantalon TSI',   champ: 'pantalon',      tailles: ['32','34','36','38','40','42'] },
+  { id: 'casque',        label: 'Casque',         champ: 'casque',        tailles: ['Taille unique'] },
   { id: 'gants',         label: 'Gants',          champ: 'gants',         tailles: ['6 (XS)','7 (S)','8 (M)','9 (L)','10 (XL)','11 (XXL)'] },
   { id: 'chaussures',    label: 'Chaussures',     champ: 'chaussures',    tailles: ['35','36','37','38','39','40','41','42','43','44','45','46','47'] },
-  { id: 'ceinture',      label: 'Ceinture',       champ: 'ceinture',      tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  { id: 'ceinture',      label: 'Ceinture',       champ: 'ceinture',      tailles: ['Taille unique'] },
   { id: 'parka',         label: 'Parka',          champ: 'parka',         tailles: ['XS','S','M','L','XL','XXL','3XL'] },
   { id: 'tshirtSport',   label: 'T-shirt sport',  champ: 'tshirtSport',   tailles: ['XS','S','M','L','XL','XXL','3XL'] },
   { id: 'vesteSport',    label: 'Veste sport',    champ: 'vesteSport',    tailles: ['XS','S','M','L','XL','XXL','3XL'] },
@@ -9313,6 +9314,7 @@ function renderHabillement(ongletActif) {
           <th>JSP</th>
           <th>Grade</th>
           <th>Veste TSI</th>
+          <th>Polo TSI</th>
           <th>Pantalon TSI</th>
           <th>Casque</th>
           <th>Gants</th>
@@ -9338,6 +9340,7 @@ function renderHabillement(ongletActif) {
             </div></td>
             <td><span class="badge badge-bleu">${jsp.promotion}</span></td>
             <td>${val(hab?.veste)}</td>
+            <td>${val(hab?.poloTsi)}</td>
             <td>${val(hab?.pantalon)}${hab?.pantalonLongueur ? ` <span style="color:var(--gris-txt);font-size:11px">(${hab.pantalonLongueur} cm)</span>` : ''}</td>
             <td>${val(hab?.casque)}</td>
             <td>${val(hab?.gants)}</td>
@@ -9394,10 +9397,17 @@ function modalHabillement(jspId) {
         </select>
       </div>
       <div class="form-group">
+        <label>Polo TSI</label>
+        <select id="hab-poloTsi">
+          <option value="">--</option>
+          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('poloTsi')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
         <label>Pantalon TSI</label>
         <select id="hab-pantalon">
           <option value="">--</option>
-          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('pantalon')===s?'selected':''}>${s}</option>`).join('')}
+          ${['32','34','36','38','40','42'].map(s=>`<option ${v('pantalon')===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
@@ -9408,7 +9418,7 @@ function modalHabillement(jspId) {
         <label>Casque</label>
         <select id="hab-casque">
           <option value="">--</option>
-          ${['T1 (50-54 cm)','T2 (55-58 cm)','T3 (59-62 cm)','T4 (63+ cm)'].map(s=>`<option ${v('casque')===s?'selected':''}>${s}</option>`).join('')}
+          ${['Taille unique'].map(s=>`<option ${v('casque')===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
@@ -9429,7 +9439,7 @@ function modalHabillement(jspId) {
         <label>Ceinture</label>
         <select id="hab-ceinture">
           <option value="">--</option>
-          ${['XS','S','M','L','XL','XXL','3XL'].map(s=>`<option ${v('ceinture')===s?'selected':''}>${s}</option>`).join('')}
+          ${['Taille unique'].map(s=>`<option ${v('ceinture')===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
@@ -9491,6 +9501,7 @@ function saveHabillement(jspId) {
   if (!id) { alert('Sélectionne un JSP'); return; }
 
   const veste     = document.getElementById('hab-veste').value;
+  const poloTsi   = document.getElementById('hab-poloTsi').value;
   const pantalon  = document.getElementById('hab-pantalon').value;
   const pantalonLongueur = document.getElementById('hab-pantalonLongueur').value.trim();
   const casque    = document.getElementById('hab-casque').value;
@@ -9506,10 +9517,10 @@ function saveHabillement(jspId) {
   const remarques = document.getElementById('hab-remarques').value.trim();
 
   // Auto-incomplet si champs manquants (tenue de base — la tenue de sport n'est exigée qu'en fin de cycle)
-  const autoStatut = (statut !== 'Validé' && (!veste || !pantalon || !casque || !gants || !chaussures || !ceinture || !parka))
+  const autoStatut = (statut !== 'Validé' && (!veste || !poloTsi || !pantalon || !casque || !gants || !chaussures || !ceinture || !parka))
     ? 'Incomplet' : statut;
 
-  const entry = { jspId: id, veste, pantalon, pantalonLongueur, casque, gants, chaussures, ceinture, parka, tshirtSport, vesteSport, pantalonSport, pantalonSportLongueur, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
+  const entry = { jspId: id, veste, poloTsi, pantalon, pantalonLongueur, casque, gants, chaussures, ceinture, parka, tshirtSport, vesteSport, pantalonSport, pantalonSportLongueur, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
 
   const idx = DB.habillement.findIndex(h => h.jspId === id);
   if (idx >= 0) DB.habillement[idx] = entry;
@@ -9531,18 +9542,19 @@ function deleteHabillement(jspId) {
 // ══════════════════════════════════════════
 //  MOUVEMENTS HABILLEMENT (historique)
 // ══════════════════════════════════════════
-const HAB_ARTICLES = ['Veste TSI','Pantalon TSI','Parka','Ceinture','Casque','Gants','Chaussures','T-shirt sport','Veste sport','Pantalon sport'];
+const HAB_ARTICLES = ['Veste TSI','Polo TSI','Pantalon TSI','Parka','Ceinture','Casque','Gants','Chaussures','T-shirt sport','Veste sport','Pantalon sport'];
 const HAB_ARTICLE_FIELD = {
-  'Veste TSI':'veste', 'Pantalon TSI':'pantalon', 'Parka':'parka', 'Ceinture':'ceinture',
+  'Veste TSI':'veste', 'Polo TSI':'poloTsi', 'Pantalon TSI':'pantalon', 'Parka':'parka', 'Ceinture':'ceinture',
   'Casque':'casque', 'Gants':'gants', 'Chaussures':'chaussures',
   'T-shirt sport':'tshirtSport', 'Veste sport':'vesteSport', 'Pantalon sport':'pantalonSport'
 };
 const HAB_TAILLES = {
   'Veste TSI':['XS','S','M','L','XL','XXL','3XL'],
-  'Pantalon TSI':['XS','S','M','L','XL','XXL','3XL'],
+  'Polo TSI':['XS','S','M','L','XL','XXL','3XL'],
+  'Pantalon TSI':['32','34','36','38','40','42'],
   'Parka':['XS','S','M','L','XL','XXL','3XL'],
-  'Ceinture':['XS','S','M','L','XL','XXL','3XL'],
-  'Casque':['T1 (50-54 cm)','T2 (55-58 cm)','T3 (59-62 cm)','T4 (63+ cm)'],
+  'Ceinture':['Taille unique'],
+  'Casque':['Taille unique'],
   'Gants':['6 (XS)','7 (S)','8 (M)','9 (L)','10 (XL)','11 (XXL)'],
   'Chaussures':['35','36','37','38','39','40','41','42','43','44','45','46','47'],
   'T-shirt sport':['XS','S','M','L','XL','XXL','3XL'],
@@ -9900,6 +9912,7 @@ function printFicheHabillement(jspId) {
       </thead>
       <tbody>
         ${row('Veste TSI', hab.veste, '🧥')}
+        ${row('Polo TSI', hab.poloTsi, '👕')}
         ${row('Pantalon TSI', (hab.pantalon || '') + (hab.pantalonLongueur ? (hab.pantalon ? ' ' : '') + '('+hab.pantalonLongueur+' cm)' : ''), '👖')}
         ${row('Parka', hab.parka, '🥼')}
         ${row('Ceinture', hab.ceinture, '🔗')}
@@ -9968,6 +9981,7 @@ function printTableauHabillement() {
       <td><strong>${j.prenom} ${j.nom}</strong></td>
       <td>${j.promotion}</td>
       <td>${v(h?.veste)}</td>
+      <td>${v(h?.poloTsi)}</td>
       <td>${v(h?.pantalon)}</td>
       <td>${v(h?.casque)}</td>
       <td>${v(h?.gants)}</td>
@@ -10004,7 +10018,7 @@ function printTableauHabillement() {
     <div class="sub">SDIS 34 · Imprimé le ${now}</div>
     <table>
       <thead><tr>
-        <th>Nom</th><th>Grade</th><th>Veste TSI</th><th>Pantalon TSI</th>
+        <th>Nom</th><th>Grade</th><th>Veste TSI</th><th>Polo TSI</th><th>Pantalon TSI</th>
         <th>Casque</th><th>Gants</th><th>Chaussures</th><th>Ceinture</th><th>Parka</th>
         <th>T-shirt sport</th><th>Veste sport</th><th>Pantalon sport</th><th>Statut</th>
         <th>Remarques</th><th>Visa</th>
