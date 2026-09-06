@@ -343,6 +343,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 </head>
 <body>
 
@@ -608,6 +609,7 @@ async function loadFromCloud() {
       if (cloud.questionsCulture === undefined) cloud.questionsCulture = null;
       if (!cloud.questionnairesAssignes) cloud.questionnairesAssignes = [];
       if (!cloud.competitions) cloud.competitions = [];
+      if (!cloud.settingsCandidature) cloud.settingsCandidature = { section: 'Cruzy-Quarante', compagnie: '', centreSecours: 'CIS Cruzy-Quarante' };
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
@@ -642,6 +644,7 @@ function loadData() {
     if (parsed.questionsCulture === undefined) parsed.questionsCulture = null;
     if (!parsed.questionnairesAssignes) parsed.questionnairesAssignes = [];
     if (!parsed.competitions) parsed.competitions = [];
+    if (!parsed.settingsCandidature) parsed.settingsCandidature = { section: 'Cruzy-Quarante', compagnie: '', centreSecours: 'CIS Cruzy-Quarante' };
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
       parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
@@ -1102,6 +1105,7 @@ function loadData() {
     questionnaireReponses: [],
     questionnairesAssignes: [],
     competitions: [],
+    settingsCandidature: { section: 'Cruzy-Quarante', compagnie: '', centreSecours: 'CIS Cruzy-Quarante' },
     questionsCulture: null,
     absences: [
       {
@@ -2145,7 +2149,8 @@ function renderLignesJSPs(jsps) {
     <td style="font-size:13px">${j.telJSP||'—'}</td>
     <td style="font-size:12px;color:var(--bleu-clair)">${j.email?'<a href="mailto:'+j.email+'" style="color:var(--bleu-clair)">'+j.email+'</a>':'—'}</td>
     <td>
-      <button class="btn-add" style="padding:5px 10px;font-size:12px" onclick="modalEditJSP(${j.id})"><i class="ti ti-edit"></i></button>
+      <button class="btn-add" style="padding:5px 10px;font-size:12px;background:#7c3aed" title="Dossier de candidature" onclick="modalCandidatureJSP(${j.id})"><i class="ti ti-file-certificate"></i></button>
+      <button class="btn-add" style="padding:5px 10px;font-size:12px;margin-left:6px" onclick="modalEditJSP(${j.id})"><i class="ti ti-edit"></i></button>
       <button class="btn-danger" style="padding:5px 10px;font-size:12px;margin-left:6px;border-radius:6px" onclick="deleteJSP(${j.id})"><i class="ti ti-trash"></i></button>
     </td>
   </tr>`).join('');
@@ -2169,8 +2174,70 @@ function filtrerJSPs() {
   if (cpt) cpt.textContent = filtres.length + (filtres.length < DB.jsps.length ? ' / '+DB.jsps.length : '') + ' JSP';
 }
 
+function champsComplementairesHTML(j) {
+  j = j || {};
+  const c1 = j.contact1 || {}, c2 = j.contact2 || {};
+  return `
+    <div class="section-header" style="margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase;letter-spacing:0.5px"><i class="ti ti-map-pin"></i> Coordonnées complètes</h3></div>
+    <div class="form-group"><label>Adresse (voie)</label><input id="f_adresse" type="text" value="${(j.adresse||'').replace(/"/g,'&quot;')}"></div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
+      <div class="form-group"><label>Code postal</label><input id="f_cp" type="text" value="${j.codePostal||''}"></div>
+      <div class="form-group"><label>Lieu de naissance</label><input id="f_lieunaiss" type="text" value="${j.lieuNaissance||''}"></div>
+    </div>
+    <div class="section-header" style="margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase;letter-spacing:0.5px"><i class="ti ti-file-certificate"></i> Infos candidature / dossier</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>N° sécurité sociale</label><input id="f_numsecu" type="text" value="${j.numSecu||''}"></div>
+      <div class="form-group"><label>Date d'engagement dans la section</label><input id="f_dateeng" type="date" value="${j.dateEngagement||''}"></div>
+    </div>
+    <p style="font-size:11px;color:var(--gris-txt);margin:2px 0 10px"><i class="ti ti-info-circle"></i> Ces informations servent à pré-remplir automatiquement les dossiers de candidature (brevet JSP, fiche RH...).</p>
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase;letter-spacing:0.5px"><i class="ti ti-phone-call"></i> Contact d'urgence 1</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group"><label>Nom</label><input id="f_c1nom" type="text" value="${c1.nom||''}"></div>
+      <div class="form-group"><label>Prénom</label><input id="f_c1prenom" type="text" value="${c1.prenom||''}"></div>
+      <div class="form-group"><label>Lien</label><input id="f_c1lien" type="text" placeholder="Père, Mère..." value="${c1.lien||''}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Tél. 1</label><input id="f_c1tel1" type="text" value="${c1.tel1||''}"></div>
+      <div class="form-group"><label>Tél. 2</label><input id="f_c1tel2" type="text" value="${c1.tel2||''}"></div>
+    </div>
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase;letter-spacing:0.5px"><i class="ti ti-phone-call"></i> Contact d'urgence 2</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group"><label>Nom</label><input id="f_c2nom" type="text" value="${c2.nom||''}"></div>
+      <div class="form-group"><label>Prénom</label><input id="f_c2prenom" type="text" value="${c2.prenom||''}"></div>
+      <div class="form-group"><label>Lien</label><input id="f_c2lien" type="text" placeholder="Père, Mère..." value="${c2.lien||''}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Tél. 1</label><input id="f_c2tel1" type="text" value="${c2.tel1||''}"></div>
+      <div class="form-group"><label>Tél. 2</label><input id="f_c2tel2" type="text" value="${c2.tel2||''}"></div>
+    </div>`;
+}
+
+function lireChampsComplementaires() {
+  return {
+    adresse: document.getElementById('f_adresse').value.trim(),
+    codePostal: document.getElementById('f_cp').value.trim(),
+    lieuNaissance: document.getElementById('f_lieunaiss').value.trim(),
+    numSecu: document.getElementById('f_numsecu').value.trim(),
+    dateEngagement: document.getElementById('f_dateeng').value,
+    contact1: {
+      nom: document.getElementById('f_c1nom').value.trim(),
+      prenom: document.getElementById('f_c1prenom').value.trim(),
+      lien: document.getElementById('f_c1lien').value.trim(),
+      tel1: document.getElementById('f_c1tel1').value.trim(),
+      tel2: document.getElementById('f_c1tel2').value.trim()
+    },
+    contact2: {
+      nom: document.getElementById('f_c2nom').value.trim(),
+      prenom: document.getElementById('f_c2prenom').value.trim(),
+      lien: document.getElementById('f_c2lien').value.trim(),
+      tel1: document.getElementById('f_c2tel1').value.trim(),
+      tel2: document.getElementById('f_c2tel2').value.trim()
+    }
+  };
+}
+
 function modalAddJSP() {
-  openModal(`<h3>🔥 Nouveau JSP</h3>
+  openModalWide(`<h3>🔥 Nouveau JSP</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group"><label>Prénom</label><input id="f_prenom" type="text"></div>
       <div class="form-group"><label>Nom</label><input id="f_nom" type="text"></div>
@@ -2193,6 +2260,7 @@ function modalAddJSP() {
       <div class="form-group"><label>Tél. JSP</label><input id="f_telj" type="text"></div>
     </div>
     <div class="form-group"><label>Email</label><input id="f_email" type="email"></div>
+    ${champsComplementairesHTML()}
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Annuler</button>
       <button class="btn-save" onclick="saveJSP()">Enregistrer</button>
@@ -2206,13 +2274,13 @@ function saveJSP() {
   DB.jsps.push({ id: nextId(DB.jsps), prenom, nom,
     promotion: document.getElementById('f_prom').value,
     ville: document.getElementById('f_ville').value,
-    adresse: document.getElementById('f_adresse') ? document.getElementById('f_adresse').value : '',
     dateNaissance: document.getElementById('f_dob').value,
     sexe: document.getElementById('f_sexe').value,
     telPere: document.getElementById('f_telp').value,
     telMere: document.getElementById('f_telm').value,
     telJSP: document.getElementById('f_telj').value,
-    email: document.getElementById('f_email').value });
+    email: document.getElementById('f_email').value,
+    ...lireChampsComplementaires() });
   saveData(); closeModal(); showSection('jsps');
 }
 
@@ -2221,7 +2289,7 @@ function modalEditJSP(id) {
   const photoHTML = j.photo
     ? '<img src="'+j.photo+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--bleu);display:block;margin:0 auto 10px">'
     : '<div style="width:80px;height:80px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 10px">'+j.prenom[0]+j.nom[0]+'</div>';
-  openModal('<h3>✏️ Modifier JSP</h3>'
+  openModalWide('<h3>✏️ Modifier JSP</h3>'
     +'<div style="text-align:center;margin-bottom:16px">'+photoHTML
     +'<label style="cursor:pointer;display:inline-block;background:var(--gris-bg);border:1px solid var(--gris-bord);border-radius:6px;padding:5px 12px;font-size:12px">'
     +'<i class="ti ti-camera"></i> Changer la photo'
@@ -2246,6 +2314,7 @@ function modalEditJSP(id) {
     +'<div class="form-group"><label>Tél. JSP</label><input id="f_telj" type="text" value="'+(j.telJSP||'')+'"></div>'
     +'</div>'
     +'<div class="form-group"><label>Email</label><input id="f_email" type="email" value="'+(j.email||'')+'"></div>'
+    +champsComplementairesHTML(j)
     +'<div class="modal-btns">'
     +'<button class="btn-cancel" onclick="closeModal()">Annuler</button>'
     +'<button class="btn-save" onclick="updateJSP('+id+')">Enregistrer</button>'
@@ -2295,6 +2364,7 @@ function updateJSP(id) {
   j.telMere = document.getElementById('f_telm') ? document.getElementById('f_telm').value : (j.telMere||'');
   j.telJSP = document.getElementById('f_telj') ? document.getElementById('f_telj').value : (j.telJSP||'');
   j.email = document.getElementById('f_email') ? document.getElementById('f_email').value : (j.email||'');
+  if (document.getElementById('f_adresse')) Object.assign(j, lireChampsComplementaires());
   if (window._tempPhoto) { j.photo = window._tempPhoto; window._tempPhoto = null; }
   saveData(); closeModal(); showSection('jsps');
 }
@@ -2308,6 +2378,363 @@ function deleteJSP(id) {
   DB.resultats = DB.resultats.filter(x=>x.jspId!=id);
   saveData(); showSection('jsps');
 }
+
+
+// ══════════════════════════════════════════
+//  CANDIDATURE JSP — génération PDF pré-remplis
+//  (Fiche brevet national BNJSP + Fiche RH SDIS 34)
+// ══════════════════════════════════════════
+
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function splitDateISO(iso) {
+  if (!iso) return { jj:'', mm:'', aaaa:'' };
+  const [y,m,d] = iso.split('-');
+  return { jj:d||'', mm:m||'', aaaa:y||'' };
+}
+
+function gradeNumero(promotion) {
+  const m = /(\d)/.exec(promotion||'');
+  return m ? m[1] : '';
+}
+
+function modalCandidatureJSP(id) {
+  const j = DB.jsps.find(x=>x.id==id);
+  if (!j) return;
+  const cs = DB.settingsCandidature || { section:'Cruzy-Quarante', compagnie:'', centreSecours:'CIS Cruzy-Quarante' };
+  const c1 = j.contact1 || {};
+  const c2 = j.contact2 || {};
+  const estJSP34 = (j.promotion === 'JSP 3' || j.promotion === 'JSP 4');
+
+  openModalWide(`
+    <h3><i class="ti ti-file-certificate"></i> Dossier de candidature — ${escAttr(j.prenom)} ${escAttr(j.nom)}</h3>
+    <p style="font-size:12px;color:var(--gris-txt);margin:-10px 0 14px">Champs pré-remplis à partir de la fiche du JSP — vérifie et complète avant de générer. Les signatures, cachets et avis restent à faire à la main.</p>
+
+    <div class="section-header" style="margin:6px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase">Documents à générer</h3></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;font-weight:400">
+      <input type="checkbox" id="cd_docBrevet" checked style="width:auto"> Fiche candidature au Brevet National JSP (+ autorisation parentale + certificat médical)
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:400">
+      <input type="checkbox" id="cd_docRH" ${estJSP34 ? 'checked' : ''} style="width:auto"> Fiche candidature RH (JSP3/JSP4) ${estJSP34 ? '' : '<span style="color:var(--gris-txt)">(normalement pour JSP3/JSP4)</span>'}
+    </label>
+
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase">Section / affectation</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group"><label>Section JSP</label><input id="cd_section" type="text" value="${escAttr(cs.section)}"></div>
+      <div class="form-group"><label>Compagnie</label><input id="cd_compagnie" type="text" value="${escAttr(cs.compagnie)}"></div>
+      <div class="form-group"><label>Centre de secours</label><input id="cd_centre" type="text" value="${escAttr(cs.centreSecours)}"></div>
+    </div>
+
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase">Identité du JSP</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group"><label>Nom</label><input id="cd_nom" type="text" value="${escAttr(j.nom)}"></div>
+      <div class="form-group"><label>Prénom</label><input id="cd_prenom" type="text" value="${escAttr(j.prenom)}"></div>
+      <div class="form-group"><label>Sexe</label><select id="cd_sexe"><option value="M" ${j.sexe==='M'?'selected':''}>Garçon</option><option value="F" ${j.sexe==='F'?'selected':''}>Fille</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group"><label>Date de naissance</label><input id="cd_dob" type="date" value="${j.dateNaissance||''}"></div>
+      <div class="form-group"><label>Lieu de naissance</label><input id="cd_lieunaiss" type="text" value="${escAttr(j.lieuNaissance)}"></div>
+      <div class="form-group"><label>N° sécurité sociale</label><input id="cd_numsecu" type="text" value="${escAttr(j.numSecu)}"></div>
+    </div>
+    <div class="form-group"><label>Adresse (voie)</label><input id="cd_adresse" type="text" value="${escAttr(j.adresse)}"></div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
+      <div class="form-group"><label>Code postal</label><input id="cd_cp" type="text" value="${escAttr(j.codePostal)}"></div>
+      <div class="form-group"><label>Ville</label><input id="cd_ville" type="text" value="${escAttr(j.ville)}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Téléphone</label><input id="cd_tel" type="text" value="${escAttr(j.telJSP||j.telPere||j.telMere)}"></div>
+      <div class="form-group"><label>Mail</label><input id="cd_email" type="email" value="${escAttr(j.email)}"></div>
+    </div>
+    <div class="form-group"><label>Date d'engagement dans la section</label><input id="cd_dateeng" type="date" value="${j.dateEngagement||''}"></div>
+
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase">Contact d'urgence 1</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group"><label>Nom</label><input id="cd_c1nom" type="text" value="${escAttr(c1.nom)}"></div>
+      <div class="form-group"><label>Prénom</label><input id="cd_c1prenom" type="text" value="${escAttr(c1.prenom)}"></div>
+      <div class="form-group"><label>Lien</label><input id="cd_c1lien" type="text" placeholder="Père, Mère..." value="${escAttr(c1.lien)}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Tél. 1</label><input id="cd_c1tel1" type="text" value="${escAttr(c1.tel1)}"></div>
+      <div class="form-group"><label>Tél. 2</label><input id="cd_c1tel2" type="text" value="${escAttr(c1.tel2)}"></div>
+    </div>
+
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase">Contact d'urgence 2</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div class="form-group"><label>Nom</label><input id="cd_c2nom" type="text" value="${escAttr(c2.nom)}"></div>
+      <div class="form-group"><label>Prénom</label><input id="cd_c2prenom" type="text" value="${escAttr(c2.prenom)}"></div>
+      <div class="form-group"><label>Lien</label><input id="cd_c2lien" type="text" placeholder="Père, Mère..." value="${escAttr(c2.lien)}"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Tél. 1</label><input id="cd_c2tel1" type="text" value="${escAttr(c2.tel1)}"></div>
+      <div class="form-group"><label>Tél. 2</label><input id="cd_c2tel2" type="text" value="${escAttr(c2.tel2)}"></div>
+    </div>
+
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase">Représentant légal (autorisation parentale)</h3></div>
+    <p style="font-size:11px;color:var(--gris-txt);margin:-4px 0 10px">Il s'agit du Contact d'urgence 1 ci-dessus (nom/prénom repris automatiquement). Complète juste sa date/lieu de naissance et son adresse pour ce document.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Date de naissance</label><input id="cd_rl_dob" type="date" value="${c1.dateNaissance||''}"></div>
+      <div class="form-group"><label>Lieu de naissance</label><input id="cd_rl_lieu" type="text" value="${escAttr(c1.lieuNaissance)}"></div>
+    </div>
+    <div class="form-group"><label>Adresse (si différente du JSP)</label><input id="cd_rl_adresse" type="text" value="${escAttr(c1.adresse||j.adresse)}"></div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px">
+      <div class="form-group"><label>Code postal</label><input id="cd_rl_cp" type="text" value="${escAttr(c1.codePostal||j.codePostal)}"></div>
+      <div class="form-group"><label>Ville</label><input id="cd_rl_ville" type="text" value="${escAttr(c1.ville||j.ville)}"></div>
+    </div>
+
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase">Autorisations (autorisation parentale)</h3></div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:13px;font-weight:400"><input type="checkbox" id="cd_cons_insc" checked style="width:auto"> Inscription aux épreuves du brevet national</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:13px;font-weight:400"><input type="checkbox" id="cd_cons_photo" checked style="width:auto"> Photos/vidéos et diffusion réseaux sociaux AJSPCDH/SDIS 34</label>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:400"><input type="checkbox" id="cd_cons_medic" checked style="width:auto"> Intervention médicale ou chirurgicale en cas d'urgence</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label>Fait à</label><input id="cd_fait_a" type="text" value="${escAttr(j.ville||cs.section)}"></div>
+      <div class="form-group"><label>Le</label><input id="cd_fait_le" type="text" value="${new Date().toLocaleDateString('fr-FR')}"></div>
+    </div>
+
+    <div class="section-header" style="margin:14px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--gris-bord)"><h3 style="font-size:13px;color:var(--gris-txt);text-transform:uppercase">Pièces déjà réunies (cochées sur le PDF)</h3></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-size:12px;margin-bottom:6px">
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_auth" style="width:auto"> Autorisation parentale signée</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_certif" style="width:auto"> Certificat médical signé</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_cni" style="width:auto"> Photocopie pièce d'identité</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_livret" style="width:auto"> Livret de suivi signé</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_natation" style="width:auto"> Attestation natation 50m</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_ari" style="width:auto"> PV ARI</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_prompt" style="width:auto"> PV Equipier Prompt Secours</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_vsav" style="width:auto"> PV Equipier VSAV</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_caisson" style="width:auto"> Attestation Caisson</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pb_inond" style="width:auto"> Attestation Inondation</label>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-size:12px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pr_cni" style="width:auto"> (RH) Copie Carte Nationale d'Identité</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pr_secu" style="width:auto"> (RH) Attestation droit Sécurité Sociale</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pr_just" style="width:auto"> (RH) Justificatif appartenance section JSP</label>
+      <label style="display:flex;align-items:center;gap:6px;font-weight:400"><input type="checkbox" id="pr_autor" style="width:auto"> (RH) Autorisation parentale</label>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px;font-weight:400">
+      <input type="checkbox" id="cd_maj_fiche" checked style="width:auto"> Mettre à jour la fiche du JSP avec ces informations (identité, contacts, représentant légal)
+    </label>
+
+    <div id="cd_status" style="font-size:12px;color:var(--gris-txt);margin-bottom:8px"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" style="background:#7c3aed" onclick="genererDossierCandidature(${id})"><i class="ti ti-file-type-pdf"></i> Générer le PDF</button>
+    </div>
+  `);
+}
+
+async function genererDossierCandidature(jspId) {
+  const j = DB.jsps.find(x=>x.id==jspId);
+  if (!j) return;
+  const statusEl = document.getElementById('cd_status');
+  const setStatus = (msg) => { if (statusEl) statusEl.textContent = msg; };
+
+  const genererBrevet = document.getElementById('cd_docBrevet').checked;
+  const genererRH = document.getElementById('cd_docRH').checked;
+  if (!genererBrevet && !genererRH) { alert('Sélectionne au moins un document à générer.'); return; }
+
+  const val = id => (document.getElementById(id)||{}).value || '';
+  const chk = id => !!(document.getElementById(id)||{}).checked;
+
+  const data = {
+    section: val('cd_section'), compagnie: val('cd_compagnie'), centre: val('cd_centre'),
+    nom: val('cd_nom'), prenom: val('cd_prenom'), sexe: val('cd_sexe'),
+    dob: val('cd_dob'), lieuNaissance: val('cd_lieunaiss'), numSecu: val('cd_numsecu'),
+    adresse: val('cd_adresse'), cp: val('cd_cp'), ville: val('cd_ville'),
+    tel: val('cd_tel'), email: val('cd_email'), dateEngagement: val('cd_dateeng'),
+    c1: { nom: val('cd_c1nom'), prenom: val('cd_c1prenom'), lien: val('cd_c1lien'), tel1: val('cd_c1tel1'), tel2: val('cd_c1tel2') },
+    c2: { nom: val('cd_c2nom'), prenom: val('cd_c2prenom'), lien: val('cd_c2lien'), tel1: val('cd_c2tel1'), tel2: val('cd_c2tel2') },
+    rlDob: val('cd_rl_dob'), rlLieu: val('cd_rl_lieu'),
+    rlAdresse: val('cd_rl_adresse'), rlCp: val('cd_rl_cp'), rlVille: val('cd_rl_ville'),
+    consInsc: chk('cd_cons_insc'), consPhoto: chk('cd_cons_photo'), consMedic: chk('cd_cons_medic'),
+    faitA: val('cd_fait_a'), faitLe: val('cd_fait_le'),
+    promotion: j.promotion
+  };
+  const pieces = {};
+  ['pb_auth','pb_certif','pb_cni','pb_livret','pb_natation','pb_ari','pb_prompt','pb_vsav','pb_caisson','pb_inond',
+   'pr_cni','pr_secu','pr_just','pr_autor'].forEach(k => pieces[k] = chk(k));
+
+  DB.settingsCandidature = { section: data.section, compagnie: data.compagnie, centreSecours: data.centre };
+  if (chk('cd_maj_fiche')) {
+    j.nom = data.nom; j.prenom = data.prenom; j.sexe = data.sexe;
+    j.dateNaissance = data.dob; j.lieuNaissance = data.lieuNaissance; j.numSecu = data.numSecu;
+    j.adresse = data.adresse; j.codePostal = data.cp; j.ville = data.ville;
+    j.email = data.email; j.dateEngagement = data.dateEngagement;
+    j.contact1 = Object.assign({}, data.c1, { dateNaissance: data.rlDob, lieuNaissance: data.rlLieu, adresse: data.rlAdresse, codePostal: data.rlCp, ville: data.rlVille });
+    j.contact2 = Object.assign({}, data.c2);
+  }
+  saveData();
+
+  try {
+    setStatus('Génération du PDF en cours…');
+    const { PDFDocument, StandardFonts } = PDFLib;
+    const outDoc = await PDFDocument.create();
+
+    if (genererBrevet) {
+      const bytes = await (await fetch('templates/candidature-brevet-jsp.pdf')).arrayBuffer();
+      const src = await PDFDocument.load(bytes);
+      await remplirBrevet(src, data, pieces);
+      const copied = await outDoc.copyPages(src, src.getPageIndices());
+      copied.forEach(p => outDoc.addPage(p));
+    }
+    if (genererRH) {
+      const bytes = await (await fetch('templates/candidature-rh-jsp.pdf')).arrayBuffer();
+      const src = await PDFDocument.load(bytes);
+      await remplirRH(src, data, pieces, j.photo);
+      const copied = await outDoc.copyPages(src, src.getPageIndices());
+      copied.forEach(p => outDoc.addPage(p));
+    }
+    const outBytes = await outDoc.save();
+    const blob = new Blob([outBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Candidature_${data.nom}_${data.prenom}`.replace(/\s+/g,'_') + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setStatus('');
+    closeModal(); showSection('jsps');
+  } catch (e) {
+    console.error(e);
+    setStatus('');
+    alert("Erreur lors de la génération du PDF : " + e.message + "\n\nVérifie que les fichiers modèles (templates/candidature-brevet-jsp.pdf et templates/candidature-rh-jsp.pdf) sont bien présents sur le serveur.");
+  }
+}
+
+async function remplirBrevet(pdfDoc, data, pieces) {
+  const { StandardFonts, rgb } = PDFLib;
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
+  const BLEU = rgb(0,0,0.55), ROUGE = rgb(0.7,0,0);
+
+  function T(page, text, x, top, size) {
+    if (!text) return;
+    page.drawText(String(text), { x, y: page.getHeight()-top, size: size||10, font, color: BLEU });
+  }
+  function X(page, x, top, size) {
+    page.drawText('X', { x, y: page.getHeight()-top, size: size||10, font, color: ROUGE });
+  }
+
+  const p1 = pages[0], p2 = pages[1], p3 = pages[2];
+  const dob = splitDateISO(data.dob);
+  const eng = splitDateISO(data.dateEngagement);
+  const grade = gradeNumero(data.promotion);
+
+  T(p1, data.section, 180, 249.5);
+  T(p1, data.compagnie, 398, 249.5);
+  T(p1, eng.jj, 278, 284.5); T(p1, eng.mm, 303, 284.5); T(p1, eng.aaaa, 330, 284.5);
+  T(p1, (data.nom||'').toUpperCase(), 108, 338);
+  T(p1, data.prenom, 372, 338);
+  T(p1, dob.jj, 180, 362.3); T(p1, dob.mm, 200, 362.3); T(p1, dob.aaaa, 221, 362.3);
+  T(p1, data.lieuNaissance, 395, 362.3);
+  T(p1, data.adresse, 106, 439.8, data.adresse && data.adresse.length>55 ? 8 : 10);
+  T(p1, data.cp, 146, 478.6);
+  T(p1, data.ville, 105, 502.8);
+  T(p1, data.tel, 138, 526.6);
+  T(p1, data.email, 330, 526.6, 9);
+  if (pieces) {
+    const rowsPieces1 = [
+      ['pb_auth',575.8],['pb_certif',596.4],['pb_cni',617.1],['pb_livret',637.7],['pb_natation',658.3],
+      ['pb_ari',679.0],['pb_prompt',699.6],['pb_vsav',720.3],['pb_caisson',740.9],['pb_inond',761.5]
+    ];
+    rowsPieces1.forEach(([k,y]) => { if (pieces[k]) X(p1, 72.5, y, 10); });
+  }
+
+  T(p2, data.c1.nom, 108, 237.6);
+  T(p2, data.c1.prenom, 345, 237.6);
+  T(p2, fmtDate(data.rlDob), 180, 260.6);
+  T(p2, data.rlLieu, 330, 260.6);
+  T(p2, data.rlAdresse, 106, 313.2, data.rlAdresse && data.rlAdresse.length>55 ? 8 : 10);
+  T(p2, data.rlCp, 146, 351.8);
+  T(p2, data.rlVille, 300, 351.8);
+  T(p2, data.c1.nom, 108, 397.9);
+  T(p2, data.c1.prenom, 345, 397.9);
+  T(p2, fmtDate(data.rlDob), 180, 421.0);
+  T(p2, data.rlLieu, 330, 421.0);
+  T(p2, grade, 152, 443.9);
+  T(p2, data.section, 285, 443.9);
+  if (data.consInsc) X(p2, 72.5, 498.9, 10);
+  if (data.consPhoto) X(p2, 72.5, 533.4, 10);
+  if (data.consMedic) X(p2, 72.5, 566.8, 10);
+  T(p2, data.faitA, 108, 616.3);
+  T(p2, data.faitLe, 348, 616.3);
+
+  T(p3, (data.nom||'').toUpperCase(), 108, 448.1);
+  T(p3, data.prenom, 372, 448.1);
+  T(p3, fmtDate(data.dob), 180, 471.7);
+  T(p3, data.section, 375, 471.7);
+  X(p3, 72.5, 557.4, 10);
+}
+
+async function remplirRH(pdfDoc, data, pieces, photoDataUrl) {
+  const { StandardFonts, rgb } = PDFLib;
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
+  const BLEU = rgb(0,0,0.55), ROUGE = rgb(0.7,0,0);
+  const p1 = pages[0], p2 = pages[1];
+
+  function T(page, text, x, top, size) {
+    if (!text) return;
+    page.drawText(String(text), { x, y: page.getHeight()-top, size: size||10, font, color: BLEU });
+  }
+  function X(page, x, top, size) {
+    page.drawText('X', { x, y: page.getHeight()-top, size: size||10, font, color: ROUGE });
+  }
+
+  if (photoDataUrl && /^data:image\/(png|jpe?g)/.test(photoDataUrl)) {
+    try {
+      const isPng = /^data:image\/png/.test(photoDataUrl);
+      const base64 = photoDataUrl.split(',')[1];
+      const bin = atob(base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+      const img = isPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
+      const boxX0=462.9, boxX1=565.6, boxTop=16.7, boxBottom=145.0;
+      const boxW=boxX1-boxX0, boxH=boxBottom-boxTop;
+      const scale = Math.min(boxW/img.width, boxH/img.height);
+      const pw=img.width*scale, ph=img.height*scale;
+      p1.drawImage(img, { x: boxX0+(boxW-pw)/2, y: p1.getHeight()-boxTop-(boxH+ph)/2, width: pw, height: ph });
+    } catch(e) { console.warn('Photo non intégrée au PDF RH :', e); }
+  }
+
+  if (data.promotion === 'JSP 3') X(p1, 57.0, 145.5, 8);
+  if (data.promotion === 'JSP 4') X(p1, 57.0, 166.1, 8);
+
+  T(p1, data.section, 180, 206.2);
+  T(p1, data.compagnie, 388, 206.2);
+  T(p1, fmtDate(data.dateEngagement), 248, 221.6);
+  T(p1, data.centre, 360, 234.4);
+
+  T(p1, (data.nom||'').toUpperCase(), 58, 300.2);
+  if (data.sexe === 'F') X(p1, 432.5, 298.0, 8); else X(p1, 504.1, 298.0, 8);
+  T(p1, data.prenom, 71, 314.6);
+
+  const dob = splitDateISO(data.dob);
+  T(p1, dob.jj, 137, 338.8); T(p1, dob.mm, 163, 338.8); T(p1, dob.aaaa, 190, 338.8);
+  T(p1, data.lieuNaissance, 383, 338.8);
+  T(p1, data.numSecu, 178, 367.8, 9);
+
+  T(p1, data.adresse, 104, 435.4, data.adresse && data.adresse.length>60 ? 8 : 10);
+  T(p1, data.cp, 150, 463.6);
+  T(p1, data.ville, 108, 478.0);
+  T(p1, data.tel, 106, 507.0);
+  T(p1, data.email, 342, 507.0, 9);
+
+  T(p1, data.c1.nom, 57, 593.6); T(p1, data.c1.prenom, 275, 593.6); T(p1, data.c1.lien, 465, 593.6, 9);
+  T(p1, data.c1.tel1, 55, 608.2); T(p1, data.c1.tel2, 258, 608.2);
+  T(p1, data.c2.nom, 57, 651.5); T(p1, data.c2.prenom, 269, 651.5); T(p1, data.c2.lien, 459, 651.5, 9);
+  T(p1, data.c2.tel1, 58, 665.8); T(p1, data.c2.tel2, 261, 665.8);
+
+  if (pieces) {
+    const pieces1 = [['pr_cni',738.5],['pr_secu',753.5],['pr_just',768.5],['pr_autor',783.5]];
+    pieces1.forEach(([k,y]) => { if (pieces[k]) X(p1, 38.5, y, 9); });
+  }
+
+  T(p2, (data.nom||'').toUpperCase(), 65, 26.7);
+  T(p2, data.prenom, 352, 26.7);
+}
+
 
 // ══════════════════════════════════════════
 //  ABSENCES (admin)
@@ -8294,7 +8721,17 @@ function deleteItem(collection, id, section) {
 }
 
 function openModal(html) {
-  document.getElementById('modalContent').innerHTML = html;
+  const mc = document.getElementById('modalContent');
+  mc.innerHTML = html;
+  mc.style.maxWidth = '';
+  document.getElementById('modalBg').classList.remove('hidden');
+}
+
+function openModalWide(html) {
+  const mc = document.getElementById('modalContent');
+  mc.innerHTML = html;
+  mc.style.width = '720px';
+  mc.style.maxWidth = '95vw';
   document.getElementById('modalBg').classList.remove('hidden');
 }
 
@@ -10177,7 +10614,12 @@ function printTableauHabillement() {
 }
 
 function closeModal(e) {
-  if (!e || e.target.id==='modalBg') document.getElementById('modalBg').classList.add('hidden');
+  if (!e || e.target.id==='modalBg') {
+    document.getElementById('modalBg').classList.add('hidden');
+    const mc = document.getElementById('modalContent');
+    mc.style.width = '';
+    mc.style.maxWidth = '';
+  }
 }
 
 // Chargement des données cloud dès l'ouverture de la page (avant toute tentative
