@@ -5803,6 +5803,19 @@ const LIVRET_SECTIONS_HERAULT = [
   "Bassin de Thau (Mèze, Loupian, Bouzigues)", "Montpellier", "Haut Languedoc", "Montagnac",
   "Florensac", "Minervois", "Montbazin", "Pays de Thongue (Servian)", "Sète", "Hauts Cantons"
 ];
+const LIVRET_EVALUATEURS_APS = ["EAP Galiana Christian", "EAP Affre Nathan"];
+const LIVRET_RESPONSABLE_SECTION_FIXE = "EAP Galiana Christian";
+const LIVRET_CHEF_CENTRE_FIXE = "Capitaine Chamayou Alain";
+function renderResponsableSectionSelect(id, currentValue, onchangeAttr) {
+  var found = !currentValue;
+  var opts = '<option value="">— Choisir —</option>';
+  LIVRET_EVALUATEURS_APS.forEach(function(n) {
+    if (n === currentValue) found = true;
+    opts += '<option value="'+escAttr(n)+'" '+(n===currentValue?'selected':'')+'>'+n+'</option>';
+  });
+  if (currentValue && !found) opts += '<option value="'+escAttr(currentValue)+'" selected>'+escAttr(currentValue)+'</option>';
+  return '<select id="'+id+'" '+(onchangeAttr||'')+' style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px">'+opts+'</select>';
+}
 
 function cycleKey(promotion) { return (promotion||'').replace(/\s+/g,''); }
 
@@ -5822,6 +5835,9 @@ function renderLivret(jspId, tab) {
   const jspOpts = DB.jsps.map(x => '<option value="'+x.id+'" '+(x.id==jspId?'selected':'')+'>'+x.prenom+' '+x.nom+' ('+x.promotion+')</option>').join('');
   html += '<div class="jsp-selector"><label><i class="ti ti-user" aria-hidden="true"></i> JSP :</label>'
     + '<select onchange="renderLivretGo(parseInt(this.value), window._livretTab)">'+jspOpts+'</select></div>';
+
+  html += '<datalist id="orga-membres-dl">' + getOrganigrammeMembresListe().map(function(n){ return '<option value="'+escAttr(n)+'">'; }).join('') + '</datalist>';
+  html += '<datalist id="orga-membres-grade-dl">' + getOrganigrammeMembresAvecGrade().map(function(n){ return '<option value="'+escAttr(n)+'">'; }).join('') + '</datalist>';
 
   const tabs = [['cursus','Cursus & renseignements'],['equipe','Équipe pédagogique'],['competences','Compétences par cycle'],['comportement','Comportement'],
     ['blocsinc','Blocs de compétences INC'],['jsp1eval','Évaluation JSP1'],['aps','APS'],['final','Commentaires & signatures']];
@@ -5863,7 +5879,7 @@ function addLivretCursusRow(jspId) {
     var n = m ? parseInt(m[1],10) : 0;
     nextGrade = 'JSP '+Math.min(n+1,4);
   }
-  DB.livretCursus.push({ id: nextId(DB.livretCursus), jspId: jspId, annee: DB.saison, grade: nextGrade, centre: 'Cruzy-Quarante', departement: '34', responsable: '' });
+  DB.livretCursus.push({ id: nextId(DB.livretCursus), jspId: jspId, annee: DB.saison, grade: nextGrade, centre: 'Cruzy-Quarante', departement: '34', responsable: LIVRET_RESPONSABLE_SECTION_FIXE });
   saveData();
   showSection('livret');
 }
@@ -5897,7 +5913,7 @@ function renderLivretCursus(j) {
     html += '<td><select onchange="updateLivretCursusField('+r.id+',\'centre\',this.value)" style="padding:5px;border:1px solid var(--gris-bord);border-radius:5px">'
       + LIVRET_SECTIONS_HERAULT.map(function(s){ return '<option '+(r.centre===s?'selected':'')+'>'+s+'</option>'; }).join('') + '</select></td>';
     html += '<td><input value="'+escAttr(r.departement||'34')+'" onchange="updateLivretCursusField('+r.id+',\'departement\',this.value)" style="width:50px;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>';
-    html += '<td><input value="'+escAttr(r.responsable||'')+'" placeholder="Nom du responsable" onchange="updateLivretCursusField('+r.id+',\'responsable\',this.value)" style="width:160px;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>';
+    html += '<td style="padding:5px;color:#374151">'+LIVRET_RESPONSABLE_SECTION_FIXE+'</td>';
     html += '<td><button onclick="deleteLivretCursusRow('+r.id+')" style="background:none;border:none;cursor:pointer;color:var(--rouge)" title="Supprimer"><i class="ti ti-trash"></i></button></td>';
     html += '</tr>';
   });
@@ -5912,21 +5928,63 @@ function renderLivretCursus(j) {
 function getEquipePedagogique(saison, cycle) {
   return (DB.equipesPedagogiques||[]).find(function(e){ return e.saison===saison && e.cycle===cycle; });
 }
+const ORGANIGRAMME_GRADES = {
+  "Galiana Christian": "S/C",
+  "Jambaque Christophe": "S/C",
+  "Andrieu Hugo": "CAP",
+  "Cottin Cindy": "1CL",
+  "Moreau Romane": "1CL",
+  "Granier Nicolas": "1CL",
+  "Torrentelle Mathis": "1CL",
+  "Ponsolle Nicolas": "A/C",
+  "Juarez Carlos": "A/C",
+  "Juarez Adrien": "C/C"
+};
+function getOrganigrammeMembresListe() {
+  var org = getOrganigramme();
+  var noms = [];
+  if (org.honoraire && org.honoraire.noms) noms = noms.concat(org.honoraire.noms);
+  (org.arbre||[]).forEach(function(n){ noms = noms.concat(n.noms||[]); });
+  var uniq = [];
+  noms.forEach(function(n){ if (n && uniq.indexOf(n)===-1) uniq.push(n); });
+  uniq.sort(function(a,b){ return a.localeCompare(b,'fr'); });
+  return uniq;
+}
+function getOrganigrammeMembresAvecGrade() {
+  return getOrganigrammeMembresListe().map(function(n) {
+    var g = ORGANIGRAMME_GRADES[n];
+    return g ? (g+' '+n) : n;
+  });
+}
+function equipePersonneChanged(cycle, idx) {
+  var el = document.getElementById('eq_'+cycle+'_'+idx+'_personne');
+  var gradeEl = document.getElementById('eq_'+cycle+'_'+idx+'_grade');
+  if (!el || !gradeEl) return;
+  var g = ORGANIGRAMME_GRADES[el.value];
+  if (g) gradeEl.value = g;
+}
+function splitNomComplet(nomComplet) {
+  var parts = (nomComplet||'').trim().split(/\s+/);
+  if (!parts[0]) return { nom:'', prenom:'' };
+  if (parts.length<2) return { nom: parts[0], prenom: '' };
+  return { nom: parts[0], prenom: parts.slice(1).join(' ') };
+}
 function renderLivretEquipe(saison) {
-  var html = '';
+  var html = '<p style="font-size:12px;color:var(--gris-txt);margin:0 0 12px">Le champ « Personne » propose les membres de l\'organigramme du bureau (le grade se remplit tout seul) — tu peux aussi taper un autre nom si besoin. Le centre est Cruzy-Quarante par défaut, modifiable si besoin.</p>';
   ['JSP1','JSP2','JSP3','JSP4'].forEach(function(cycle) {
     var eq = getEquipePedagogique(saison, cycle) || {membres:[]};
     html += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;margin-bottom:16px">';
     html += '<div style="font-weight:700;margin-bottom:10px">Cycle de formation '+cycle.replace('JSP','')+' = '+cycle+' <span style="font-weight:400;color:var(--gris-txt);font-size:12px">(saison '+saison+')</span></div>';
-    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px"><thead><tr>'
-      +'<th style="text-align:left;padding:4px">Grade</th><th style="text-align:left;padding:4px">Nom</th><th style="text-align:left;padding:4px">Prénom</th><th style="text-align:left;padding:4px">Centre</th></tr></thead><tbody>';
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:560px"><thead><tr>'
+      +'<th style="text-align:left;padding:4px;width:110px">Grade</th><th style="text-align:left;padding:4px">Personne (organigramme)</th><th style="text-align:left;padding:4px;width:200px">Centre</th></tr></thead><tbody>';
     for (var i=0;i<6;i++) {
       var m = eq.membres[i] || {};
+      var nomComplet = ((m.nom||'')+' '+(m.prenom||'')).trim();
       html += '<tr>'
         +'<td><input id="eq_'+cycle+'_'+i+'_grade" value="'+escAttr(m.grade||'')+'" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
-        +'<td><input id="eq_'+cycle+'_'+i+'_nom" value="'+escAttr(m.nom||'')+'" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
-        +'<td><input id="eq_'+cycle+'_'+i+'_prenom" value="'+escAttr(m.prenom||'')+'" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
-        +'<td><input id="eq_'+cycle+'_'+i+'_centre" value="'+escAttr(m.centre||'')+'" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
+        +'<td><input id="eq_'+cycle+'_'+i+'_personne" list="orga-membres-dl" placeholder="Nom Prénom" value="'+escAttr(nomComplet)+'" oninput="equipePersonneChanged(\''+cycle+'\','+i+')" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
+        +'<td><select id="eq_'+cycle+'_'+i+'_centre" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px">'
+          + LIVRET_SECTIONS_HERAULT.map(function(s){ return '<option '+((m.centre||'Cruzy-Quarante')===s?'selected':'')+'>'+s+'</option>'; }).join('') + '</select></td>'
         +'</tr>';
     }
     html += '</tbody></table></div>';
@@ -5943,10 +6001,10 @@ function saveEquipePedagogique(cycle) {
   var membres = [];
   for (var i=0;i<6;i++) {
     var grade = (document.getElementById('eq_'+cycle+'_'+i+'_grade')||{}).value || '';
-    var nom = (document.getElementById('eq_'+cycle+'_'+i+'_nom')||{}).value || '';
-    var prenom = (document.getElementById('eq_'+cycle+'_'+i+'_prenom')||{}).value || '';
-    var centre = (document.getElementById('eq_'+cycle+'_'+i+'_centre')||{}).value || '';
-    if (grade||nom||prenom||centre) membres.push({grade:grade,nom:nom,prenom:prenom,centre:centre});
+    var personne = (document.getElementById('eq_'+cycle+'_'+i+'_personne')||{}).value || '';
+    var centre = (document.getElementById('eq_'+cycle+'_'+i+'_centre')||{}).value || 'Cruzy-Quarante';
+    var np = splitNomComplet(personne);
+    if (grade||personne) membres.push({grade:grade,nom:np.nom,prenom:np.prenom,centre:centre});
   }
   eq.membres = membres;
   saveData();
@@ -5955,6 +6013,25 @@ function saveEquipePedagogique(cycle) {
 function findLatestEquipe(cycle) {
   var arr = (DB.equipesPedagogiques||[]).filter(function(e){ return e.cycle===cycle; });
   return arr.length ? arr[arr.length-1] : null;
+}
+
+// ── Dates de séances (dimanches de cours) depuis le Planning ──
+function getDimanchesCours() {
+  return (DB.planning||[])
+    .filter(function(p){ return p.type === 'formation' && new Date(p.date+'T00:00:00').getDay() === 0; })
+    .map(function(p){ return p.date; })
+    .sort();
+}
+function renderDateCoursSelect(id, currentValue) {
+  var dates = getDimanchesCours();
+  var opts = '<option value="">— Date —</option>';
+  var found = !currentValue;
+  dates.forEach(function(d) {
+    if (d === currentValue) found = true;
+    opts += '<option value="'+d+'" '+(d===currentValue?'selected':'')+'>'+fmtDate(d)+'</option>';
+  });
+  if (currentValue && !found) opts += '<option value="'+currentValue+'" selected>'+fmtDate(currentValue)+' (hors planning)</option>';
+  return '<select id="'+id+'" style="padding:5px;border:1px solid var(--gris-bord);border-radius:5px;font-size:12px">'+opts+'</select>';
 }
 
 // ── Compétences par cycle ──
@@ -5967,6 +6044,10 @@ function renderLivretCompetences(j) {
   var html = '<div style="display:flex;gap:6px;margin-bottom:14px">' + ['JSP1','JSP2','JSP3','JSP4'].map(function(c) {
     return '<button onclick="window._livretCycle=\''+c+'\';showSection(\'livret\')" style="padding:5px 12px;border-radius:6px;border:1.5px solid '+(cycle===c?'var(--orange)':'var(--gris-bord)')+';background:'+(cycle===c?'var(--orange)':'white')+';color:'+(cycle===c?'white':'#374151')+';font-size:12px;font-weight:700;cursor:pointer">'+c+'</button>';
   }).join('') + '</div>';
+
+  if (!getDimanchesCours().length) {
+    html += '<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#78350f"><i class="ti ti-alert-triangle"></i> Aucun dimanche de cours (événement « Formation ») trouvé dans le Planning — les dates de validation ne pourront pas être choisies dans la liste tant qu\'aucune séance n\'y est ajoutée.</div>';
+  }
 
   var items = LIVRET_CONNAISSANCES[cycle] || [];
   html += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">';
@@ -5984,8 +6065,8 @@ function renderLivretCompetences(j) {
     var rec = getLivretConn(j.id, cycle, idx) || {};
     html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--gris-bord);flex-wrap:wrap">';
     html += '<div style="flex:1;min-width:220px;font-size:13px">'+it.item+'</div>';
-    html += '<input placeholder="Intervenant" id="lc_'+idx+'_int" value="'+escAttr(rec.intervenant||'')+'" style="width:150px;padding:5px;border:1px solid var(--gris-bord);border-radius:5px;font-size:12px">';
-    html += '<input type="date" id="lc_'+idx+'_date" value="'+(rec.date||'')+'" style="padding:5px;border:1px solid var(--gris-bord);border-radius:5px;font-size:12px">';
+    html += '<input placeholder="Intervenant" list="orga-membres-grade-dl" id="lc_'+idx+'_int" value="'+escAttr(rec.intervenant||'')+'" style="width:150px;padding:5px;border:1px solid var(--gris-bord);border-radius:5px;font-size:12px">';
+    html += renderDateCoursSelect('lc_'+idx+'_date', rec.date||'');
     html += '</div>';
   });
   html += '<div style="text-align:center;margin-top:14px"><button class="btn-add" onclick="saveLivretCompetences('+j.id+',\''+cycle+'\')"><i class="ti ti-device-floppy"></i> Enregistrer</button></div>';
@@ -6109,7 +6190,7 @@ function renderLivretBlocsINC(j) {
   ['JSP2','JSP3','JSP4'].forEach(function(c) {
     var ev = getBlocEval(j.id, bloc, c) || {};
     html += '<div><label style="font-size:12px;color:#374151">Évaluateur(s) '+c+'</label><br>'
-      +'<input id="be_'+bloc+'_'+c+'" value="'+escAttr(ev.evaluateur||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:200px" onchange="saveBlocEval('+j.id+',\''+bloc+'\',\''+c+'\')"></div>';
+      +'<input id="be_'+bloc+'_'+c+'" list="orga-membres-grade-dl" value="'+escAttr(ev.evaluateur||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:200px" onchange="saveBlocEval('+j.id+',\''+bloc+'\',\''+c+'\')"></div>';
   });
   html += '</div></div>';
   return html;
@@ -6166,9 +6247,11 @@ function renderLivretJSP1Eval(j) {
   html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px">';
   var signs = [['dateEval1','nomEval1','Evaluateur 1'],['dateEval2','nomEval2','Evaluateur 2'],['dateResp','nomResp','Le responsable de la section']];
   signs.forEach(function(s) {
+    var nomField = s[1]==='nomResp' ? '<input readonly id="j1_'+s[1]+'" value="'+LIVRET_RESPONSABLE_SECTION_FIXE+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:170px;background:#f3f4f6;color:#374151">'
+      : '<input placeholder="Nom" list="orga-membres-grade-dl" id="j1_'+s[1]+'" value="'+escAttr(rec[s[1]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:130px">';
     html += '<div><label style="font-size:12px;font-weight:600">Notifié le — '+s[2]+'</label><br>'
       +'<input type="date" id="j1_'+s[0]+'" value="'+(rec[s[0]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px"> '
-      +'<input placeholder="Nom" id="j1_'+s[1]+'" value="'+escAttr(rec[s[1]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:130px"></div>';
+      +nomField+'</div>';
   });
   html += '</div>';
   html += '<div style="text-align:center;margin-top:16px"><button class="btn-add" onclick="saveJSP1EvalMeta('+j.id+')"><i class="ti ti-device-floppy"></i> Enregistrer observations et signatures</button></div>';
@@ -6219,7 +6302,7 @@ function renderLivretAPS(j) {
     html += '</tbody></table>';
   });
   html += '<div style="margin-top:14px"><label style="font-size:12px;color:#374151">Nom et signature des évaluateurs</label><br>'
-    +'<input id="aps_ev_'+cycle+'" value="'+escAttr(rec.evaluateur||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:250px" onchange="saveAPSEvaluateur('+j.id+',\''+cycle+'\')"></div>';
+    +renderResponsableSectionSelect('aps_ev_'+cycle, rec.evaluateur||'', 'onchange="saveAPSEvaluateur('+j.id+',\''+cycle+'\')"')+'</div>';
   html += '</div>';
   return html;
 }
@@ -6245,9 +6328,12 @@ function renderLivretFinal(j, saison) {
   html += '<textarea id="lf_comment" style="width:100%;min-height:120px;padding:10px;border:1px solid var(--gris-bord);border-radius:8px;font-family:Arial,sans-serif;font-size:13px">'+(rec.commentaires||'')+'</textarea>';
   html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px">';
   [['Tuteur1','Le tuteur 1'],['Tuteur2','Le tuteur 2'],['Responsable','Le responsable de la section'],['ChefCentre','Le chef de centre']].forEach(function(s) {
+    var fixeVal = s[0]==='Responsable' ? LIVRET_RESPONSABLE_SECTION_FIXE : (s[0]==='ChefCentre' ? LIVRET_CHEF_CENTRE_FIXE : null);
+    var nomField = fixeVal ? '<input readonly id="lf_nom'+s[0]+'" value="'+fixeVal+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:170px;background:#f3f4f6;color:#374151">'
+      : '<input placeholder="Nom" list="orga-membres-grade-dl" id="lf_nom'+s[0]+'" value="'+escAttr(rec['nom'+s[0]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:130px">';
     html += '<div><label style="font-size:12px;font-weight:600">Notifié le — '+s[1]+'</label><br>'
       +'<input type="date" id="lf_date'+s[0]+'" value="'+(rec['date'+s[0]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px"> '
-      +'<input placeholder="Nom" id="lf_nom'+s[0]+'" value="'+escAttr(rec['nom'+s[0]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:130px"></div>';
+      +nomField+'</div>';
   });
   html += '</div>';
   html += '<div style="text-align:center;margin-top:16px"><button class="btn-add" onclick="saveLivretFinal('+j.id+',\''+saison+'\')"><i class="ti ti-device-floppy"></i> Enregistrer</button></div>';
@@ -6352,9 +6438,9 @@ function genererLivretPDF(jspId) {
   doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(30,30,30);
   doc.text('Cursus du jeune sapeur-pompier', ML, y); y += 5;
   var cursusRows = getLivretCursus(j.id).map(function(r) {
-    return [r.annee||'—', r.grade||'—', j.nom||'', j.prenom||'', r.centre||'—', r.departement||'—', r.responsable||'—'];
+    return [r.annee||'—', r.grade||'—', j.nom||'', j.prenom||'', r.centre||'—', r.departement||'—', LIVRET_RESPONSABLE_SECTION_FIXE];
   });
-  if (!cursusRows.length) cursusRows = [['—','—',j.nom||'',j.prenom||'','—','—','—']];
+  if (!cursusRows.length) cursusRows = [['—','—',j.nom||'',j.prenom||'','—','—',LIVRET_RESPONSABLE_SECTION_FIXE]];
   y = pdfLivretTable(doc, { x: ML, y: y, colWidths:[22,18,28,28,42,20,22],
     header:['Année','Grade','Nom','Prénom','Section','Dépt.','Responsable'], rows: cursusRows, fontSize:8, headerFill: BLEU });
   y += 6;
@@ -6422,7 +6508,7 @@ function genererLivretPDF(jspId) {
   doc.text('A = Acquis / EVA = En voie d\'acquisition / NA = Non acquis', ML, y); y += 8;
   doc.text('Évaluateur 1 : '+(j1.nomEval1||'—')+' | Notifié le : '+(j1.dateEval1?fmtDate(j1.dateEval1):'—'), ML, y); y += 6;
   doc.text('Évaluateur 2 : '+(j1.nomEval2||'—')+' | Notifié le : '+(j1.dateEval2?fmtDate(j1.dateEval2):'—'), ML, y); y += 6;
-  doc.text('Responsable de la section : '+(j1.nomResp||'—')+' | Notifié le : '+(j1.dateResp?fmtDate(j1.dateResp):'—'), ML, y);
+  doc.text('Responsable de la section : '+LIVRET_RESPONSABLE_SECTION_FIXE+' | Notifié le : '+(j1.dateResp?fmtDate(j1.dateResp):'—'), ML, y);
 
   // ── Blocs de compétences INC ──
   Object.keys(LIVRET_BLOCS_INC).forEach(function(blocKey) {
@@ -6482,7 +6568,8 @@ function genererLivretPDF(jspId) {
   [['Tuteur1','Le tuteur 1'],['Tuteur2','Le tuteur 2'],['Responsable','Le responsable de la section'],['ChefCentre','Le chef de centre']].forEach(function(s) {
     if (y > H-20) { doc.addPage(); y = MT; }
     doc.setFont('helvetica','bold'); doc.setFontSize(9);
-    doc.text(s[1]+' : '+(fin['nom'+s[0]]||'—')+' | Notifié le : '+(fin['date'+s[0]]?fmtDate(fin['date'+s[0]]):'—'), ML, y);
+    var fixeVal = s[0]==='Responsable' ? LIVRET_RESPONSABLE_SECTION_FIXE : (s[0]==='ChefCentre' ? LIVRET_CHEF_CENTRE_FIXE : (fin['nom'+s[0]]||'—'));
+    doc.text(s[1]+' : '+fixeVal+' | Notifié le : '+(fin['date'+s[0]]?fmtDate(fin['date'+s[0]]):'—'), ML, y);
     y += 7;
   });
 
@@ -6793,7 +6880,7 @@ function getOrganigrammeDefault() {
       { id: 'tresorier', titre: 'Trésorier', noms: ['Moreau Romane'], parent: 'resp' },
       { id: 'secretaire_adj', titre: 'Secrétaire Adjoint', noms: ['Juarez Adrien'], parent: 'secretaire' },
       { id: 'tresorier_adj', titre: 'Trésorier Adjoint', noms: ['Torrentelle Mathis'], parent: 'tresorier' },
-      { id: 'pole_log', titre: 'Pôle LOG/Habillement', noms: ['Nicolas Granier', 'Andrieu Hugo'], parent: 'tresorier_adj', lienVers: 'resp' },
+      { id: 'pole_log', titre: 'Pôle LOG/Habillement', noms: ['Granier Nicolas', 'Andrieu Hugo'], parent: 'tresorier_adj', lienVers: 'resp' },
       { id: 'pole_manoeuvre', titre: 'Pôle Manœuvre', noms: ['Ponsolle Nicolas', 'Jambaque Christophe'], parent: 'tresorier_adj', lienVers: 'resp' },
       { id: 'pole_sport', titre: 'Pôle Sport', noms: ['Galiana Christian', 'Andrieu Hugo'], parent: 'tresorier_adj', lienVers: 'resp' }
     ]
