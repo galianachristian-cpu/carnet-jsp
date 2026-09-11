@@ -610,6 +610,14 @@ async function loadFromCloud() {
       if (!cloud.questionnairesAssignes) cloud.questionnairesAssignes = [];
       if (!cloud.competitions) cloud.competitions = [];
       if (!cloud.settingsCandidature) cloud.settingsCandidature = { section: 'Cruzy-Quarante', compagnie: '', centreSecours: 'CIS Cruzy-Quarante' };
+      if (!cloud.equipesPedagogiques) cloud.equipesPedagogiques = [];
+      if (!cloud.livretConnaissances) cloud.livretConnaissances = [];
+      if (!cloud.livretComportement) cloud.livretComportement = [];
+      if (!cloud.livretBlocsINC) cloud.livretBlocsINC = [];
+      if (!cloud.livretBlocsEval) cloud.livretBlocsEval = [];
+      if (!cloud.livretJSP1Eval) cloud.livretJSP1Eval = [];
+      if (!cloud.livretAPS) cloud.livretAPS = [];
+      if (!cloud.livretFinal) cloud.livretFinal = [];
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
@@ -645,6 +653,14 @@ function loadData() {
     if (!parsed.questionnairesAssignes) parsed.questionnairesAssignes = [];
     if (!parsed.competitions) parsed.competitions = [];
     if (!parsed.settingsCandidature) parsed.settingsCandidature = { section: 'Cruzy-Quarante', compagnie: '', centreSecours: 'CIS Cruzy-Quarante' };
+    if (!parsed.equipesPedagogiques) parsed.equipesPedagogiques = [];
+    if (!parsed.livretConnaissances) parsed.livretConnaissances = [];
+    if (!parsed.livretComportement) parsed.livretComportement = [];
+    if (!parsed.livretBlocsINC) parsed.livretBlocsINC = [];
+    if (!parsed.livretBlocsEval) parsed.livretBlocsEval = [];
+    if (!parsed.livretJSP1Eval) parsed.livretJSP1Eval = [];
+    if (!parsed.livretAPS) parsed.livretAPS = [];
+    if (!parsed.livretFinal) parsed.livretFinal = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
       parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
@@ -1106,6 +1122,14 @@ function loadData() {
     questionnairesAssignes: [],
     competitions: [],
     settingsCandidature: { section: 'Cruzy-Quarante', compagnie: '', centreSecours: 'CIS Cruzy-Quarante' },
+    equipesPedagogiques: [],
+    livretConnaissances: [],
+    livretComportement: [],
+    livretBlocsINC: [],
+    livretBlocsEval: [],
+    livretJSP1Eval: [],
+    livretAPS: [],
+    livretFinal: [],
     questionsCulture: null,
     absences: [
       {
@@ -1794,6 +1818,7 @@ const MODULES_ACCES = [
   { key:'competitions', label:'Compétitions', icon:'ti-trophy', section:'competitions', groupe:'Suivi JSP' },
   { key:'planning', label:'Planning', icon:'ti-calendar-event', section:'planning', groupe:'Suivi JSP' },
   { key:'bilans', label:'Bilans annuels', icon:'ti-clipboard-list', section:'bilans', groupe:'Suivi JSP' },
+  { key:'livret', label:'Livret JSP officiel', icon:'ti-book-2', section:'livret', groupe:'Suivi JSP' },
   { key:'jsps', label:'JSP (fiches)', icon:'ti-users', section:'jsps', groupe:'Administration' },
   { key:'trombinoscope', label:'Trombinoscope', icon:'ti-photo', section:'trombinoscope', groupe:'Administration' },
   { key:'historique', label:'Historique', icon:'ti-history', section:'historique', groupe:'Administration' },
@@ -1863,6 +1888,7 @@ function showSection(sec) {
     case 'questionnaires-bilan': c.innerHTML = renderQuestionnaires('bilan'); break;
     case 'planning': c.innerHTML = renderPlanning(window._planningMois||null); break;
     case 'bilans': c.innerHTML = renderBilans(window._bilanJspId||null); break;
+    case 'livret': c.innerHTML = renderLivret(window._livretJspId||null, window._livretTab||null); break;
     case 'parent-accueil': c.innerHTML = renderParentAccueil(); break;
     case 'parent-absences': c.innerHTML = renderParentAbsences(); break;
     case 'parent-retards': c.innerHTML = renderParentRetards(); break;
@@ -5608,6 +5634,777 @@ function renderParentBilan() {
 
   html += '</div>';
   return html;
+}
+
+// ══════════════════════════════════════════
+//  LIVRET JSP OFFICIEL (Hérault) — catalogues
+// ══════════════════════════════════════════
+const LIVRET_CONNAISSANCES = {
+  JSP1: [
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Protection"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Alerte et protection des populations"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Malaise"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Obstruction aigue des voies aériennes"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Hémorragie"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Perte de connaissances"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Arrêt cardiaque"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Plaies"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Brûlures"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Traumatismes"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"S'impliquer dans son activité", item:"L'engagement citoyen"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"S'impliquer dans son activité", item:"Valeurs et éthiques des sapeurs-pompiers, la charte du JSP"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"S'impliquer dans son activité", item:"L'information préventive aux comportements qui sauvent"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"S'impliquer dans son activité", item:"Protocole et cérémonie"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"S'impliquer dans son activité", item:"Le réseau associatif, son rôle et ses valeurs"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"La combustion et les modes de propagation"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Les phases de la MGO de lutte contre les incendies"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"La composition et le fonctionnement de l'ARI"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les matériels de lutte contre l'incendie"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"La DECI, les réseaux d'eaux et les réserves incendies"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"La description du lot de sauvetage et de protection contre les chutes"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"L'entretien et le contrôle du lot de sauvetage et de protection contre les chutes"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"La description des échelles à mains"},
+    {domaine:"Module transverse", bloc:"Agir selon les règles relatives à la santé, sécurité, qualité de vie en service", item:"Les objectifs de l'activité physique"},
+    {domaine:"Module transverse", bloc:"Agir selon les règles relatives à la santé, sécurité, qualité de vie en service", item:"La connaissance théorique des EPI"},
+    {domaine:"Module transverse", bloc:"S'adapter à son environnement", item:"L'organisation nationale de la sécurité civile"},
+    {domaine:"Module transverse", bloc:"S'adapter à son environnement", item:"Les grades des sapeurs-pompiers civils et militaires"}
+  ],
+  JSP2: [
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les engins d'incendie et de secours. Contrôle et reconditionnement"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les règles et précautions d'emploi des tuyaux"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les établissements de lances de plein pied"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les moyens de production de mousse"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"La toxicité des fumées d'incendies"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Les contraintes physiologiques de l'ARI"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"L'équipement en binôme (RAPACE)"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Le comportement et la réaction au feu des matériaux"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"L'évolution au moyen du LSPCC"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"Les règles d'emploi et de sécurité de l'échelle à coulisse"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission de protection des personnes, des biens et de l'environnement", item:"Les matériels d'épuisement"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission de protection des personnes, des biens et de l'environnement", item:"Les matériels électriques portatifs"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"S'impliquer dans son activité", item:"Les différents statuts des sapeurs-pompiers"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Les risques d'incendie"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Les risques domestiques"}
+  ],
+  JSP3: [
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Les risques liés à la toxicité des fumées d'incendies"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Les moyens facilitant l'action des secours"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Explosimétrie et la coupure des fluides"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"L'appareil respiratoire isolant"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Notions élémentaires d'hydraulique"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"La mise en oeuvre des dispositifs d'alimentation"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les manœuvres d'alimentation en binôme"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les différents binômes"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les agents extincteurs et les procédés d'extinction"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Les phases de développement du feu"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"Les sauvetages au moyen du LSPCC"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"Les règles d'emploi et de sécurité de l'échelle à crochet"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission de protection des personnes, des biens et de l'environnement", item:"Le matériel d'épuisement hydraulique et thermique"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission de protection des personnes, des biens et de l'environnement", item:"Typologie des ascenseurs"},
+    {domaine:"Module transverse", bloc:"Agir selon les règles relatives à la santé, sécurité, qualité de vie en service", item:"Organisation et missions du SDIS 34"},
+    {domaine:"Module transverse", bloc:"Agir selon les règles relatives à la santé, sécurité, qualité de vie en service", item:"Les moyens radio"},
+    {domaine:"Module transverse", bloc:"Agir selon les règles relatives à la santé, sécurité, qualité de vie en service", item:"L'hygiène de vie"},
+    {domaine:"Module transverse", bloc:"Agir selon les règles relatives à la santé, sécurité, qualité de vie en service", item:"Préserver son potentiel psychologique"},
+    {domaine:"Module ECASC Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Les risques majeurs"}
+  ],
+  JSP4: [
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Les différents types de risques et actions adaptées"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Les premières mesures conservatoires et techniques d'autoprotection"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Les fumées d'incendie"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Préservation des traces et indices"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Rôle de l'équipier au sein du binôme de reconnaissance"},
+    {domaine:"La lutte contre les incendies", bloc:"Sécuriser la zone d'intervention", item:"Notions de prévention appliquées à l'opération"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Phénomènes thermiques"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Techniques d'intervention"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Etablissements et établissements spécifiques"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Établissement sur un moyen élévateur aérien"},
+    {domaine:"La lutte contre les incendies", bloc:"Eteindre un incendie", item:"Sauvetage, mise en sécurité, confinement, évacuation"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"Evolution sur une échelle aérienne"},
+    {domaine:"La lutte contre les incendies", bloc:"Réaliser un sauvetage ou une mise en sécurité", item:"Sauvetage du sauveteur"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission de protection des personnes, des biens et de l'environnement", item:"Matériel de calage temporaire et de protection des biens"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission de protection des personnes, des biens et de l'environnement", item:"Matériel de forcement et de dégagement"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission de protection des personnes, des biens et de l'environnement", item:"Procédure d'intervention sur ascenseur"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission impliquant des animaux", item:"Les différentes espèces d'animaux"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission impliquant des animaux", item:"Les EPI et le matériel de capture"},
+    {domaine:"Protection des personnes, des biens et de l'environnement", bloc:"Intervenir pour une mission impliquant des animaux", item:"Les hyménoptères"},
+    {domaine:"Compétences Transversales", bloc:"Diffuser la culture du service public", item:"Les principaux risques locaux"},
+    {domaine:"Module transverse", bloc:"Agir selon les règles relatives à la santé, sécurité, qualité de vie en service", item:"Prévention des risques routiers"},
+    {domaine:"Module transverse", bloc:"Agir selon les règles relatives à la santé, sécurité, qualité de vie en service", item:"Les indicateurs de la condition physique"},
+    {domaine:"Module transverse", bloc:"S'adapter à son environnement", item:"La prise de garde"}
+  ]
+};
+
+const LIVRET_BLOCS_INC = {
+  arico: {label:"L'ARICO", items:[
+    "Le port de la tenue adaptée","La connaissance du matériel","Les phases d'habillage et de contrôle",
+    "Les rôles et missions des binômes et du contrôleur","Les mesures spécifiques avant l'engagement",
+    "Les différentes techniques d'engagement","Le retour d'engagement","Les missions de recherche",
+    "L'utilisation de la ligne de vie","L'aisance en progression simple","Le respect du travail en binôme",
+    "Les règles de la reconnaissance","Le travail en toute sécurité sous ARI","L'aisance sur une situation opérationnelle",
+    "Le respect des consignes du chef d'agrès"
+  ]},
+  lspcc: {label:"Le LSPCC", items:[
+    "Le port de la tenue adaptée","La connaissance du matériel","Les règles de contrôle et d'entretien du LSPCC",
+    "Les principes fondamentaux de mise en oeuvre","Le respect du travail en binôme","Le travail en toute sécurité",
+    "Les techniques d'évolution au moyen du LSPCC","L'aisance dans la manœuvre d'évolution","Le sauvetage par l'extérieur",
+    "Reconnaissance d'appartement, ouverture de porte","Le sauvetage en excavation","L'aisance dans les manœuvres de sauvetages",
+    "Reconditionnement après l'engagement","L'aisance sur une situation opérationnelle","Le respect des consignes du chef d'agrès"
+  ]},
+  echelles: {label:"Les échelles à main", items:[
+    "Le port de la tenue adaptée","La description de l'échelle à coulisse","Les manœuvres de base de l'échelle à coulisses",
+    "Le respect du travail en binôme (échelle à coulisse)","Le travail en toute sécurité (échelle à coulisse)",
+    "La description de l'échelle à crochet","Le respect du travail en binôme (échelle à crochet)","Le travail en toute sécurité (échelle à crochet)",
+    "L'aisance sur une situation opérationnelle","Le respect des consignes du chef d'agrès"
+  ]},
+  lances: {label:"Les établissements de lances", items:[
+    "Le port de la tenue adaptée","La connaissance de base du binôme","Le respect du travail en binôme",
+    "Les règles d'établissement des tuyaux","Les précautions pour les établissements","La manœuvre ETB1","La manœuvre ETB2",
+    "La manœuvre ETB3","La mise en œuvre des dispositifs d'alimentation","La manœuvre ETB4","La manœuvre ETB5","La manœuvre ETB6",
+    "L'aisance sur une situation opérationnelle","Le travail en toute sécurité sous ARI","Le respect des consignes du chef d'agrès"
+  ]},
+  protection: {label:"La protection des personnes, des biens et de l'environnement", items:[
+    "Le port de la tenue adaptée","Les matériels d'épuisement électrique","Les matériels d'assèchement manuel","Les matériels d'éclairage",
+    "Les matériels d'épuisement thermique","Les matériels d'épuisement hydraulique","Les matériels de forcement",
+    "Les matériels de protection des biens","Les matériels de tronçonnage et de découpe","Les matériels de capture et neutralisation",
+    "Le respect du travail en binôme","L'aisance sur une situation opérationnelle","Le respect des consignes du chef d'agrès"
+  ]}
+};
+
+const LIVRET_JSP1_EVAL_ITEMS = [
+  "Les EPI du sapeur-pompier","Les tenues des sapeurs-pompiers","La composition et la description de l'ARICO",
+  "La composition et la description du LSPCC","L'entretien et le contrôle du LSPCC","La description de l'échelle à coulisses",
+  "La description de l'échelle à crochets","La description des matériels de lutte contre l'incendie","Les principes de la DECI",
+  "Les points d'eau d'incendie","La MGO de lutte contre les incendies","Les valeurs et l'éthique des JSP",
+  "L'organisation et le rôle du réseau associatif","L'engagement citoyen","Les protocoles et cérémonies",
+  "Les comportements qui sauvent","Les grades"
+];
+
+const LIVRET_APS_EPREUVES = [
+  "Épreuve aquatique de sauvegarde individuelle","Epreuve spécifique du PSSP","Epreuve d'endurance cardio-vasculaire",
+  "Epreuve d'évaluation de la force des membres supérieurs"
+];
+
+const LIVRET_COMPORTEMENT_CHAMPS = [
+  ['disciplineRespect','Discipline et respect'],
+  ['motivationImplication','Motivation et implication'],
+  ['qualitesRelationnelles','Qualités relationnelles'],
+  ['tenueVestimentaire','Tenue vestimentaire'],
+  ['autres','Autres']
+];
+
+function cycleKey(promotion) { return (promotion||'').replace(/\s+/g,''); }
+
+// ── Écran principal ──
+function renderLivret(jspId, tab) {
+  jspId = jspId || window._livretJspId || (DB.jsps[0] ? DB.jsps[0].id : null);
+  tab = tab || window._livretTab || 'equipe';
+  window._livretJspId = jspId; window._livretTab = tab;
+  const j = DB.jsps.find(x=>x.id==jspId);
+  const saison = DB.saison;
+
+  let html = '<div class="section-header"><h2><i class="ti ti-book-2" aria-hidden="true"></i> Livret JSP officiel</h2>'
+    + (j ? '<button class="btn-add" style="background:#b91c1c" onclick="genererLivretPDF('+j.id+')"><i class="ti ti-file-type-pdf"></i> Générer le PDF du livret</button>' : '')
+    + '</div>';
+  html += '<p style="font-size:12px;color:var(--gris-txt);margin:-10px 0 14px"><i class="ti ti-info-circle"></i> Reprend les rubriques du livret individuel de suivi du cursus JSP (Association des JSP du corps départemental de l\'Hérault) pour un suivi au plus près du document officiel.</p>';
+
+  const jspOpts = DB.jsps.map(x => '<option value="'+x.id+'" '+(x.id==jspId?'selected':'')+'>'+x.prenom+' '+x.nom+' ('+x.promotion+')</option>').join('');
+  html += '<div class="jsp-selector"><label><i class="ti ti-user" aria-hidden="true"></i> JSP :</label>'
+    + '<select onchange="renderLivretGo(parseInt(this.value), window._livretTab)">'+jspOpts+'</select></div>';
+
+  const tabs = [['equipe','Équipe pédagogique'],['competences','Compétences par cycle'],['comportement','Comportement'],
+    ['blocsinc','Blocs de compétences INC'],['jsp1eval','Évaluation JSP1'],['aps','APS'],['final','Commentaires & signatures']];
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0">' + tabs.map(function(t) {
+    return '<button onclick="renderLivretGo('+(jspId||0)+',\''+t[0]+'\')" style="padding:7px 14px;border-radius:20px;border:1.5px solid '+(tab===t[0]?'var(--bleu)':'var(--gris-bord)')+';background:'+(tab===t[0]?'var(--bleu)':'white')+';color:'+(tab===t[0]?'white':'#374151')+';font-size:12px;font-weight:600;cursor:pointer">'+t[1]+'</button>';
+  }).join('') + '</div>';
+
+  if (tab === 'equipe') { html += renderLivretEquipe(saison); return html; }
+  if (!j) { html += '<p style="color:var(--gris-txt)">Ajoute d\'abord un JSP dans "JSP (fiches)".</p>'; return html; }
+
+  switch(tab) {
+    case 'competences': html += renderLivretCompetences(j); break;
+    case 'comportement': html += renderLivretComportementTab(j); break;
+    case 'blocsinc': html += renderLivretBlocsINC(j); break;
+    case 'jsp1eval': html += renderLivretJSP1Eval(j); break;
+    case 'aps': html += renderLivretAPS(j); break;
+    case 'final': html += renderLivretFinal(j, saison); break;
+  }
+  return html;
+}
+
+function renderLivretGo(jspId, tab) {
+  window._livretJspId = jspId; window._livretTab = tab;
+  showSection('livret');
+}
+
+// ── Équipe pédagogique ──
+function getEquipePedagogique(saison, cycle) {
+  return (DB.equipesPedagogiques||[]).find(function(e){ return e.saison===saison && e.cycle===cycle; });
+}
+function renderLivretEquipe(saison) {
+  var html = '';
+  ['JSP1','JSP2','JSP3','JSP4'].forEach(function(cycle) {
+    var eq = getEquipePedagogique(saison, cycle) || {membres:[]};
+    html += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;margin-bottom:16px">';
+    html += '<div style="font-weight:700;margin-bottom:10px">Cycle de formation '+cycle.replace('JSP','')+' = '+cycle+' <span style="font-weight:400;color:var(--gris-txt);font-size:12px">(saison '+saison+')</span></div>';
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:600px"><thead><tr>'
+      +'<th style="text-align:left;padding:4px">Grade</th><th style="text-align:left;padding:4px">Nom</th><th style="text-align:left;padding:4px">Prénom</th><th style="text-align:left;padding:4px">Centre</th></tr></thead><tbody>';
+    for (var i=0;i<6;i++) {
+      var m = eq.membres[i] || {};
+      html += '<tr>'
+        +'<td><input id="eq_'+cycle+'_'+i+'_grade" value="'+escAttr(m.grade||'')+'" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
+        +'<td><input id="eq_'+cycle+'_'+i+'_nom" value="'+escAttr(m.nom||'')+'" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
+        +'<td><input id="eq_'+cycle+'_'+i+'_prenom" value="'+escAttr(m.prenom||'')+'" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
+        +'<td><input id="eq_'+cycle+'_'+i+'_centre" value="'+escAttr(m.centre||'')+'" style="width:100%;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>'
+        +'</tr>';
+    }
+    html += '</tbody></table></div>';
+    html += '<button class="btn-add" style="margin-top:10px" onclick="saveEquipePedagogique(\''+cycle+'\')"><i class="ti ti-device-floppy"></i> Enregistrer</button>';
+    html += '</div>';
+  });
+  return html;
+}
+function saveEquipePedagogique(cycle) {
+  var saison = DB.saison;
+  if (!DB.equipesPedagogiques) DB.equipesPedagogiques = [];
+  var eq = getEquipePedagogique(saison, cycle);
+  if (!eq) { eq = { id: nextId(DB.equipesPedagogiques), saison: saison, cycle: cycle, membres: [] }; DB.equipesPedagogiques.push(eq); }
+  var membres = [];
+  for (var i=0;i<6;i++) {
+    var grade = (document.getElementById('eq_'+cycle+'_'+i+'_grade')||{}).value || '';
+    var nom = (document.getElementById('eq_'+cycle+'_'+i+'_nom')||{}).value || '';
+    var prenom = (document.getElementById('eq_'+cycle+'_'+i+'_prenom')||{}).value || '';
+    var centre = (document.getElementById('eq_'+cycle+'_'+i+'_centre')||{}).value || '';
+    if (grade||nom||prenom||centre) membres.push({grade:grade,nom:nom,prenom:prenom,centre:centre});
+  }
+  eq.membres = membres;
+  saveData();
+  alert('Équipe pédagogique '+cycle+' enregistrée.');
+}
+function findLatestEquipe(cycle) {
+  var arr = (DB.equipesPedagogiques||[]).filter(function(e){ return e.cycle===cycle; });
+  return arr.length ? arr[arr.length-1] : null;
+}
+
+// ── Compétences par cycle ──
+function getLivretConn(jspId, cycle, idx) {
+  return (DB.livretConnaissances||[]).find(function(c){ return c.jspId==jspId && c.cycle===cycle && c.idx===idx; });
+}
+function renderLivretCompetences(j) {
+  var cycle = window._livretCycle;
+  if (!LIVRET_CONNAISSANCES[cycle]) cycle = LIVRET_CONNAISSANCES[cycleKey(j.promotion)] ? cycleKey(j.promotion) : 'JSP1';
+  var html = '<div style="display:flex;gap:6px;margin-bottom:14px">' + ['JSP1','JSP2','JSP3','JSP4'].map(function(c) {
+    return '<button onclick="window._livretCycle=\''+c+'\';showSection(\'livret\')" style="padding:5px 12px;border-radius:6px;border:1.5px solid '+(cycle===c?'var(--orange)':'var(--gris-bord)')+';background:'+(cycle===c?'var(--orange)':'white')+';color:'+(cycle===c?'white':'#374151')+';font-size:12px;font-weight:700;cursor:pointer">'+c+'</button>';
+  }).join('') + '</div>';
+
+  var items = LIVRET_CONNAISSANCES[cycle] || [];
+  html += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">';
+  html += '<div style="font-weight:700;margin-bottom:6px">Cycle de formation '+cycle.replace('JSP','')+' = '+cycle+'</div>';
+  var domaineActuel = null, blocActuel = null;
+  items.forEach(function(it, idx) {
+    if (it.domaine !== domaineActuel) {
+      html += '<div style="background:var(--bleu);color:white;padding:7px 12px;border-radius:8px;font-size:13px;font-weight:700;margin:14px 0 6px">'+it.domaine+'</div>';
+      domaineActuel = it.domaine; blocActuel = null;
+    }
+    if (it.bloc !== blocActuel) {
+      html += '<div style="font-size:12px;font-weight:700;color:#374151;margin:8px 0 4px">'+it.bloc+'</div>';
+      blocActuel = it.bloc;
+    }
+    var rec = getLivretConn(j.id, cycle, idx) || {};
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--gris-bord);flex-wrap:wrap">';
+    html += '<div style="flex:1;min-width:220px;font-size:13px">'+it.item+'</div>';
+    html += '<input placeholder="Intervenant" id="lc_'+idx+'_int" value="'+escAttr(rec.intervenant||'')+'" style="width:150px;padding:5px;border:1px solid var(--gris-bord);border-radius:5px;font-size:12px">';
+    html += '<input type="date" id="lc_'+idx+'_date" value="'+(rec.date||'')+'" style="padding:5px;border:1px solid var(--gris-bord);border-radius:5px;font-size:12px">';
+    html += '</div>';
+  });
+  html += '<div style="text-align:center;margin-top:14px"><button class="btn-add" onclick="saveLivretCompetences('+j.id+',\''+cycle+'\')"><i class="ti ti-device-floppy"></i> Enregistrer</button></div>';
+  html += '</div>';
+  return html;
+}
+function saveLivretCompetences(jspId, cycle) {
+  var items = LIVRET_CONNAISSANCES[cycle] || [];
+  if (!DB.livretConnaissances) DB.livretConnaissances = [];
+  items.forEach(function(it, idx) {
+    var intervenant = (document.getElementById('lc_'+idx+'_int')||{}).value || '';
+    var date = (document.getElementById('lc_'+idx+'_date')||{}).value || '';
+    var rec = getLivretConn(jspId, cycle, idx);
+    if (!rec) {
+      if (!intervenant && !date) return;
+      rec = { id: nextId(DB.livretConnaissances), jspId: jspId, cycle: cycle, idx: idx };
+      DB.livretConnaissances.push(rec);
+    }
+    rec.intervenant = intervenant; rec.date = date;
+  });
+  saveData();
+  alert('Grille de compétences '+cycle+' enregistrée.');
+}
+
+// ── Comportement officiel ──
+function getLivretComportement(jspId, cycle) {
+  return (DB.livretComportement||[]).find(function(c){ return c.jspId==jspId && c.cycle===cycle; });
+}
+function renderLivretComportementTab(j) {
+  var cycle = window._livretCycle || cycleKey(j.promotion) || 'JSP1';
+  if (!LIVRET_CONNAISSANCES[cycle]) cycle = 'JSP1';
+  var html = '<div style="display:flex;gap:6px;margin-bottom:14px">' + ['JSP1','JSP2','JSP3','JSP4'].map(function(c) {
+    return '<button onclick="window._livretCycle=\''+c+'\';showSection(\'livret\')" style="padding:5px 12px;border-radius:6px;border:1.5px solid '+(cycle===c?'var(--orange)':'var(--gris-bord)')+';background:'+(cycle===c?'var(--orange)':'white')+';color:'+(cycle===c?'white':'#374151')+';font-size:12px;font-weight:700;cursor:pointer">'+c+'</button>';
+  }).join('') + '</div>';
+
+  var rec = getLivretComportement(j.id, cycle) || {};
+  html += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px">';
+  html += '<div style="font-weight:700;margin-bottom:12px">Eléments relatifs au comportement du jeune sapeur-pompier — Cycle de formation '+cycle+'</div>';
+  LIVRET_COMPORTEMENT_CHAMPS.forEach(function(f) {
+    html += '<div style="margin-bottom:14px"><label style="font-size:13px;font-weight:600">'+f[1]+' :</label>';
+    html += '<textarea id="lcp_'+f[0]+'" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--gris-bord);border-radius:8px;font-family:Arial,sans-serif;font-size:13px;min-height:50px">'+(rec[f[0]]||'')+'</textarea></div>';
+  });
+  html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">';
+  [['dateRepLegal1','Notifié le — Représentant légal 1'],['dateRepLegal2','Notifié le — Représentant légal 2'],['dateResponsable','Notifié le — Responsable de section']].forEach(function(f) {
+    html += '<div><label style="font-size:12px;color:#374151">'+f[1]+'</label><br><input type="date" id="lcp_'+f[0]+'" value="'+(rec[f[0]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px"></div>';
+  });
+  html += '</div>';
+  html += '<div style="text-align:center;margin-top:16px"><button class="btn-add" onclick="saveLivretComportement('+j.id+',\''+cycle+'\')"><i class="ti ti-device-floppy"></i> Enregistrer</button></div>';
+  html += '</div>';
+  return html;
+}
+function saveLivretComportement(jspId, cycle) {
+  if (!DB.livretComportement) DB.livretComportement = [];
+  var rec = getLivretComportement(jspId, cycle);
+  if (!rec) { rec = { id: nextId(DB.livretComportement), jspId: jspId, cycle: cycle }; DB.livretComportement.push(rec); }
+  LIVRET_COMPORTEMENT_CHAMPS.forEach(function(f) { rec[f[0]] = (document.getElementById('lcp_'+f[0])||{}).value || ''; });
+  ['dateRepLegal1','dateRepLegal2','dateResponsable'].forEach(function(k) { rec[k] = (document.getElementById('lcp_'+k)||{}).value || ''; });
+  saveData();
+  alert('Comportement '+cycle+' enregistré.');
+}
+
+// ── Blocs de compétences INC transversaux ──
+function getBlocINCVal(jspId, bloc, cycle, idx) {
+  var r = (DB.livretBlocsINC||[]).find(function(x){ return x.jspId==jspId && x.bloc===bloc && x.cycle===cycle && x.idx===idx; });
+  return r ? r.valeur : '';
+}
+function setBlocINCVal(jspId, bloc, cycle, idx, val) {
+  if (!DB.livretBlocsINC) DB.livretBlocsINC = [];
+  var r = (DB.livretBlocsINC||[]).find(function(x){ return x.jspId==jspId && x.bloc===bloc && x.cycle===cycle && x.idx===idx; });
+  if (!r) { r = { id: nextId(DB.livretBlocsINC), jspId: jspId, bloc: bloc, cycle: cycle, idx: idx }; DB.livretBlocsINC.push(r); }
+  r.valeur = (r.valeur === val) ? '' : val;
+  saveData();
+  showSection('livret');
+}
+function getBlocEval(jspId, bloc, cycle) {
+  return (DB.livretBlocsEval||[]).find(function(x){ return x.jspId==jspId && x.bloc===bloc && x.cycle===cycle; });
+}
+function saveBlocEval(jspId, bloc, cycle) {
+  if (!DB.livretBlocsEval) DB.livretBlocsEval = [];
+  var r = getBlocEval(jspId, bloc, cycle);
+  var val = (document.getElementById('be_'+bloc+'_'+cycle)||{}).value || '';
+  if (!r) { r = { id: nextId(DB.livretBlocsEval), jspId: jspId, bloc: bloc, cycle: cycle }; DB.livretBlocsEval.push(r); }
+  r.evaluateur = val;
+  saveData();
+}
+function renderLivretBlocsINC(j) {
+  var bloc = window._livretBloc && LIVRET_BLOCS_INC[window._livretBloc] ? window._livretBloc : 'arico';
+  var def = LIVRET_BLOCS_INC[bloc];
+  var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">' + Object.keys(LIVRET_BLOCS_INC).map(function(k) {
+    return '<button onclick="window._livretBloc=\''+k+'\';showSection(\'livret\')" style="padding:6px 12px;border-radius:6px;border:1.5px solid '+(bloc===k?'var(--orange)':'var(--gris-bord)')+';background:'+(bloc===k?'var(--orange)':'white')+';color:'+(bloc===k?'white':'#374151')+';font-size:12px;font-weight:700;cursor:pointer">'+LIVRET_BLOCS_INC[k].label+'</button>';
+  }).join('') + '</div>';
+
+  html += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;overflow-x:auto">';
+  html += '<div style="font-weight:700;margin-bottom:10px">Grille d\'évaluation formative de suivi de l\'acquisition du bloc de compétences INC « '+def.label+' »</div>';
+  html += '<table style="border-collapse:collapse;font-size:12px;min-width:900px"><thead><tr>';
+  html += '<th style="text-align:left;padding:6px;border-bottom:2px solid var(--gris-bord)">Socle des compétences à acquérir</th>';
+  ['JSP2','JSP3','JSP4'].forEach(function(c) {
+    var span = c==='JSP4' ? 2 : 3;
+    html += '<th colspan="'+span+'" style="padding:6px;text-align:center;border-bottom:2px solid var(--gris-bord);border-left:2px solid var(--gris-bord)">'+c+'</th>';
+  });
+  html += '</tr><tr><th></th>';
+  ['JSP2','JSP3','JSP4'].forEach(function(c) {
+    var opts = c==='JSP4' ? ['A','NA'] : ['A','EVA','NA'];
+    opts.forEach(function(o,oi) { html += '<th style="padding:4px 8px;font-size:11px;'+(oi===0?'border-left:2px solid var(--gris-bord)':'')+'">'+o+'</th>'; });
+  });
+  html += '</tr></thead><tbody>';
+  def.items.forEach(function(item, idx) {
+    html += '<tr><td style="padding:5px 6px;border-bottom:.5px solid var(--gris-bord)">'+item+'</td>';
+    ['JSP2','JSP3','JSP4'].forEach(function(c) {
+      var opts = c==='JSP4' ? ['A','NA'] : ['A','EVA','NA'];
+      var val = getBlocINCVal(j.id, bloc, c, idx);
+      opts.forEach(function(o,oi) {
+        html += '<td style="text-align:center;border-bottom:.5px solid var(--gris-bord);'+(oi===0?'border-left:2px solid var(--gris-bord)':'')+'">'
+          +'<input type="checkbox" '+(val===o?'checked':'')+' onclick="setBlocINCVal('+j.id+',\''+bloc+'\',\''+c+'\','+idx+',\''+o+'\')" style="cursor:pointer"></td>';
+      });
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px">';
+  ['JSP2','JSP3','JSP4'].forEach(function(c) {
+    var ev = getBlocEval(j.id, bloc, c) || {};
+    html += '<div><label style="font-size:12px;color:#374151">Évaluateur(s) '+c+'</label><br>'
+      +'<input id="be_'+bloc+'_'+c+'" value="'+escAttr(ev.evaluateur||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:200px" onchange="saveBlocEval('+j.id+',\''+bloc+'\',\''+c+'\')"></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+// ── Grille d'évaluation formative du cycle JSP1 ──
+function getJSP1Eval(jspId) { return (DB.livretJSP1Eval||[]).find(function(x){ return x.jspId==jspId; }); }
+function setJSP1EvalRating(jspId, idx, passIdx, val) {
+  if (!DB.livretJSP1Eval) DB.livretJSP1Eval = [];
+  var r = getJSP1Eval(jspId);
+  if (!r) { r = { id: nextId(DB.livretJSP1Eval), jspId: jspId, ratings: {}, observations: {} }; DB.livretJSP1Eval.push(r); }
+  if (!r.ratings) r.ratings = {};
+  if (!r.ratings[idx]) r.ratings[idx] = ['','',''];
+  r.ratings[idx][passIdx] = (r.ratings[idx][passIdx]===val) ? '' : val;
+  saveData();
+  showSection('livret');
+}
+function saveJSP1EvalMeta(jspId) {
+  if (!DB.livretJSP1Eval) DB.livretJSP1Eval = [];
+  var r = getJSP1Eval(jspId);
+  if (!r) { r = { id: nextId(DB.livretJSP1Eval), jspId: jspId, ratings: {}, observations: {} }; DB.livretJSP1Eval.push(r); }
+  LIVRET_JSP1_EVAL_ITEMS.forEach(function(it, idx) {
+    var el = document.getElementById('j1obs_'+idx);
+    if (el) { if (!r.observations) r.observations = {}; r.observations[idx] = el.value; }
+  });
+  ['dateEval1','nomEval1','dateEval2','nomEval2','dateResp','nomResp'].forEach(function(k) {
+    var el = document.getElementById('j1_'+k);
+    if (el) r[k] = el.value;
+  });
+  saveData();
+  alert('Grille d\'évaluation JSP1 enregistrée.');
+}
+function renderLivretJSP1Eval(j) {
+  var rec = getJSP1Eval(j.id) || {ratings:{},observations:{}};
+  var html = '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;overflow-x:auto">';
+  html += '<div style="font-weight:700;margin-bottom:10px">Grille d\'évaluation formative du cycle de formation JSP1</div>';
+  html += '<table style="border-collapse:collapse;font-size:12px;min-width:900px"><thead><tr>'
+    +'<th style="text-align:left;padding:6px">Compétences à acquérir</th>'
+    +'<th colspan="3" style="padding:4px">1<sup>re</sup> éval.</th><th colspan="3" style="padding:4px">2<sup>e</sup> éval.</th><th colspan="3" style="padding:4px">3<sup>e</sup> éval.</th>'
+    +'<th style="padding:4px">Observations</th></tr><tr><th></th>'
+    +'<th>A</th><th>EVA</th><th>NA</th><th>A</th><th>EVA</th><th>NA</th><th>A</th><th>EVA</th><th>NA</th><th></th></tr></thead><tbody>';
+  LIVRET_JSP1_EVAL_ITEMS.forEach(function(item, idx) {
+    var ratings = (rec.ratings && rec.ratings[idx]) || ['','',''];
+    html += '<tr><td style="padding:5px 6px;border-bottom:.5px solid var(--gris-bord)">'+item+'</td>';
+    for (var p=0;p<3;p++) {
+      ['A','EVA','NA'].forEach(function(o) {
+        html += '<td style="text-align:center;border-bottom:.5px solid var(--gris-bord)"><input type="checkbox" '+(ratings[p]===o?'checked':'')+' onclick="setJSP1EvalRating('+j.id+','+idx+','+p+',\''+o+'\')"></td>';
+      });
+    }
+    html += '<td style="border-bottom:.5px solid var(--gris-bord)"><input id="j1obs_'+idx+'" value="'+escAttr((rec.observations&&rec.observations[idx])||'')+'" style="width:140px;padding:4px;border:1px solid var(--gris-bord);border-radius:4px;font-size:11px"></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px">';
+  var signs = [['dateEval1','nomEval1','Evaluateur 1'],['dateEval2','nomEval2','Evaluateur 2'],['dateResp','nomResp','Le responsable de la section']];
+  signs.forEach(function(s) {
+    html += '<div><label style="font-size:12px;font-weight:600">Notifié le — '+s[2]+'</label><br>'
+      +'<input type="date" id="j1_'+s[0]+'" value="'+(rec[s[0]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px"> '
+      +'<input placeholder="Nom" id="j1_'+s[1]+'" value="'+escAttr(rec[s[1]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:130px"></div>';
+  });
+  html += '</div>';
+  html += '<div style="text-align:center;margin-top:16px"><button class="btn-add" onclick="saveJSP1EvalMeta('+j.id+')"><i class="ti ti-device-floppy"></i> Enregistrer observations et signatures</button></div>';
+  html += '</div>';
+  return html;
+}
+
+// ── Grille APS ──
+function getAPS(jspId, cycle) { return (DB.livretAPS||[]).find(function(x){ return x.jspId==jspId && x.cycle===cycle; }); }
+function setAPSVal(jspId, cycle, evalKey, epreuveIdx, val) {
+  if (!DB.livretAPS) DB.livretAPS = [];
+  var r = getAPS(jspId, cycle);
+  if (!r) { r = { id: nextId(DB.livretAPS), jspId: jspId, cycle: cycle, eval1: {}, eval2: {} }; DB.livretAPS.push(r); }
+  if (!r[evalKey]) r[evalKey] = {};
+  r[evalKey][epreuveIdx] = (r[evalKey][epreuveIdx]===val) ? '' : val;
+  saveData();
+  showSection('livret');
+}
+function saveAPSEvaluateur(jspId, cycle) {
+  if (!DB.livretAPS) DB.livretAPS = [];
+  var r = getAPS(jspId, cycle);
+  if (!r) { r = { id: nextId(DB.livretAPS), jspId: jspId, cycle: cycle, eval1: {}, eval2: {} }; DB.livretAPS.push(r); }
+  r.evaluateur = (document.getElementById('aps_ev_'+cycle)||{}).value || '';
+  saveData();
+}
+function renderLivretAPS(j) {
+  var cycle = window._livretCycle;
+  if (['JSP2','JSP3','JSP4'].indexOf(cycle) === -1) {
+    cycle = ['JSP2','JSP3','JSP4'].indexOf(cycleKey(j.promotion)) !== -1 ? cycleKey(j.promotion) : 'JSP2';
+  }
+  var html = '<div style="display:flex;gap:6px;margin-bottom:14px">' + ['JSP2','JSP3','JSP4'].map(function(c) {
+    return '<button onclick="window._livretCycle=\''+c+'\';showSection(\'livret\')" style="padding:5px 12px;border-radius:6px;border:1.5px solid '+(cycle===c?'var(--orange)':'var(--gris-bord)')+';background:'+(cycle===c?'var(--orange)':'white')+';color:'+(cycle===c?'white':'#374151')+';font-size:12px;font-weight:700;cursor:pointer">'+c+'</button>';
+  }).join('') + '</div>';
+  var rec = getAPS(j.id, cycle) || {eval1:{},eval2:{}};
+  html += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;overflow-x:auto">';
+  html += '<div style="font-weight:700;margin-bottom:10px">Grille d\'évaluation du module APS — '+cycle+'</div>';
+  ['eval1','eval2'].forEach(function(ek, eidx) {
+    html += '<div style="font-size:12px;font-weight:700;margin:10px 0 4px;color:#374151">'+(eidx===0?'1ère':'2ème')+' évaluation</div>';
+    html += '<table style="border-collapse:collapse;font-size:12px;min-width:400px"><tbody>';
+    LIVRET_APS_EPREUVES.forEach(function(ep, idx) {
+      var val = (rec[ek]||{})[idx] || '';
+      html += '<tr><td style="padding:5px 6px;border-bottom:.5px solid var(--gris-bord)">'+ep+'</td>';
+      ['A','B'].forEach(function(o) {
+        html += '<td style="text-align:center;border-bottom:.5px solid var(--gris-bord);padding:0 10px"><label style="cursor:pointer"><input type="checkbox" '+(val===o?'checked':'')+' onclick="setAPSVal('+j.id+',\''+cycle+'\',\''+ek+'\','+idx+',\''+o+'\')"> '+o+'</label></td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+  });
+  html += '<div style="margin-top:14px"><label style="font-size:12px;color:#374151">Nom et signature des évaluateurs</label><br>'
+    +'<input id="aps_ev_'+cycle+'" value="'+escAttr(rec.evaluateur||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:250px" onchange="saveAPSEvaluateur('+j.id+',\''+cycle+'\')"></div>';
+  html += '</div>';
+  return html;
+}
+
+// ── Commentaires & signatures finales ──
+function getLivretFinal(jspId, saison) { return (DB.livretFinal||[]).find(function(x){ return x.jspId==jspId && x.saison===saison; }); }
+function saveLivretFinal(jspId, saison) {
+  if (!DB.livretFinal) DB.livretFinal = [];
+  var r = getLivretFinal(jspId, saison);
+  if (!r) { r = { id: nextId(DB.livretFinal), jspId: jspId, saison: saison }; DB.livretFinal.push(r); }
+  r.commentaires = (document.getElementById('lf_comment')||{}).value || '';
+  ['dateTuteur1','nomTuteur1','dateTuteur2','nomTuteur2','dateResponsable','nomResponsable','dateChefCentre','nomChefCentre'].forEach(function(k) {
+    var el = document.getElementById('lf_'+k);
+    if (el) r[k] = el.value;
+  });
+  saveData();
+  alert('Commentaires et signatures enregistrés.');
+}
+function renderLivretFinal(j, saison) {
+  var rec = getLivretFinal(j.id, saison) || {};
+  var html = '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px">';
+  html += '<div style="font-weight:700;margin-bottom:10px">Commentaires — Saison '+saison+'</div>';
+  html += '<textarea id="lf_comment" style="width:100%;min-height:120px;padding:10px;border:1px solid var(--gris-bord);border-radius:8px;font-family:Arial,sans-serif;font-size:13px">'+(rec.commentaires||'')+'</textarea>';
+  html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px">';
+  [['Tuteur1','Le tuteur 1'],['Tuteur2','Le tuteur 2'],['Responsable','Le responsable de la section'],['ChefCentre','Le chef de centre']].forEach(function(s) {
+    html += '<div><label style="font-size:12px;font-weight:600">Notifié le — '+s[1]+'</label><br>'
+      +'<input type="date" id="lf_date'+s[0]+'" value="'+(rec['date'+s[0]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px"> '
+      +'<input placeholder="Nom" id="lf_nom'+s[0]+'" value="'+escAttr(rec['nom'+s[0]]||'')+'" style="padding:6px;border:1px solid var(--gris-bord);border-radius:6px;width:130px"></div>';
+  });
+  html += '</div>';
+  html += '<div style="text-align:center;margin-top:16px"><button class="btn-add" onclick="saveLivretFinal('+j.id+',\''+saison+'\')"><i class="ti ti-device-floppy"></i> Enregistrer</button></div>';
+  html += '</div>';
+  return html;
+}
+
+// ══════════════════════════════════════════
+//  LIVRET JSP — EXPORT PDF
+// ══════════════════════════════════════════
+function pdfLivretTable(doc, opts) {
+  var PAGE_H = 297, MT = 15, MB = 15;
+  var y = opts.y, x0 = opts.x, fs = opts.fontSize||8;
+  doc.setFontSize(fs);
+  function lineH() { return fs*0.42+1; }
+  function cellLines(text, w) { return doc.splitTextToSize(String(text==null?'':text), Math.max(w-4,5)); }
+  function rowHeight(cells) {
+    var maxLines = 1;
+    cells.forEach(function(c,i){ var lines = cellLines(c, opts.colWidths[i]); maxLines = Math.max(maxLines, lines.length); });
+    return Math.max(opts.minRowH||6, maxLines*lineH()+3);
+  }
+  function drawRow(cells, isHeader) {
+    var rh = rowHeight(cells);
+    if (y + rh > PAGE_H - MB) {
+      doc.addPage(); y = MT;
+      if (opts.header && !isHeader) drawRow(opts.header, true);
+    }
+    var x = x0;
+    cells.forEach(function(c,i) {
+      var w = opts.colWidths[i];
+      if (isHeader) {
+        doc.setFillColor.apply(doc, opts.headerFill||[26,60,110]);
+        doc.rect(x,y,w,rh,'F');
+        doc.setTextColor.apply(doc, opts.headerTextColor||[255,255,255]);
+        doc.setFont('helvetica','bold');
+      } else {
+        doc.setDrawColor(200,200,200);
+        doc.rect(x,y,w,rh);
+        doc.setTextColor(30,30,30);
+        doc.setFont('helvetica','normal');
+      }
+      var lines = cellLines(c, w);
+      doc.text(lines, x+2, y+lineH());
+      x += w;
+    });
+    y += rh;
+  }
+  if (opts.header) drawRow(opts.header, true);
+  (opts.rows||[]).forEach(function(r) { drawRow(r, false); });
+  return y;
+}
+
+function genererLivretPDF(jspId) {
+  var j = DB.jsps.find(function(x){ return x.id == jspId; });
+  if (!j) return;
+  var { jsPDF } = window.jspdf;
+  var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var W = 210, H = 297, ML = 15, MR = 15, MT = 15;
+  var BLEU = [26,60,110], VERT=[22,101,52], ORANGE=[180,83,9], GRIS=[107,114,128];
+  var y = MT;
+  var cs = DB.settingsCandidature || {};
+
+  function pageHeader(titre, coul) {
+    doc.setFillColor.apply(doc, coul||BLEU);
+    doc.rect(0,0,W,20,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text(titre, W/2, 12, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(9);
+    doc.text('Livret individuel de suivi du cursus JSP — '+j.prenom+' '+j.nom, W/2, 17, {align:'center'});
+    y = 26;
+  }
+
+  // ── Page de garde / renseignements administratifs ──
+  pageHeader('LIVRET INDIVIDUEL DE SUIVI DU CURSUS JSP');
+  doc.setTextColor(30,30,30);
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('Renseignements administratifs', ML, y); y += 8;
+  var c1 = j.contact1||{}, c2 = j.contact2||{};
+  var rowsAdmin = [
+    ['Nom', j.nom||'', 'Prénom', j.prenom||''],
+    ['Date de naissance', fmtDate ? fmtDate(j.dateNaissance) : (j.dateNaissance||''), 'Lieu de naissance', j.lieuNaissance||''],
+    ['Section', cs.section||'', 'Promotion', j.promotion||''],
+  ];
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  rowsAdmin.forEach(function(r) {
+    doc.setFont('helvetica','bold'); doc.text(r[0]+' :', ML, y); doc.setFont('helvetica','normal'); doc.text(String(r[1]), ML+38, y);
+    doc.setFont('helvetica','bold'); doc.text(r[2]+' :', ML+95, y); doc.setFont('helvetica','normal'); doc.text(String(r[3]), ML+130, y);
+    y += 7;
+  });
+  y += 4;
+  doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  doc.text('Tuteur légal 1', ML, y); doc.text('Tuteur légal 2', ML+95, y); y += 6;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  [['Nom', c1.nom||'', c2.nom||''], ['Prénom', c1.prenom||'', c2.prenom||''], ['Téléphone', c1.tel1||'', c2.tel1||'']].forEach(function(r) {
+    doc.text(r[0]+' : '+r[1], ML, y);
+    doc.text(r[0]+' : '+r[2], ML+95, y);
+    y += 6;
+  });
+  y += 6;
+
+  // ── 4 cycles ──
+  var cycleColors = { JSP1:[26,60,110], JSP2:[202,138,4], JSP3:[180,83,9], JSP4:[22,101,52] };
+  ['JSP1','JSP2','JSP3','JSP4'].forEach(function(cycle) {
+    doc.addPage(); y = MT;
+    pageHeader('Cycle de formation '+cycle.replace('JSP','')+' = '+cycle, cycleColors[cycle]);
+
+    // Équipe pédagogique
+    var eq = findLatestEquipe(cycle);
+    doc.setTextColor(30,30,30); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text('Équipe pédagogique', ML, y); y += 5;
+    var eqRows = ((eq && eq.membres) || []).filter(function(m){ return m.grade||m.nom||m.prenom||m.centre; })
+      .map(function(m){ return [m.grade||'', m.nom||'', m.prenom||'', m.centre||'']; });
+    if (!eqRows.length) eqRows = [['—','—','—','—']];
+    y = pdfLivretTable(doc, { x: ML, y: y, colWidths:[25,55,55,45], header:['Grade','Nom','Prénom','Centre'], rows: eqRows, fontSize:9, headerFill: cycleColors[cycle] });
+    y += 6;
+
+    // Grille de compétences
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    if (y > H-40) { doc.addPage(); y = MT; }
+    doc.text('Grille de compétences', ML, y); y += 5;
+    var items = LIVRET_CONNAISSANCES[cycle] || [];
+    var connRows = items.map(function(it, idx) {
+      var rec = getLivretConn(j.id, cycle, idx) || {};
+      return [it.domaine, it.bloc, it.item, rec.intervenant||'', rec.date ? (fmtDate?fmtDate(rec.date):rec.date) : ''];
+    });
+    y = pdfLivretTable(doc, { x: ML, y: y, colWidths:[28,32,55,32,33],
+      header:['Domaine','Bloc','Connaissances à acquérir','Intervenant','Réalisée le'], rows: connRows, fontSize:7.5, headerFill: cycleColors[cycle] });
+
+    // Comportement
+    doc.addPage(); y = MT;
+    pageHeader('Comportement — Cycle '+cycle, cycleColors[cycle]);
+    var comp = getLivretComportement(j.id, cycle) || {};
+    doc.setTextColor(30,30,30);
+    LIVRET_COMPORTEMENT_CHAMPS.forEach(function(f) {
+      if (y > H-30) { doc.addPage(); y = MT; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      doc.text(f[1]+' :', ML, y); y += 5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      var lines = doc.splitTextToSize(comp[f[0]]||'—', W-ML-MR);
+      doc.text(lines, ML, y); y += lines.length*5 + 4;
+    });
+    y += 4;
+    doc.setFontSize(8);
+    doc.text('Notifié le (rep. légal 1) : '+(comp.dateRepLegal1?fmtDate(comp.dateRepLegal1):'—'), ML, y);
+    doc.text('Notifié le (rep. légal 2) : '+(comp.dateRepLegal2?fmtDate(comp.dateRepLegal2):'—'), ML+95, y);
+    y += 6;
+    doc.text('Notifié le (responsable de section) : '+(comp.dateResponsable?fmtDate(comp.dateResponsable):'—'), ML, y);
+  });
+
+  // ── Grille d'évaluation formative JSP1 ──
+  doc.addPage(); y = MT;
+  pageHeader('Grille d\'évaluation formative du cycle de formation JSP1', cycleColors.JSP1);
+  var j1 = getJSP1Eval(j.id) || {ratings:{},observations:{}};
+  var j1Rows = LIVRET_JSP1_EVAL_ITEMS.map(function(item, idx) {
+    var r = (j1.ratings && j1.ratings[idx]) || ['','',''];
+    return [item, r[0]||'—', r[1]||'—', r[2]||'—', (j1.observations&&j1.observations[idx])||''];
+  });
+  y = pdfLivretTable(doc, { x: ML, y: y, colWidths:[70,20,20,20,50], header:['Compétences à acquérir','Éval. 1','Éval. 2','Éval. 3','Observations'], rows: j1Rows, fontSize:7.5 });
+  y += 6;
+  doc.setFontSize(8); doc.setTextColor(30,30,30);
+  doc.text('A = Acquis / EVA = En voie d\'acquisition / NA = Non acquis', ML, y); y += 8;
+  doc.text('Évaluateur 1 : '+(j1.nomEval1||'—')+' | Notifié le : '+(j1.dateEval1?fmtDate(j1.dateEval1):'—'), ML, y); y += 6;
+  doc.text('Évaluateur 2 : '+(j1.nomEval2||'—')+' | Notifié le : '+(j1.dateEval2?fmtDate(j1.dateEval2):'—'), ML, y); y += 6;
+  doc.text('Responsable de la section : '+(j1.nomResp||'—')+' | Notifié le : '+(j1.dateResp?fmtDate(j1.dateResp):'—'), ML, y);
+
+  // ── Blocs de compétences INC ──
+  Object.keys(LIVRET_BLOCS_INC).forEach(function(blocKey) {
+    var def = LIVRET_BLOCS_INC[blocKey];
+    doc.addPage(); y = MT;
+    pageHeader('Bloc de compétences INC — « '+def.label+' »', ORANGE);
+    ['JSP2','JSP3','JSP4'].forEach(function(cycle) {
+      if (y > H-30) { doc.addPage(); y = MT; }
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(30,30,30);
+      doc.text(cycle, ML, y); y += 5;
+      var opts = cycle==='JSP4' ? ['A','NA'] : ['A','EVA','NA'];
+      var rows = def.items.map(function(item, idx) {
+        var val = getBlocINCVal(j.id, blocKey, cycle, idx);
+        var row = [item];
+        opts.forEach(function(o){ row.push(val===o ? 'X' : ''); });
+        return row;
+      });
+      var header = ['Socle de compétences'].concat(opts);
+      var colW = [110].concat(opts.map(function(){ return (80/opts.length); }));
+      y = pdfLivretTable(doc, { x: ML, y: y, colWidths: colW, header: header, rows: rows, fontSize:7.5, headerFill: cycleColors[cycle] });
+      var ev = getBlocEval(j.id, blocKey, cycle) || {};
+      doc.setFontSize(8); doc.setTextColor(30,30,30);
+      doc.text('Évaluateur(s) '+cycle+' : '+(ev.evaluateur||'—'), ML, y+5);
+      y += 11;
+    });
+  });
+
+  // ── APS ──
+  doc.addPage(); y = MT;
+  pageHeader('Grille d\'évaluation du module APS', VERT);
+  ['JSP2','JSP3','JSP4'].forEach(function(cycle) {
+    if (y > H-50) { doc.addPage(); y = MT; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(30,30,30);
+    doc.text(cycle, ML, y); y += 5;
+    var rec = getAPS(j.id, cycle) || {eval1:{},eval2:{}};
+    ['eval1','eval2'].forEach(function(ek, eidx) {
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      doc.text((eidx===0?'1ère':'2ème')+' évaluation', ML, y); y += 4;
+      var rows = LIVRET_APS_EPREUVES.map(function(ep, idx) {
+        var val = (rec[ek]||{})[idx] || '';
+        return [ep, val==='A'?'X':'', val==='B'?'X':''];
+      });
+      y = pdfLivretTable(doc, { x: ML, y: y, colWidths:[130,30,30], header:['Épreuve','A','B'], rows: rows, fontSize:7.5, headerFill: VERT });
+      y += 3;
+    });
+    doc.setFontSize(8);
+    doc.text('Évaluateur(s) : '+(rec.evaluateur||'—'), ML, y); y += 8;
+  });
+
+  // ── Commentaires & signatures finales ──
+  doc.addPage(); y = MT;
+  pageHeader('Commentaires et signatures');
+  var fin = getLivretFinal(j.id, DB.saison) || {};
+  doc.setTextColor(30,30,30); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+  var finLines = doc.splitTextToSize(fin.commentaires||'—', W-ML-MR);
+  doc.text(finLines, ML, y); y += finLines.length*5 + 10;
+  [['Tuteur1','Le tuteur 1'],['Tuteur2','Le tuteur 2'],['Responsable','Le responsable de la section'],['ChefCentre','Le chef de centre']].forEach(function(s) {
+    if (y > H-20) { doc.addPage(); y = MT; }
+    doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text(s[1]+' : '+(fin['nom'+s[0]]||'—')+' | Notifié le : '+(fin['date'+s[0]]?fmtDate(fin['date'+s[0]]):'—'), ML, y);
+    y += 7;
+  });
+
+  doc.save('Livret_JSP_'+j.nom+'_'+j.prenom+'.pdf');
 }
 
 
