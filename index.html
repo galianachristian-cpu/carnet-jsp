@@ -621,6 +621,7 @@ async function loadFromCloud() {
       if (!cloud.livretJSP1Eval) cloud.livretJSP1Eval = [];
       if (!cloud.livretAPS) cloud.livretAPS = [];
       if (!cloud.livretFinal) cloud.livretFinal = [];
+      if (!cloud.livretCursus) cloud.livretCursus = [];
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
@@ -664,6 +665,7 @@ function loadData() {
     if (!parsed.livretJSP1Eval) parsed.livretJSP1Eval = [];
     if (!parsed.livretAPS) parsed.livretAPS = [];
     if (!parsed.livretFinal) parsed.livretFinal = [];
+    if (!parsed.livretCursus) parsed.livretCursus = [];
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
       parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
@@ -1133,6 +1135,7 @@ function loadData() {
     livretJSP1Eval: [],
     livretAPS: [],
     livretFinal: [],
+    livretCursus: [],
     questionsCulture: null,
     absences: [
       {
@@ -5795,6 +5798,12 @@ const LIVRET_COMPORTEMENT_CHAMPS = [
   ['autres','Autres']
 ];
 
+const LIVRET_SECTIONS_HERAULT = [
+  "Cruzy-Quarante", "Tréviers / Pic St Loup", "St Pargoire", "Cazouls", "Corneilhan", "Lunel",
+  "Bassin de Thau (Mèze, Loupian, Bouzigues)", "Montpellier", "Haut Languedoc", "Montagnac",
+  "Florensac", "Minervois", "Montbazin", "Pays de Thongue (Servian)", "Sète", "Hauts Cantons"
+];
+
 function cycleKey(promotion) { return (promotion||'').replace(/\s+/g,''); }
 
 // ── Écran principal ──
@@ -5814,7 +5823,7 @@ function renderLivret(jspId, tab) {
   html += '<div class="jsp-selector"><label><i class="ti ti-user" aria-hidden="true"></i> JSP :</label>'
     + '<select onchange="renderLivretGo(parseInt(this.value), window._livretTab)">'+jspOpts+'</select></div>';
 
-  const tabs = [['equipe','Équipe pédagogique'],['competences','Compétences par cycle'],['comportement','Comportement'],
+  const tabs = [['cursus','Cursus & renseignements'],['equipe','Équipe pédagogique'],['competences','Compétences par cycle'],['comportement','Comportement'],
     ['blocsinc','Blocs de compétences INC'],['jsp1eval','Évaluation JSP1'],['aps','APS'],['final','Commentaires & signatures']];
   html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:14px 0">' + tabs.map(function(t) {
     return '<button onclick="renderLivretGo('+(jspId||0)+',\''+t[0]+'\')" style="padding:7px 14px;border-radius:20px;border:1.5px solid '+(tab===t[0]?'var(--bleu)':'var(--gris-bord)')+';background:'+(tab===t[0]?'var(--bleu)':'white')+';color:'+(tab===t[0]?'white':'#374151')+';font-size:12px;font-weight:600;cursor:pointer">'+t[1]+'</button>';
@@ -5824,6 +5833,7 @@ function renderLivret(jspId, tab) {
   if (!j) { html += '<p style="color:var(--gris-txt)">Ajoute d\'abord un JSP dans "JSP (fiches)".</p>'; return html; }
 
   switch(tab) {
+    case 'cursus': html += renderLivretCursus(j); break;
     case 'competences': html += renderLivretCompetences(j); break;
     case 'comportement': html += renderLivretComportementTab(j); break;
     case 'blocsinc': html += renderLivretBlocsINC(j); break;
@@ -5837,6 +5847,65 @@ function renderLivret(jspId, tab) {
 function renderLivretGo(jspId, tab) {
   window._livretJspId = jspId; window._livretTab = tab;
   showSection('livret');
+}
+
+// ── Cursus & renseignements (historique année par année) ──
+function getLivretCursus(jspId) {
+  return (DB.livretCursus||[]).filter(function(x){ return x.jspId==jspId; });
+}
+function addLivretCursusRow(jspId) {
+  if (!DB.livretCursus) DB.livretCursus = [];
+  var rows = getLivretCursus(jspId);
+  var nextGrade = 'JSP 1';
+  if (rows.length) {
+    var last = rows[rows.length-1];
+    var m = /(\d)/.exec(last.grade||'');
+    var n = m ? parseInt(m[1],10) : 0;
+    nextGrade = 'JSP '+Math.min(n+1,4);
+  }
+  DB.livretCursus.push({ id: nextId(DB.livretCursus), jspId: jspId, annee: DB.saison, grade: nextGrade, centre: 'Cruzy-Quarante', departement: '34', responsable: '' });
+  saveData();
+  showSection('livret');
+}
+function updateLivretCursusField(id, field, value) {
+  var row = (DB.livretCursus||[]).find(function(x){ return x.id==id; });
+  if (!row) return;
+  row[field] = value;
+  saveData();
+}
+function deleteLivretCursusRow(id) {
+  if (!confirm('Supprimer cette ligne de cursus ?')) return;
+  DB.livretCursus = (DB.livretCursus||[]).filter(function(x){ return x.id!=id; });
+  saveData();
+  showSection('livret');
+}
+function renderLivretCursus(j) {
+  var rows = getLivretCursus(j.id);
+  var html = '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">';
+  html += '<div style="font-weight:700;margin-bottom:6px">Renseignements relatifs au cursus du jeune sapeur-pompier</div>';
+  html += '<p style="font-size:12px;color:var(--gris-txt);margin:-2px 0 12px">Le nom, le prénom et le département sont repris automatiquement depuis la fiche JSP. Ajoute une ligne par année — la 1ère année est proposée en JSP 1, la section par défaut est Cruzy-Quarante (utile si le JSP arrive d\'une autre section en cours de cursus).</p>';
+  html += '<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:13px;min-width:820px"><thead><tr>'
+    +'<th style="text-align:left;padding:6px">Année</th><th style="text-align:left;padding:6px">Grade</th><th style="text-align:left;padding:6px">Nom</th><th style="text-align:left;padding:6px">Prénom</th>'
+    +'<th style="text-align:left;padding:6px">Section</th><th style="text-align:left;padding:6px">Département</th><th style="text-align:left;padding:6px">Responsable de section</th><th></th></tr></thead><tbody>';
+  rows.forEach(function(r) {
+    html += '<tr>';
+    html += '<td><input value="'+escAttr(r.annee||'')+'" placeholder="2025/2026" onchange="updateLivretCursusField('+r.id+',\'annee\',this.value)" style="width:90px;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>';
+    html += '<td><select onchange="updateLivretCursusField('+r.id+',\'grade\',this.value)" style="padding:5px;border:1px solid var(--gris-bord);border-radius:5px">'
+      + ['JSP 1','JSP 2','JSP 3','JSP 4'].map(function(g){ return '<option '+(r.grade===g?'selected':'')+'>'+g+'</option>'; }).join('') + '</select></td>';
+    html += '<td style="padding:5px;color:#374151">'+escAttr(j.nom)+'</td>';
+    html += '<td style="padding:5px;color:#374151">'+escAttr(j.prenom)+'</td>';
+    html += '<td><select onchange="updateLivretCursusField('+r.id+',\'centre\',this.value)" style="padding:5px;border:1px solid var(--gris-bord);border-radius:5px">'
+      + LIVRET_SECTIONS_HERAULT.map(function(s){ return '<option '+(r.centre===s?'selected':'')+'>'+s+'</option>'; }).join('') + '</select></td>';
+    html += '<td><input value="'+escAttr(r.departement||'34')+'" onchange="updateLivretCursusField('+r.id+',\'departement\',this.value)" style="width:50px;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>';
+    html += '<td><input value="'+escAttr(r.responsable||'')+'" placeholder="Nom du responsable" onchange="updateLivretCursusField('+r.id+',\'responsable\',this.value)" style="width:160px;padding:5px;border:1px solid var(--gris-bord);border-radius:5px"></td>';
+    html += '<td><button onclick="deleteLivretCursusRow('+r.id+')" style="background:none;border:none;cursor:pointer;color:var(--rouge)" title="Supprimer"><i class="ti ti-trash"></i></button></td>';
+    html += '</tr>';
+  });
+  if (!rows.length) html += '<tr><td colspan="8" style="padding:10px;color:var(--gris-txt)">Aucune ligne pour l\'instant.</td></tr>';
+  html += '</tbody></table></div>';
+  html += '<button class="btn-add" style="margin-top:12px" onclick="addLivretCursusRow('+j.id+')"><i class="ti ti-plus"></i> Ajouter une année</button>';
+  html += '</div>';
+  return html;
 }
 
 // ── Équipe pédagogique ──
@@ -6278,6 +6347,16 @@ function genererLivretPDF(jspId) {
     doc.text(r[0]+' : '+r[2], ML+95, y);
     y += 6;
   });
+  y += 8;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(30,30,30);
+  doc.text('Cursus du jeune sapeur-pompier', ML, y); y += 5;
+  var cursusRows = getLivretCursus(j.id).map(function(r) {
+    return [r.annee||'—', r.grade||'—', j.nom||'', j.prenom||'', r.centre||'—', r.departement||'—', r.responsable||'—'];
+  });
+  if (!cursusRows.length) cursusRows = [['—','—',j.nom||'',j.prenom||'','—','—','—']];
+  y = pdfLivretTable(doc, { x: ML, y: y, colWidths:[22,18,28,28,42,20,22],
+    header:['Année','Grade','Nom','Prénom','Section','Dépt.','Responsable'], rows: cursusRows, fontSize:8, headerFill: BLEU });
   y += 6;
 
   // ── 4 cycles ──
