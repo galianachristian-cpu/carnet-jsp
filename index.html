@@ -4869,7 +4869,8 @@ function renderPlanning(moisActif) {
     +'L\'arrêté ministériel sort généralement à l\'automne précédent — demande la mise à jour des dates de vacances dès qu\'il est publié.</div></div>';
 
   return '<div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning '+DB.saison+'</h2>'
-    +'<div style="display:flex;gap:8px"><button class="btn-add" style="background:#6b7280" onclick="modalNouvelleSaison()"><i class="ti ti-calendar-stats"></i> Saison</button>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-add" style="background:#6b7280" onclick="modalNouvelleSaison()"><i class="ti ti-calendar-stats"></i> Saison</button>'
+    +'<button class="btn-add" style="background:#25D366" onclick="modalPartagerPlanning()"><i class="ti ti-brand-whatsapp"></i> Partager (WhatsApp)</button>'
     +'<button class="btn-add" onclick="modalAddPlanning()"><i class="ti ti-plus"></i> Ajouter</button></div></div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">'+saisonBtns+'</div>'
     +alerteVacances
@@ -4877,6 +4878,136 @@ function renderPlanning(moisActif) {
     +'<div class="stat-card vert"><div class="stat-val">'+evtsFuturs+'</div><div class="stat-lbl">A venir</div></div></div>'
     +legende+ongletsHtml
     +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">'+calHtml+listeHtml+'</div>';
+}
+
+// ── Partage du planning du mois (WhatsApp) ──
+function getSectionLabelPlanning() {
+  return (DB.settingsCandidature && DB.settingsCandidature.section) || DB.saison;
+}
+function resoudreMoisActifPlanning(moisActif) {
+  var mois = getSaisonMois(DB.saison);
+  var today = new Date().toISOString().slice(0,10);
+  moisActif = moisActif || window._planningMois;
+  if (!moisActif) {
+    var todayMois = today.slice(0,7);
+    var cur = mois.find(function(m){ return m.an+'-'+m.num === todayMois; });
+    moisActif = cur ? cur.num+'-'+cur.an : mois[0].num+'-'+mois[0].an;
+  }
+  return moisActif;
+}
+function genererTextePlanningMois(moisActif) {
+  moisActif = resoudreMoisActifPlanning(moisActif);
+  var mois = getSaisonMois(DB.saison);
+  var parts = moisActif.split('-'); var mActif = parts[0], aActif = parts[1];
+  var moisInfo = mois.find(function(m){ return m.num===mActif && m.an===aActif; });
+  var evts = DB.planning.filter(function(p){ return p.date.startsWith(aActif+'-'+mActif); }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  var joursNoms = ['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
+  var txt = '📅 Planning JSP '+getSectionLabelPlanning()+' — '+(moisInfo?moisInfo.label:moisActif)+'\n\n';
+  if (!evts.length) { txt += 'Aucune séance prévue ce mois-ci.'; return txt; }
+  evts.forEach(function(e) {
+    var d = new Date(e.date+'T00:00:00');
+    var jourNom = joursNoms[d.getDay()];
+    var dd = e.date.slice(8,10)+'/'+e.date.slice(5,7);
+    txt += '🔸 '+jourNom+' '+dd+' — '+e.titre+'\n📍 '+(e.lieu||'—')+'\n\n';
+  });
+  txt += '— Envoyé depuis Carnet JSP';
+  return txt;
+}
+function ouvrirWhatsAppPlanning() {
+  var txt = genererTextePlanningMois(window._planningMois);
+  window.open('https://wa.me/?text='+encodeURIComponent(txt), '_blank');
+}
+function copierTextePlanning() {
+  var txt = genererTextePlanningMois(window._planningMois);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(function(){ showNotifToast('✅ Texte copié !'); }).catch(function(){ alert('Copie impossible — sélectionne le texte manuellement dans la zone ci-dessus.'); });
+  } else {
+    alert('Copie impossible — sélectionne le texte manuellement dans la zone ci-dessus.');
+  }
+}
+function telechargerImagePlanning() {
+  var moisActif = resoudreMoisActifPlanning(window._planningMois);
+  var mois = getSaisonMois(DB.saison);
+  var parts = moisActif.split('-'); var mActif = parts[0], aActif = parts[1];
+  var moisInfo = mois.find(function(m){ return m.num===mActif && m.an===aActif; });
+  var evts = DB.planning.filter(function(p){ return p.date.startsWith(aActif+'-'+mActif); }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  var joursNoms = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  var typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c',sortie:'#6b21a8'};
+
+  var W = 1000, rowH = 92, headerH = 150, footerH = 60;
+  var H = headerH + Math.max(evts.length,1)*rowH + footerH;
+  var canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#f3f4f6';
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle = '#1a3c6e';
+  ctx.fillRect(0,0,W,headerH);
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 34px Arial';
+  ctx.fillText('Planning JSP '+getSectionLabelPlanning(), W/2, 68);
+  ctx.font = '24px Arial';
+  ctx.fillText((moisInfo?moisInfo.label:moisActif), W/2, 108);
+
+  var y = headerH + 16;
+  if (!evts.length) {
+    ctx.fillStyle = '#374151';
+    ctx.font = '26px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Aucune séance prévue ce mois-ci.', W/2, y+30);
+  } else {
+    evts.forEach(function(e) {
+      var d = new Date(e.date+'T00:00:00');
+      var jourNom = joursNoms[d.getDay()];
+      var dd = e.date.slice(8,10)+'/'+e.date.slice(5,7);
+      var col = typeColors[e.type] || '#374151';
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(30, y, W-60, rowH-14);
+      ctx.fillStyle = col;
+      ctx.fillRect(30, y, 8, rowH-14);
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#1f2937';
+      ctx.font = 'bold 26px Arial';
+      ctx.fillText(jourNom+' '+dd, 56, y+34);
+
+      ctx.font = '22px Arial';
+      ctx.fillStyle = '#1f2937';
+      ctx.fillText(e.titre, 56, y+62);
+
+      ctx.font = '18px Arial';
+      ctx.fillStyle = '#6b7280';
+      ctx.fillText('📍 '+(e.lieu||'—'), 56, y+84);
+
+      y += rowH;
+    });
+  }
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '16px Arial';
+  ctx.fillText('Généré depuis Carnet JSP — '+fmtDate(new Date().toISOString().slice(0,10)), W/2, H-24);
+
+  var a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'Planning_JSP_'+(moisInfo?moisInfo.label.replace(/\s+/g,'_'):moisActif)+'.png';
+  a.click();
+}
+function modalPartagerPlanning() {
+  var txt = genererTextePlanningMois(window._planningMois);
+  openModal(`<h3><i class="ti ti-brand-whatsapp"></i> Partager le planning du mois</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin:0 0 12px">Le plus simple pour les parents peu à l'aise avec l'informatique : télécharge l'image et envoie-la directement dans le groupe WhatsApp des parents. Tu peux aussi ouvrir WhatsApp avec le texte déjà rempli, ou copier le texte pour le coller ailleurs.</p>
+    <textarea readonly style="width:100%;min-height:180px;padding:10px;border:1px solid var(--gris-bord);border-radius:8px;font-family:Arial,sans-serif;font-size:13px">${escAttr(txt)}</textarea>
+    <div class="modal-btns" style="flex-wrap:wrap;gap:8px">
+      <button class="btn-cancel" onclick="closeModal()">Fermer</button>
+      <button class="btn-save" style="background:#166534" onclick="copierTextePlanning()"><i class="ti ti-copy"></i> Copier le texte</button>
+      <button class="btn-save" style="background:#25D366" onclick="ouvrirWhatsAppPlanning()"><i class="ti ti-brand-whatsapp"></i> Ouvrir WhatsApp</button>
+      <button class="btn-save" onclick="telechargerImagePlanning()"><i class="ti ti-download"></i> Télécharger l'image</button>
+    </div>`);
 }
 
 function modalAddPlanning(datePreremplie) {
