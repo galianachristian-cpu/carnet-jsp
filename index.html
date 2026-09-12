@@ -4822,7 +4822,7 @@ function renderPlanning(moisActif) {
     ['JSP1','JSP2','JSP3','JSP4'].forEach(function(c) {
       const items = (progByCycle[c] && progByCycle[c][dateStr]) || [];
       if (!items.length) return;
-      const label = c+' : '+items.map(function(it){ return it.bloc; }).join(', ');
+      const label = c+' : '+items.map(function(it){ return it.item; }).join(', ');
       const full = c+' — '+items.map(function(it){ return it.bloc+' : '+it.item; }).join(' / ');
       calHtml += '<div title="'+escAttr(full)+'" style="font-size:8px;background:'+cycleBg[c]+';color:'+cycleColors[c]+';border-radius:3px;padding:1px 3px;margin-bottom:1px;line-height:1.25;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+escAttr(label)+'</div>';
     });
@@ -6359,7 +6359,7 @@ function renderProgrammeAnnuel() {
         html += '<td style="padding:6px;color:#d1d5db;vertical-align:top">—</td>';
       } else {
         html += '<td style="padding:6px;vertical-align:top">'+items.map(function(it){
-          return '<div style="margin-bottom:3px"><b>'+escAttr(it.bloc)+'</b> — '+escAttr(it.item)
+          return '<div style="margin-bottom:3px"><span style="color:var(--gris-txt);font-size:10px">'+escAttr(it.bloc)+'</span><br><b>'+escAttr(it.item)+'</b>'
             + ' <a href="'+getLienCours(c, it.bloc, it.item)+'" target="_blank" rel="noopener" title="Voir le cours" style="white-space:nowrap"><i class="ti ti-external-link" style="font-size:11px"></i></a></div>';
         }).join('')+'</td>';
       }
@@ -6388,9 +6388,8 @@ function modalCaseJour(dateStr) {
       + '<div style="margin-top:8px">'
       + items.map(function(it){
           return '<div style="font-size:13px;padding:8px 12px;background:'+CYCLE_BG[c]+';border-left:3px solid '+CYCLE_COLORS[c]+';border-radius:6px;margin-bottom:6px">'
-            + (it.domaine ? '<div style="font-size:11px;color:var(--gris-txt);margin-bottom:2px">'+escAttr(it.domaine)+'</div>' : '')
-            + '<div style="font-weight:700;color:#1f2937">'+escAttr(it.bloc)+'</div>'
-            + '<div style="color:#374151">'+escAttr(it.item)+'</div>'
+            + '<div style="font-size:11px;color:var(--gris-txt);margin-bottom:2px">'+(it.domaine ? escAttr(it.domaine)+' • ' : '')+escAttr(it.bloc)+'</div>'
+            + '<div style="font-weight:700;color:#1f2937;font-size:14px">'+escAttr(it.item)+'</div>'
             + '<a href="'+getLienCours(c, it.bloc, it.item)+'" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:'+CYCLE_COLORS[c]+'"><i class="ti ti-external-link"></i> Voir le cours</a>'
             + '</div>';
         }).join('')
