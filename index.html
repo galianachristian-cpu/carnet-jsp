@@ -4786,6 +4786,10 @@ function renderPlanning(moisActif) {
   function countMois(m) { return DB.planning.filter(p=>p.date.startsWith(m.an+'-'+m.num)).length; }
   const typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c',sortie:'#6b21a8'};
   const typeBg = {formation:'#dbeafe',exercice:'#fef3c7',ceremonie:'#dcfce7',controle:'#fee2e2',sortie:'#f3e8ff'};
+  const cycleColors = {JSP1:'#7c3aed',JSP2:'#ea580c',JSP3:'#0d9488',JSP4:'#db2777'};
+  const cycleBg = {JSP1:'#ede9fe',JSP2:'#ffedd5',JSP3:'#ccfbf1',JSP4:'#fce7f3'};
+  const progByCycle = {};
+  ['JSP1','JSP2','JSP3','JSP4'].forEach(function(c){ progByCycle[c] = getProgrammeAnnuelCycle(c); });
 
   const evts = DB.planning.filter(p=>p.date.startsWith(aActif+'-'+mActif)).sort((a,b)=>a.date.localeCompare(b.date));
   const firstDay = new Date(aActif+'-'+mActif+'-01');
@@ -4808,10 +4812,19 @@ function renderPlanning(moisActif) {
     const isPast = dateStr<today;
     const isVacances = estJourVacances(dateStr);
     const bgCase = isToday ? '#dbeafe' : (isVacances ? '#fef2f2' : (isPast && !dayEvts.length ? 'var(--gris-bg)' : 'white'));
-    calHtml += `<div onclick="modalAddPlanning('${dateStr}')" style="min-height:64px;border-radius:8px;padding:4px;cursor:pointer;border:1px solid ${isVacances?'#fecaca':'var(--gris-bord)'};background:${bgCase}">`;
+    const hasProgJour = ['JSP1','JSP2','JSP3','JSP4'].some(function(c){ return ((progByCycle[c] && progByCycle[c][dateStr]) || []).length; });
+    const caseOnclick = (dayEvts.length || hasProgJour) ? `modalCaseJour('${dateStr}')` : `modalAddPlanning('${dateStr}')`;
+    calHtml += `<div onclick="${caseOnclick}" style="min-height:64px;border-radius:8px;padding:4px;cursor:pointer;border:1px solid ${isVacances?'#fecaca':'var(--gris-bord)'};background:${bgCase}">`;
     calHtml += '<div style="font-size:12px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'var(--bleu)':isVacances?'#b91c1c':isPast?'var(--gris-txt)':'#1f2937')+';margin-bottom:3px">'+d+(isVacances?' <i class="ti ti-beach" style="font-size:10px"></i>':'')+'</div>';
     dayEvts.forEach(e => {
-      calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+e.titre+'</div>';
+      calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="event.stopPropagation();showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+e.titre+'</div>';
+    });
+    ['JSP1','JSP2','JSP3','JSP4'].forEach(function(c) {
+      const items = (progByCycle[c] && progByCycle[c][dateStr]) || [];
+      if (!items.length) return;
+      const label = c+' : '+items.map(function(it){ return it.bloc; }).join(', ');
+      const full = c+' — '+items.map(function(it){ return it.bloc+' : '+it.item; }).join(' / ');
+      calHtml += '<div title="'+escAttr(full)+'" style="font-size:8px;background:'+cycleBg[c]+';color:'+cycleColors[c]+';border-radius:3px;padding:1px 3px;margin-bottom:1px;line-height:1.25;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+escAttr(label)+'</div>';
     });
     calHtml += '</div>';
   });
@@ -4840,6 +4853,10 @@ function renderPlanning(moisActif) {
       '<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:'+bg+';color:'+col+'">'+t+'</span>'
     ).join('')
     +'<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca"><i class="ti ti-beach" style="font-size:11px"></i> vacances scolaires</span>'
+    +'</div>'
+    +'<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:20px;margin-top:-12px">'
+    +'<span style="font-size:11px;color:var(--gris-txt)"><i class="ti ti-route"></i> Programme du jour :</span>'
+    +['JSP1','JSP2','JSP3','JSP4'].map(function(c){ return '<span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:'+cycleBg[c]+';color:'+cycleColors[c]+'">'+c+'</span>'; }).join('')
     +'</div>';
 
   var ongletsHtml = '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:16px">';
@@ -4871,6 +4888,7 @@ function renderPlanning(moisActif) {
   return '<div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning '+DB.saison+'</h2>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-add" style="background:#6b7280" onclick="modalNouvelleSaison()"><i class="ti ti-calendar-stats"></i> Saison</button>'
     +'<button class="btn-add" style="background:#25D366" onclick="modalPartagerPlanning()"><i class="ti ti-brand-whatsapp"></i> Partager (WhatsApp)</button>'
+    +'<button class="btn-add" style="background:#7c3aed" onclick="modalProgrammeAnnuel()"><i class="ti ti-route"></i> Programme de l\'année</button>'
     +'<button class="btn-add" onclick="modalAddPlanning()"><i class="ti ti-plus"></i> Ajouter</button></div></div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">'+saisonBtns+'</div>'
     +alerteVacances
@@ -6163,6 +6181,236 @@ function renderDateCoursSelect(id, currentValue) {
   });
   if (currentValue && !found) opts += '<option value="'+currentValue+'" selected>'+fmtDate(currentValue)+' (hors planning)</option>';
   return '<select id="'+id+'" style="padding:5px;border:1px solid var(--gris-bord);border-radius:5px;font-size:12px">'+opts+'</select>';
+}
+
+// ── Programme de l'année (fil d'Ariane) — répartit le référentiel sur les dimanches déjà planifiés ──
+const LIEN_COURS_JSP_DRIVE = 'https://drive.google.com/drive/u/0/folders/0BxJKJp5umfkPVzRuWEtvT1JwVkk?resourcekey=0-PFhwvyaJJi5ZKavgCaxkXg';
+const CYCLE_COLORS = {JSP1:'#7c3aed',JSP2:'#ea580c',JSP3:'#0d9488',JSP4:'#db2777'};
+const CYCLE_BG = {JSP1:'#ede9fe',JSP2:'#ffedd5',JSP3:'#ccfbf1',JSP4:'#fce7f3'};
+// Liens directs vers les dossiers/fichiers du Drive JSP, retrouvés en explorant l'arborescence
+// "JSP X 2018" (un dossier/fichier par bloc quand la structure le permet, sinon le dossier du thème).
+// Best-effort : quand aucune correspondance fiable n'existe, on retombe sur LIEN_COURS_JSP_DRIVE.
+const LIVRET_LIENS_COURS = {
+  JSP1: {
+    "Diffuser la culture du service public": 'https://drive.google.com/drive/folders/1GBEoIn3bHNBMXJ81qDH7di0x2FT-Gd08',
+    "S'impliquer dans son activité": 'https://drive.google.com/drive/folders/1RK00S4Sd_vbZeuRmjy9zWLtXg2OaNkCq',
+    "Sécuriser la zone d'intervention": 'https://drive.google.com/drive/folders/1bci0E_7irEoERchXFMyOS_dQ4Y168p-R',
+    "Eteindre un incendie": 'https://drive.google.com/drive/folders/1SKlEFTX6Gw62v0ce5508NCpKf55go9il',
+    "Réaliser un sauvetage ou une mise en sécurité": 'https://drive.google.com/drive/folders/1SI-vxAqTMZaDsBgGCIY-s5phusyZwL6g',
+    "Agir selon les règles relatives à la santé, sécurité, qualité de vie en service": 'https://drive.google.com/drive/folders/11bdWr9RgPQ4I1smOqdMY1H94eYhglLVh',
+    "S'adapter à son environnement": 'https://drive.google.com/drive/folders/11bdWr9RgPQ4I1smOqdMY1H94eYhglLVh',
+  },
+  JSP2: {
+    "Eteindre un incendie": 'https://drive.google.com/drive/folders/1C10P2y87U_UK1LU_0ck4O90CmB5Kyr7I',
+    "Sécuriser la zone d'intervention": 'https://drive.google.com/drive/folders/11cR74zewqOPyIArMevJGSXZBRnon-KFs',
+    "Réaliser un sauvetage ou une mise en sécurité": 'https://drive.google.com/drive/folders/1plF8M3waYb9J_FwCj0_q8KjJZ_Vi7xEr',
+    "Intervenir pour une mission de protection des personnes, des biens et de l'environnement": 'https://drive.google.com/drive/folders/12Wxb27D0h-_2DzsNW_DkowUvxO0tz1RB',
+    "S'impliquer dans son activité": 'https://drive.google.com/drive/folders/1FqkHMYO05QxaVeMDZe2jgSQPm0PrMNwr',
+    "Diffuser la culture du service public": 'https://drive.google.com/drive/folders/1_2YJ_Rh1qdgeurGmblgXsGQr1dOCfTgR',
+  },
+  JSP3: {
+    "Sécuriser la zone d'intervention": 'https://drive.google.com/drive/folders/1pOE4ap-0cxJ2aOvVxmJpRf-6n9LCncAy',
+    "Eteindre un incendie": 'https://drive.google.com/drive/folders/1GslRSYYUDJpQ9gkIEFQV1ykPW3GBvgig',
+    "Réaliser un sauvetage ou une mise en sécurité": 'https://drive.google.com/drive/folders/1oNC-MvhtKjhneHsAv95ekFJGBwa7rxCw',
+    "Intervenir pour une mission de protection des personnes, des biens et de l'environnement": 'https://drive.google.com/drive/folders/1VhNINrhWJBfLGwE2uNtS1cnRBnpqEn_q',
+    "Agir selon les règles relatives à la santé, sécurité, qualité de vie en service": 'https://drive.google.com/drive/folders/1E9hLIbiYZIl7VxM8LIpBaTZCxA7L0U28',
+    "Diffuser la culture du service public": 'https://drive.google.com/drive/folders/12DoSBdJhInswKu3cmLpowee9CX-iT2eY',
+  },
+  JSP4: {
+    "Sécuriser la zone d'intervention": 'https://drive.google.com/file/d/1l1dmgiLWnvOSC7YFFk0GhEzAeK0BveaM/view',
+    "Eteindre un incendie": 'https://drive.google.com/file/d/1v6EXTfLY5NMb97AOE5pK8ak2u8596G5t/view',
+    "Réaliser un sauvetage ou une mise en sécurité": 'https://drive.google.com/file/d/1FYDGOTTkxkBIeR7_xdA_kUh93jbi_ZtP/view',
+    "Intervenir pour une mission de protection des personnes, des biens et de l'environnement": 'https://drive.google.com/drive/folders/1ov8Eel1V_xx_rOFzPH5KYXgR_5LzI6R0',
+    "Intervenir pour une mission impliquant des animaux": 'https://drive.google.com/file/d/1MooFtmo_3Oi6mG89rvDYm1649LaQl2kE/view',
+    "Diffuser la culture du service public": 'https://drive.google.com/drive/folders/18v0KPJwiqTjuMOZy27jRHVN90gbrBXn2',
+    "Agir selon les règles relatives à la santé, sécurité, qualité de vie en service": 'https://drive.google.com/drive/folders/1kyvPbO0X9dRdYyMUd1Jyg4DAhHIE3f_F',
+    "S'adapter à son environnement": 'https://drive.google.com/drive/folders/1kyvPbO0X9dRdYyMUd1Jyg4DAhHIE3f_F',
+  },
+};
+// Liens ITEM par ITEM (plus précis que par bloc), retrouvés en fouillant tout le Drive avec le titre
+// exact de chaque item du référentiel. Priorité : item exact > dossier du bloc > lien général du Drive.
+const LIVRET_LIENS_COURS_ITEM = {
+  JSP1: {
+    "Les matériels de lutte contre l'incendie": 'https://drive.google.com/file/d/130dYdKatW_vV9TLrG5Cv301pqi8BZ-4s/view',
+    "La DECI, les réseaux d'eaux et les réserves incendies": 'https://drive.google.com/file/d/10RA6AIJE_FykuiRRQ0ZH-3au0n0HQFwk/view',
+    "La combustion et les modes de propagation": 'https://drive.google.com/file/d/1KHabBiSN1w0D-pVuHnl0eGLYxFGcAZ7g/view',
+    "Les phases de la MGO de lutte contre les incendies": 'https://drive.google.com/file/d/1mKjvXJw_ArXki_KWufWQy_neQYc3fgoB/view',
+    "La composition et le fonctionnement de l'ARI": 'https://drive.google.com/file/d/1Gva16-3lMq-SiinjPd6yFrs5_k4iC5rm/view',
+    "La description du lot de sauvetage et de protection contre les chutes": 'https://drive.google.com/file/d/11ud00dXi2aN-AKSvxS45yt3u51ZisVxq/view',
+    "L'entretien et le contrôle du lot de sauvetage et de protection contre les chutes": 'https://drive.google.com/file/d/1UicyCZig6lVlhk4Inw8Z4HyibQlRVkim/view',
+    "La description des échelles à mains": 'https://drive.google.com/file/d/1cArBJTGE6czf0wxeltXXi-Y1jEuPnrCn/view',
+    "Protection": 'https://drive.google.com/file/d/1c_IMbmZjpeeoalfVowzDwCpoosl06qA5/view',
+    "Alerte et protection des populations": 'https://drive.google.com/file/d/1naHEv8WeoS7RRm46aiexumHL3FlYpD8U/view',
+    "Malaise": 'https://drive.google.com/file/d/1gA5NZWPim4f_OHBexQzgGeW2dN6Z8PH4/view',
+    "Obstruction aigue des voies aériennes": 'https://drive.google.com/file/d/1q5yYLGhSNNJhNdEsCP0rWv6bSvaRGnl4/view',
+    "Hémorragie": 'https://drive.google.com/file/d/1RJ929V8yXPhZrSMTkOG77l5UnchNjqCP/view',
+    "Perte de connaissances": 'https://drive.google.com/file/d/1f8UGvpEprmVUpiXytIT15Sz8FJZ-itY3/view',
+    "Arrêt cardiaque": 'https://drive.google.com/file/d/1X4OSi0ZfkvqHh9W5HLu2KeEUzmbbtEMF/view',
+    "Plaies": 'https://drive.google.com/file/d/1cfQMANENAKKqxCDfY8tZlt0qHscMZcZF/view',
+    "Brûlures": 'https://drive.google.com/file/d/189zi9PpR7gZRYF7pRwbiBiUDQctp2wL-/view',
+    "Traumatismes": 'https://drive.google.com/file/d/16sydhvGRCsCo79PLSmM8vx0DO0ZHRp5H/view',
+    "L'engagement citoyen": 'https://docs.google.com/presentation/d/1TeHwt_5WKCdodoHVv6a1fbU7jVxpZ38NL6BBphZhe0s/edit',
+    "Valeurs et éthiques des sapeurs-pompiers, la charte du JSP": 'https://docs.google.com/presentation/d/1hRzda2jfnWmOCamuys-pe5L_vlNkBnFi7_AU8c92hWM/edit',
+    "L'information préventive aux comportements qui sauvent": 'https://drive.google.com/file/d/18EPRL96zr9uoqpZVst8wuw3KT8wodeWI/view',
+    "Protocole et cérémonie": 'https://docs.google.com/presentation/d/15UOjyhPOyCyUU79dkdePiMLAMYRmloCQyU31_u0kKdc/edit',
+    "Le réseau associatif, son rôle et ses valeurs": 'https://drive.google.com/file/d/1k5Pa1bfmFTvSmP1eU7iEeRLsNkaOrdgU/view',
+    "Les objectifs de l'activité physique": 'https://drive.google.com/file/d/1gYDk5STjEPDgPnZ-YuJLexk-IzLB_taA/view',
+    "La connaissance théorique des EPI": 'https://drive.google.com/file/d/1rfEMguJ2v1W1bTk0Mmo8jnTKt012XK8Q/view',
+    "L'organisation nationale de la sécurité civile": 'https://drive.google.com/file/d/1ar2iLQxQan_3p7wcFf0OIyvup45ZP65z/view',
+    "Les grades des sapeurs-pompiers civils et militaires": 'https://drive.google.com/file/d/1c56vvSQ8XseBCZIUYiCbekL0MDQNWN7a/view',
+  },
+  JSP2: {
+    "Les établissements de lances de plein pied": 'https://docs.google.com/presentation/d/1AS_IBSy8rePnjYgtQJbUJZ-v_-s829RRpWxds9wQosc/edit',
+    "Les engins d'incendie et de secours. Contrôle et reconditionnement": 'https://drive.google.com/file/d/12bNHuBj2Z1jSmw1_iGukPNhwWaCygwdR/view',
+    "Le comportement et la réaction au feu des matériaux": 'https://drive.google.com/file/d/1zCEfTawukkCpxAkU9gs7FE_8rbyky5NX/view',
+    "Les contraintes physiologiques de l'ARI": 'https://docs.google.com/presentation/d/1jJXAplyrv2F4jl8I40Noy1vILTa_P7GVYwCd7WdVwSE/edit',
+    "L'évolution au moyen du LSPCC": 'https://docs.google.com/presentation/d/1JibCarlaLpE5chJF5fLC1dxSMkSAKt6Hq4Xzp17ZLCM/edit',
+    "Les matériels d'épuisement": 'https://drive.google.com/file/d/1wGgCjlGWM4zuvvKJIjlaTBAGgiXi0cdT/view',
+    "Les matériels électriques portatifs": 'https://drive.google.com/file/d/1f6veZwrXJkYTtGV28GQH7q5jvIf0pTj2/view',
+    "Les différents statuts des sapeurs-pompiers": 'https://drive.google.com/file/d/1pFBA4lCOdTQ2w7PE082pZ18yW6VjxYxs/view',
+    "Les risques d'incendie": 'https://docs.google.com/presentation/d/13cddQRRQexshqUQyevbCESgFbOr8e3PyJlyaBhwzJaw/edit',
+    "Les risques domestiques": 'https://docs.google.com/presentation/d/1jCFQLWSV5JtYL3RBfeOVI7svjNyvnxv0HJsdGiOP7Gg/edit',
+  },
+  JSP3: {
+    "Notions élémentaires d'hydraulique": 'https://drive.google.com/file/d/1CxqOQe2ZTHeplfdXMvivBQ7B3J2Ecg0q/view',
+    "Les manœuvres d'alimentation en binôme": 'https://drive.google.com/file/d/1MtxNcDEHwaa4XSoC0FmUA3Fe75iKEsmq/view',
+    "Les différents binômes": 'https://drive.google.com/file/d/1MtxNcDEHwaa4XSoC0FmUA3Fe75iKEsmq/view',
+    "Les agents extincteurs et les procédés d'extinction": 'https://drive.google.com/file/d/1dOOyDalbLj_xnAeJRUUzKAB-1EaVpObV/view',
+    "L'appareil respiratoire isolant": 'https://drive.google.com/file/d/1dLBfgsdaTs_vM9OrwqXvXlElfVJTtCHc/view',
+    "Explosimétrie et la coupure des fluides": 'https://drive.google.com/file/d/1AyHAunllzqcHtrjndrj4mC99QSSMigzT/view',
+    "Les moyens facilitant l'action des secours": 'https://drive.google.com/file/d/1DzweKCbaCJxjORp_7mUw8PvS5BqILtL_/view',
+    "Les sauvetages au moyen du LSPCC": 'https://drive.google.com/file/d/18JLryzdt863ZhIgRudVJwpw_PDMea8y7/view',
+    "Les règles d'emploi et de sécurité de l'échelle à crochet": 'https://drive.google.com/file/d/1MG-pf5nUA9f9ofqXb9yhO54GhgBSwql1/view',
+    "Le matériel d'épuisement hydraulique et thermique": 'https://drive.google.com/file/d/1c4lm0K_01g-yZqWxOXfCjZ0SDwREIuCD/view',
+    "Typologie des ascenseurs": 'https://drive.google.com/file/d/10f0Vi5HCw1cIIsfmSpiHxdYJWtifYXdh/view',
+    "Organisation et missions du SDIS 34": 'https://drive.google.com/file/d/1UppoalDhNSFl0pVOJYDYLEBu9d1gQ939/view',
+    "Les moyens radio": 'https://drive.google.com/file/d/1mJz_tvP5d-cbhRL7xIqEuVtFvqoHBmBn/view',
+    "L'hygiène de vie": 'https://drive.google.com/file/d/1_S8yb8j42N5stQRJYM8_2Zad-gxN_y6z/view',
+    "Préserver son potentiel psychologique": 'https://drive.google.com/file/d/1ZPt6ZLjacfZrZmfgORAs1WWbDNi75wJm/view',
+    "Les risques majeurs": 'https://drive.google.com/file/d/1s4gDerYN6jkjH2CRliCfz7vgLM2rSlVs/view',
+  },
+  JSP4: {
+    "Phénomènes thermiques": 'https://drive.google.com/file/d/1y7ERQml8s8j_EkXl5Rdg8ebbQ1FTpxW3/view',
+    "Etablissement sur un moyen élévateur aérien": 'https://drive.google.com/file/d/1x_Dr9xtbMsAvuzFKSHyeW1IWaL88djnO/view',
+    "Sauvetage, mise en sécurité, confinement, évacuation": 'https://drive.google.com/file/d/1FYDGOTTkxkBIeR7_xdA_kUh93jbi_ZtP/view',
+    "Les différents types de risques et actions adaptées": 'https://drive.google.com/file/d/195jxrOMQsyyd3UjIQASRShCPRAIt4xIK/view',
+    "Les premières mesures conservatoires et techniques d'autoprotection": 'https://drive.google.com/file/d/1l1dmgiLWnvOSC7YFFk0GhEzAeK0BveaM/view',
+    "Préservation des traces et indices": 'https://drive.google.com/file/d/1LhqGeENWE4MEEnT_xDfXhnKiu--PkLkP/view',
+    "Rôle de l'équipier au sein du binôme de reconnaissance": 'https://drive.google.com/file/d/1eIj-WjwZ-TOH-oxCXrUnSekAFZb0jdf0/view',
+    "Notions de prévention appliquées à l'opération": 'https://drive.google.com/file/d/1iyYCzPh3XgpHDvcS9hDJCn-bdXd_XIUp/view',
+    "Evolution sur une échelle aérienne": 'https://drive.google.com/file/d/1x_Dr9xtbMsAvuzFKSHyeW1IWaL88djnO/view',
+    "Matériel de calage temporaire et de protection des biens": 'https://drive.google.com/file/d/1iukUOsF1EtP93AorcylLuP-OPwFEyy1j/view',
+    "Matériel de forcement et de dégagement": 'https://drive.google.com/file/d/1IQGq5B8nFE_eIXjztagwaGaYm1Op5VkS/view',
+    "Procédure d'intervention sur ascenseur": 'https://drive.google.com/file/d/1qSxwv41tVd2CqzbXhMNY5X6VIQPrnoN6/view',
+    "Les différentes espèces d'animaux": 'https://drive.google.com/file/d/1MooFtmo_3Oi6mG89rvDYm1649LaQl2kE/view',
+    "Les EPI et le matériel de capture": 'https://drive.google.com/file/d/1JKVlDacyL8TqmE8y2teYr7kBdldyCH2S/view',
+    "Les hyménoptères": 'https://drive.google.com/file/d/1ObXky27y3tmXjdqz-5g0adIk-sAAL9t-/view',
+    "Prévention des risques routiers": 'https://drive.google.com/file/d/1YRJsRFN_llgnZvW86V-lBTpw1HMknc_N/view',
+    "Les indicateurs de la condition physique": 'https://drive.google.com/file/d/1zJvmqSZ9SDY0ZaGLbOJP4NHNxlt5iOWy/view',
+    "La prise de garde": 'https://drive.google.com/file/d/1hN2wohuYluLARSbzo-QyDIu4lnMzKFtv/view',
+  },
+};
+function getLienCours(cycle, bloc, item) {
+  var parItem = LIVRET_LIENS_COURS_ITEM[cycle] && LIVRET_LIENS_COURS_ITEM[cycle][item];
+  if (parItem) return parItem;
+  return (LIVRET_LIENS_COURS[cycle] && LIVRET_LIENS_COURS[cycle][bloc]) || LIEN_COURS_JSP_DRIVE;
+}
+function getDimanchesCoursPourCycle(cycle) {
+  var dates = getDimanchesCours();
+  if (cycle === 'JSP1') {
+    // Les JSP1 ne rentrent qu'en janvier : on ne leur répartit le programme qu'à partir de janvier
+    return dates.filter(function(d){ var m = parseInt(d.slice(5,7),10); return m>=1 && m<=8; });
+  }
+  return dates; // JSP2/3/4 mélangés sur toute l'année
+}
+function getProgrammeAnnuelCycle(cycle) {
+  var items = LIVRET_CONNAISSANCES[cycle] || [];
+  var dates = getDimanchesCoursPourCycle(cycle);
+  var map = {};
+  dates.forEach(function(d){ map[d] = []; });
+  if (dates.length && items.length) {
+    items.forEach(function(item, idx) {
+      var dateIdx = Math.min(dates.length-1, Math.floor(idx * dates.length / items.length));
+      map[dates[dateIdx]].push(item);
+    });
+  }
+  return map; // date -> [items]
+}
+function renderProgrammeAnnuel() {
+  var cycles = ['JSP1','JSP2','JSP3','JSP4'];
+  var progByCycle = {};
+  cycles.forEach(function(c){ progByCycle[c] = getProgrammeAnnuelCycle(c); });
+  var toutesDates = getDimanchesCours();
+  var html = '<h3><i class="ti ti-route"></i> Programme de l\'année (fil d\'Ariane)</h3>';
+  html += '<p style="font-size:13px;color:var(--gris-txt);margin:0 0 12px">Répartition indicative du référentiel officiel sur les dimanches déjà planifiés (type "formation") — JSP1 uniquement à partir de janvier (rentrée décalée), JSP2/3/4 mélangés sur toute l\'année. Pas d\'ordre imposé à respecter, juste un repère pour savoir où en est chaque groupe ; la seule obligation est de couvrir tout le programme sur l\'année. <a href="'+LIEN_COURS_JSP_DRIVE+'" target="_blank" rel="noopener">📎 Supports de cours (Google Drive)</a></p>';
+  if (!toutesDates.length) {
+    html += '<p style="color:var(--gris-txt)">Aucune séance de type "formation" un dimanche n\'est encore planifiée dans '+DB.saison+'.</p>';
+    return html;
+  }
+  html += '<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%;min-width:680px"><thead><tr>'
+    + '<th style="text-align:left;padding:6px;background:var(--bleu);color:white;white-space:nowrap">Date</th>'
+    + cycles.map(function(c){ return '<th style="text-align:left;padding:6px;background:var(--bleu);color:white">'+c+'</th>'; }).join('')
+    + '</tr></thead><tbody>';
+  toutesDates.forEach(function(d, i) {
+    html += '<tr style="background:'+(i%2?'#f9fafb':'white')+'"><td style="padding:6px;font-weight:700;white-space:nowrap;vertical-align:top">'+fmtDate(d)+'</td>';
+    cycles.forEach(function(c) {
+      var items = (progByCycle[c][d]||[]);
+      if (!items.length) {
+        html += '<td style="padding:6px;color:#d1d5db;vertical-align:top">—</td>';
+      } else {
+        html += '<td style="padding:6px;vertical-align:top">'+items.map(function(it){
+          return '<div style="margin-bottom:3px"><b>'+escAttr(it.bloc)+'</b> — '+escAttr(it.item)
+            + ' <a href="'+getLienCours(c, it.bloc, it.item)+'" target="_blank" rel="noopener" title="Voir le cours" style="white-space:nowrap"><i class="ti ti-external-link" style="font-size:11px"></i></a></div>';
+        }).join('')+'</td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+function modalProgrammeAnnuel() {
+  openModalWide('<div>'+renderProgrammeAnnuel()+'<div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Fermer</button></div></div>');
+}
+
+// ── Détail d'une case du calendrier (événements + programme du jour) ──
+function modalCaseJour(dateStr) {
+  var typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c',sortie:'#6b21a8'};
+  var typeBg = {formation:'#dbeafe',exercice:'#fef3c7',ceremonie:'#dcfce7',controle:'#fee2e2',sortie:'#f3e8ff'};
+  var evts = DB.planning.filter(function(p){ return p.date === dateStr; });
+  var cycles = ['JSP1','JSP2','JSP3','JSP4'];
+  var progHtml = '';
+  cycles.forEach(function(c) {
+    var items = (getProgrammeAnnuelCycle(c)[dateStr]) || [];
+    if (!items.length) return;
+    progHtml += '<div style="margin-bottom:14px">'
+      + '<span style="font-size:12px;font-weight:700;background:'+CYCLE_BG[c]+';color:'+CYCLE_COLORS[c]+';padding:3px 12px;border-radius:20px">'+c+'</span>'
+      + '<div style="margin-top:8px">'
+      + items.map(function(it){
+          return '<div style="font-size:13px;padding:8px 12px;background:'+CYCLE_BG[c]+';border-left:3px solid '+CYCLE_COLORS[c]+';border-radius:6px;margin-bottom:6px">'
+            + (it.domaine ? '<div style="font-size:11px;color:var(--gris-txt);margin-bottom:2px">'+escAttr(it.domaine)+'</div>' : '')
+            + '<div style="font-weight:700;color:#1f2937">'+escAttr(it.bloc)+'</div>'
+            + '<div style="color:#374151">'+escAttr(it.item)+'</div>'
+            + '<a href="'+getLienCours(c, it.bloc, it.item)+'" target="_blank" rel="noopener" style="font-size:11px;font-weight:600;color:'+CYCLE_COLORS[c]+'"><i class="ti ti-external-link"></i> Voir le cours</a>'
+            + '</div>';
+        }).join('')
+      + '</div></div>';
+  });
+  var evtsHtml = '';
+  if (evts.length) {
+    evtsHtml = '<div style="margin-bottom:16px">' + evts.map(function(e){
+      return '<div onclick="closeModal();showEvtDetail('+e.id+')" style="cursor:pointer;font-size:13px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:8px;padding:10px 14px;margin-bottom:6px;font-weight:600">'
+        + '<i class="ti ti-calendar-event"></i> '+escAttr(e.titre)+(e.lieu?' — '+escAttr(e.lieu):'')+'</div>';
+    }).join('') + '</div>';
+  }
+  var lienHtml = progHtml ? '<p style="font-size:13px;margin-top:6px;margin-bottom:16px"><a href="'+LIEN_COURS_JSP_DRIVE+'" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ouvrir les supports de cours (Google Drive)</a></p>' : '';
+  var html = '<h3><i class="ti ti-calendar-event"></i> '+fmtDate(dateStr)+'</h3>'
+    + evtsHtml
+    + (progHtml || '<p style="font-size:13px;color:var(--gris-txt)">Aucun programme prévu pour ce dimanche.</p>')
+    + lienHtml
+    + '<div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Fermer</button>'
+    + '<button class="btn-save" onclick="closeModal();modalAddPlanning(\''+dateStr+'\')"><i class="ti ti-plus"></i> Ajouter un événement</button></div>';
+  openModalWide(html);
 }
 
 // ── Compétences par cycle ──
