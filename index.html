@@ -601,6 +601,7 @@ async function loadFromCloud() {
       if (!cloud.habillement) cloud.habillement = [];
       if (!cloud.mouvementsHabillement) cloud.mouvementsHabillement = [];
       if (!cloud.stockHabillement) cloud.stockHabillement = [];
+      if (!cloud.commandesHabillement) cloud.commandesHabillement = [];
       if (!cloud.finance) cloud.finance = [];
       if (!cloud.connexionsLog) cloud.connexionsLog = [];
       if (!cloud.validationsReglement) cloud.validationsReglement = [];
@@ -645,6 +646,7 @@ function loadData() {
     if (!parsed.habillement) parsed.habillement = [];
     if (!parsed.mouvementsHabillement) parsed.mouvementsHabillement = [];
     if (!parsed.stockHabillement) parsed.stockHabillement = [];
+    if (!parsed.commandesHabillement) parsed.commandesHabillement = [];
     if (!parsed.finance) parsed.finance = [];
     if (!parsed.connexionsLog) parsed.connexionsLog = [];
     if (!parsed.validationsReglement) parsed.validationsReglement = [];
@@ -1116,6 +1118,7 @@ function loadData() {
     habillement: [],
     mouvementsHabillement: [],
     stockHabillement: [],
+    commandesHabillement: [],
     finance: [],
     connexionsLog: [],
     validationsReglement: [],
@@ -10837,10 +10840,10 @@ function getBesoinsArticle(articleId, champ) {
   return besoins;
 }
 
-function renderStockHabillement() {
-  if (!DB.stockHabillement) DB.stockHabillement = [];
-
-  // Calcul global des manques pour le bandeau d'alerte
+// Calcul partagé des manques (bandeau d'alerte, export stock, génération de commande).
+// suggestion = quantité conseillée à commander : couvre à la fois le besoin JSP non couvert
+// et le retour au-dessus du seuil d'alerte.
+function calculerManquesHabillement() {
   const manques = [];
   STOCK_ARTICLES.forEach(art => {
     const besoins = getBesoinsArticle(art.id, art.champ);
@@ -10850,10 +10853,19 @@ function renderStockHabillement() {
       const manqueJSP = Math.max(0, besoin - qte);
       const sousSeuil = qte < seuil;
       if (manqueJSP > 0 || sousSeuil) {
-        manques.push({ article: art.label, taille: t, qte, seuil, besoin, manqueJSP, sousSeuil });
+        const suggestion = Math.max(manqueJSP, sousSeuil ? (seuil - qte) : 0);
+        manques.push({ articleId: art.id, article: art.label, taille: t, qte, seuil, besoin, manqueJSP, sousSeuil, suggestion });
       }
     });
   });
+  return manques;
+}
+
+function renderStockHabillement() {
+  if (!DB.stockHabillement) DB.stockHabillement = [];
+
+  // Calcul global des manques pour le bandeau d'alerte
+  const manques = calculerManquesHabillement();
 
   const bandeauAlerte = manques.length ? `
     <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:14px 18px;margin-bottom:18px">
@@ -10874,7 +10886,10 @@ function renderStockHabillement() {
   return `
   <div class="section-header">
     <h2><i class="ti ti-boxes"></i> Stock habillement — Inventaire</h2>
-    <button class="btn-add" style="background:#6b7280" onclick="exportStockHabillementExcel()"><i class="ti ti-file-spreadsheet"></i> Exporter Excel</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-add" style="background:var(--bleu)" onclick="modalGenererCommande()"><i class="ti ti-clipboard-list"></i> Générer une commande</button>
+      <button class="btn-add" style="background:#6b7280" onclick="exportStockHabillementExcel()"><i class="ti ti-file-spreadsheet"></i> Exporter Excel</button>
+    </div>
   </div>
   <p style="font-size:13px;color:var(--gris-txt);margin-bottom:14px">
     Saisis les quantités en stock et le seuil d'alerte pour chaque article/taille. La colonne "Besoin JSP" reprend les tailles actuellement portées par tes JSP (page Dotation). La colonne "Manque" indique combien de pièces commander pour couvrir tous les JSP actuels.
@@ -10942,6 +10957,263 @@ function exportStockHabillementExcel() {
   XLSX.utils.book_append_sheet(wb, ws, 'Stock habillement');
   downloadXLSX(wb, 'Stock_Habillement_' + DB.saison + '.xlsx');
 }
+
+// ══════════════════════════════════════════
+//  COMMANDES HABILLEMENT
+// ══════════════════════════════════════════
+let _cmdDraftLignes = [];
+
+function incrementStockQte(articleId, taille, delta) {
+  if (!DB.stockHabillement) DB.stockHabillement = [];
+  let e = DB.stockHabillement.find(s => s.articleId === articleId && s.taille === taille);
+  if (!e) {
+    e = { articleId, taille, qte: 0, seuil: 0 };
+    DB.stockHabillement.push(e);
+  }
+  e.qte = Math.max(0, (e.qte || 0) + delta);
+}
+
+function modalGenererCommande() {
+  const manques = calculerManquesHabillement().filter(m => m.suggestion > 0);
+  _cmdDraftLignes = manques.map(m => ({ articleId: m.articleId, article: m.article, taille: m.taille, qte: m.suggestion, checked: true }));
+
+  openModalWide(`
+    <h3><i class="ti ti-clipboard-list"></i> Générer une commande habillement</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:14px">
+      Les lignes ci-dessous sont pré-remplies à partir des manques et seuils actuels (page Stock & Inventaire). Décoche, modifie les quantités ou ajoute une ligne avant d'enregistrer.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Fournisseur</label><input id="cmd-fournisseur" type="text" placeholder="Ex : Cofratex, Manutan..."></div>
+      <div class="form-group"><label>Référence commande</label><input id="cmd-reference" type="text" placeholder="Ex : CMD-2026-01"></div>
+    </div>
+    <div id="cmd-lignes-body">${renderCmdLignesBody()}</div>
+    <div style="display:flex;gap:10px;align-items:flex-end;margin:10px 0 14px;padding:10px;background:var(--gris-bg);border-radius:8px">
+      <div class="form-group" style="margin:0;flex:1"><label>Article</label>
+        <select id="cmd-add-article" onchange="updateCmdAddTailles()">${STOCK_ARTICLES.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select>
+      </div>
+      <div class="form-group" style="margin:0;width:140px"><label>Taille</label><select id="cmd-add-taille"></select></div>
+      <div class="form-group" style="margin:0;width:90px"><label>Qté</label><input id="cmd-add-qte" type="number" min="1" value="1"></div>
+      <button class="btn-add" style="background:#6b7280" onclick="addCmdLigneManuelle()"><i class="ti ti-plus"></i> Ajouter</button>
+    </div>
+    <div class="form-group"><label>Remarques</label><textarea id="cmd-remarques" placeholder="Ex : livraison souhaitée avant la rentrée..."></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveCommandeHabillement()">💾 Enregistrer la commande</button>
+    </div>`);
+  setTimeout(updateCmdAddTailles, 0);
+}
+
+function renderCmdLignesBody() {
+  if (!_cmdDraftLignes.length) {
+    return `<p style="font-size:13px;color:var(--gris-txt);padding:10px 0">Aucune ligne pour l'instant — ajoute un article ci-dessous.</p>`;
+  }
+  return `
+  <div class="table-card" style="margin-bottom:10px">
+    <table>
+      <thead><tr><th style="width:36px"></th><th>Article</th><th>Taille</th><th style="width:100px">Quantité</th><th style="width:40px"></th></tr></thead>
+      <tbody>
+        ${_cmdDraftLignes.map((l,i) => `
+        <tr style="${l.checked?'':'opacity:.45'}">
+          <td><input type="checkbox" ${l.checked?'checked':''} onchange="toggleCmdLigne(${i})"></td>
+          <td>${l.article}</td>
+          <td><strong>${l.taille}</strong></td>
+          <td><input type="number" min="1" value="${l.qte}" style="width:70px;padding:5px 8px;border:1.5px solid var(--gris-bord);border-radius:6px;text-align:center" onchange="updateCmdLigneQte(${i},this.value)"></td>
+          <td><button onclick="removeCmdLigne(${i})" style="background:none;border:none;cursor:pointer;color:var(--rouge)" title="Retirer"><i class="ti ti-trash"></i></button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function toggleCmdLigne(i) {
+  _cmdDraftLignes[i].checked = !_cmdDraftLignes[i].checked;
+  document.getElementById('cmd-lignes-body').innerHTML = renderCmdLignesBody();
+}
+function updateCmdLigneQte(i, val) {
+  _cmdDraftLignes[i].qte = Math.max(1, parseInt(val) || 1);
+}
+function removeCmdLigne(i) {
+  _cmdDraftLignes.splice(i, 1);
+  document.getElementById('cmd-lignes-body').innerHTML = renderCmdLignesBody();
+}
+function updateCmdAddTailles() {
+  const articleId = document.getElementById('cmd-add-article')?.value;
+  const sel = document.getElementById('cmd-add-taille');
+  if (!sel) return;
+  const art = STOCK_ARTICLES.find(a => a.id === articleId);
+  sel.innerHTML = (art ? art.tailles : []).map(t => `<option value="${t}">${t}</option>`).join('');
+}
+function addCmdLigneManuelle() {
+  const articleId = document.getElementById('cmd-add-article').value;
+  const art = STOCK_ARTICLES.find(a => a.id === articleId);
+  const taille = document.getElementById('cmd-add-taille').value;
+  const qte = Math.max(1, parseInt(document.getElementById('cmd-add-qte').value) || 1);
+  if (!art || !taille) { alert('Sélectionne un article et une taille'); return; }
+  const existante = _cmdDraftLignes.find(l => l.articleId === articleId && l.taille === taille);
+  if (existante) { existante.qte += qte; existante.checked = true; }
+  else _cmdDraftLignes.push({ articleId, article: art.label, taille, qte, checked: true });
+  document.getElementById('cmd-lignes-body').innerHTML = renderCmdLignesBody();
+}
+
+function saveCommandeHabillement() {
+  const lignes = _cmdDraftLignes.filter(l => l.checked && l.qte > 0)
+    .map(l => ({ articleId: l.articleId, article: l.article, taille: l.taille, qte: l.qte, recu: false }));
+  if (!lignes.length) { alert('Ajoute au moins une ligne à commander'); return; }
+  if (!DB.commandesHabillement) DB.commandesHabillement = [];
+  const commande = {
+    id: nextId(DB.commandesHabillement),
+    date: new Date().toISOString().slice(0,10),
+    saison: DB.saison,
+    fournisseur: document.getElementById('cmd-fournisseur').value.trim(),
+    reference: document.getElementById('cmd-reference').value.trim(),
+    remarques: document.getElementById('cmd-remarques').value.trim(),
+    lignes
+  };
+  DB.commandesHabillement.push(commande);
+  saveData();
+  closeModal();
+  document.getElementById('content').innerHTML = renderHabillement('commandes');
+  showNotifToast('✅ Commande enregistrée — ' + lignes.length + ' ligne(s)');
+}
+
+function statutCommandeHabillement(commande) {
+  const nbRecu = commande.lignes.filter(l => l.recu).length;
+  if (nbRecu === 0) return '<span class="badge badge-orange">⏳ En attente</span>';
+  if (nbRecu === commande.lignes.length) return '<span class="badge badge-vert">✅ Reçue</span>';
+  return '<span class="badge badge-bleu">🔄 Partielle (' + nbRecu + '/' + commande.lignes.length + ')</span>';
+}
+
+function renderCommandesHabillement() {
+  if (!DB.commandesHabillement) DB.commandesHabillement = [];
+  const commandes = [...DB.commandesHabillement].sort((a,b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+  if (!commandes.length) {
+    return `<p style="font-size:13px;color:var(--gris-txt);padding:10px 0">Aucune commande enregistrée. Utilise le bouton "Générer une commande" pour créer un bon à partir des manques de stock actuels.</p>`;
+  }
+
+  return commandes.map(c => `
+    <div class="table-card" style="margin-bottom:16px">
+      <div style="padding:12px 16px;background:var(--bleu-pale);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
+        <div>
+          <strong>${new Date(c.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}</strong>
+          ${c.fournisseur ? ' · ' + c.fournisseur : ''}
+          ${c.reference ? ' · Réf. ' + c.reference : ''}
+          &nbsp;${statutCommandeHabillement(c)}
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-add" style="padding:5px 10px;font-size:12px;background:#6b7280" onclick="printCommandeHabillement(${c.id})" title="Imprimer / PDF"><i class="ti ti-printer"></i> PDF</button>
+          <button class="btn-add" style="padding:5px 10px;font-size:12px;background:#6b7280" onclick="exportCommandeHabillementExcel(${c.id})" title="Export Excel"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+          <button class="btn-add" style="padding:5px 10px;font-size:12px;background:var(--rouge)" onclick="deleteCommandeHabillement(${c.id})" title="Supprimer"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Article</th><th>Taille</th><th>Quantité commandée</th><th style="width:110px">Reçu</th></tr></thead>
+        <tbody>
+          ${c.lignes.map((l,i) => `
+          <tr>
+            <td>${l.article}</td>
+            <td><strong>${l.taille}</strong></td>
+            <td>${l.qte}</td>
+            <td style="text-align:center"><input type="checkbox" ${l.recu?'checked':''} onchange="toggleCommandeLigneRecue(${c.id},${i},this.checked)"></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      ${c.remarques ? `<div style="padding:10px 16px;font-size:12px;color:var(--gris-txt)"><i class="ti ti-note"></i> ${c.remarques}</div>` : ''}
+    </div>`).join('');
+}
+
+function toggleCommandeLigneRecue(commandeId, ligneIdx, checked) {
+  const commande = DB.commandesHabillement.find(c => c.id === commandeId);
+  if (!commande) return;
+  const ligne = commande.lignes[ligneIdx];
+  if (!ligne || ligne.recu === checked) return;
+  incrementStockQte(ligne.articleId, ligne.taille, checked ? ligne.qte : -ligne.qte);
+  ligne.recu = checked;
+  saveData();
+  document.getElementById('content').innerHTML = renderHabillement('commandes');
+  showNotifToast(checked ? '✅ Ligne marquée reçue — stock mis à jour' : '↩️ Réception annulée — stock ajusté');
+}
+
+function deleteCommandeHabillement(id) {
+  if (!confirm('Supprimer cette commande ? (le stock déjà reçu ne sera pas modifié)')) return;
+  DB.commandesHabillement = DB.commandesHabillement.filter(c => c.id !== id);
+  saveData();
+  document.getElementById('content').innerHTML = renderHabillement('commandes');
+}
+
+function printCommandeHabillement(id) {
+  const c = DB.commandesHabillement.find(x => x.id === id);
+  if (!c) return;
+  const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+  const dateCmd = new Date(c.date).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+  const rows = c.lignes.map(l => `<tr>
+    <td>${l.article}</td><td>${l.taille}</td><td style="text-align:center">${l.qte}</td>
+    <td style="text-align:center">${l.recu ? '✅' : '—'}</td>
+  </tr>`).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head>
+    <meta charset="UTF-8"><title>Bon de commande habillement</title>
+    <style>
+      * { box-sizing:border-box; margin:0; padding:0; }
+      body { font-family:Arial,sans-serif; font-size:13px; padding:14mm; color:#111; }
+      @page { size:A4 portrait; margin:14mm; }
+      h1 { font-size:19px; color:#1a3c6e; margin-bottom:4px; }
+      .sub { font-size:12px; color:#6b7280; margin-bottom:18px; }
+      .infos { display:flex; gap:30px; margin-bottom:18px; font-size:13px; }
+      .infos div strong { display:block; color:#1a3c6e; font-size:11px; text-transform:uppercase; margin-bottom:2px; }
+      table { width:100%; border-collapse:collapse; margin-bottom:20px; }
+      thead { background:#1a3c6e; color:white; }
+      thead th { padding:9px 12px; text-align:left; font-size:12px; }
+      tbody tr { border-bottom:1px solid #e5e7eb; }
+      tbody tr:nth-child(even) { background:#f3f4f6; }
+      tbody td { padding:8px 12px; }
+      .remarques { font-size:12px; color:#374151; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; padding:10px 12px; margin-bottom:24px; }
+      .signature { margin-top:40px; display:flex; justify-content:space-between; }
+      .signature div { width:45%; border-top:1px solid #999; padding-top:6px; font-size:12px; color:#6b7280; }
+    </style>
+  </head><body>
+    <h1>📋 Bon de commande — Habillement JSP</h1>
+    <div class="sub">CIS Cruzy-Quarante · SDIS 34 · Section JSP · Imprimé le ${now}</div>
+    <div class="infos">
+      <div><strong>Date commande</strong>${dateCmd}</div>
+      <div><strong>Saison</strong>${c.saison || ''}</div>
+      <div><strong>Fournisseur</strong>${c.fournisseur || '—'}</div>
+      <div><strong>Référence</strong>${c.reference || '—'}</div>
+    </div>
+    <table>
+      <thead><tr><th>Article</th><th>Taille</th><th style="text-align:center">Quantité</th><th style="text-align:center">Reçu</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${c.remarques ? `<div class="remarques"><strong>Remarques :</strong> ${c.remarques}</div>` : ''}
+    <div class="signature">
+      <div>Signature responsable habillement</div>
+      <div>Cachet / signature fournisseur</div>
+    </div>
+    <script>window.onload=()=>{ window.print(); }<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+function exportCommandeHabillementExcel(id) {
+  const c = DB.commandesHabillement.find(x => x.id === id);
+  if (!c) return;
+  const wb = XLSX.utils.book_new();
+  const entete = [
+    ['Bon de commande — Habillement JSP — CIS Cruzy-Quarante'],
+    ['Date commande', c.date, 'Saison', c.saison || ''],
+    ['Fournisseur', c.fournisseur || '', 'Référence', c.reference || ''],
+    c.remarques ? ['Remarques', c.remarques] : [],
+    [],
+    ['Article', 'Taille', 'Quantité', 'Reçu']
+  ].filter(r => r.length);
+  const rows = c.lignes.map(l => [l.article, l.taille, l.qte, l.recu ? 'Oui' : 'Non']);
+  const ws = XLSX.utils.aoa_to_sheet([...entete, ...rows]);
+  ws['!cols'] = [{wch:18},{wch:16},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Commande');
+  downloadXLSX(wb, 'Commande_Habillement_' + c.id + '_' + c.date + '.xlsx');
+}
+
 // ══════════════════════════════════════════
 //  FINANCE
 // ══════════════════════════════════════════
@@ -11184,6 +11456,7 @@ function renderHabillement(ongletActif) {
       <button onclick="document.getElementById('content').innerHTML=renderHabillement('dotation')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='dotation'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='dotation'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='dotation'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-shirt"></i> Dotation actuelle</button>
       <button onclick="document.getElementById('content').innerHTML=renderHabillement('historique')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='historique'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='historique'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='historique'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-history"></i> Historique mouvements ${DB.mouvementsHabillement.length?'('+DB.mouvementsHabillement.length+')':''}</button>
       <button onclick="document.getElementById('content').innerHTML=renderHabillement('stock')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='stock'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='stock'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='stock'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-boxes"></i> Stock & Inventaire</button>
+      <button onclick="document.getElementById('content').innerHTML=renderHabillement('commandes')" style="padding:8px 16px;border-radius:8px 8px 0 0;border:1.5px solid var(--gris-bord);border-bottom:${ongletActif==='commandes'?'3px solid var(--bleu)':'1.5px solid var(--gris-bord)'};background:${ongletActif==='commandes'?'white':'var(--gris-bg)'};font-weight:${ongletActif==='commandes'?'700':'500'};cursor:pointer;font-size:13px"><i class="ti ti-clipboard-list"></i> Commandes ${(DB.commandesHabillement||[]).length?'('+DB.commandesHabillement.length+')':''}</button>
     </div>`;
 
   if (ongletActif === 'stock') {
@@ -11193,6 +11466,20 @@ function renderHabillement(ongletActif) {
     </div>
     ${onglets}
     ${renderStockHabillement()}`;
+  }
+
+  if (ongletActif === 'commandes') {
+    return `
+    <div class="section-header">
+      <h2><i class="ti ti-shirt"></i> Habillement JSP</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-add" onclick="modalGenererCommande()" style="background:var(--bleu)">
+          <i class="ti ti-plus"></i> Générer une commande
+        </button>
+      </div>
+    </div>
+    ${onglets}
+    ${renderCommandesHabillement()}`;
   }
 
   if (ongletActif === 'historique') {
