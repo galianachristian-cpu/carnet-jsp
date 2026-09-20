@@ -402,6 +402,7 @@
         </div>
         <div class="nav-item" onclick="showSection('absences')">
           <i class="ti ti-calendar-x"></i><span>Absences</span>
+          <span id="badge-demandes-abs" class="badge-nav" style="display:none;background:var(--orange)">0</span>
         </div>
         <div class="nav-item" onclick="showSection('retards')">
           <i class="ti ti-clock-exclamation"></i><span>Retards</span>
@@ -572,6 +573,7 @@ async function saveData() {
   saveEnCours = true;
   try {
     setSyncStatus('wait', 'Sauvegarde…');
+    await fusionnerDemandesDepuisCloud();
     const { error } = await supabaseClient
       .from('carnet_jsp_data')
       .update({ data: DB, updated_at: new Date().toISOString() })
@@ -623,6 +625,8 @@ async function loadFromCloud() {
       if (!cloud.livretAPS) cloud.livretAPS = [];
       if (!cloud.livretFinal) cloud.livretFinal = [];
       if (!cloud.livretCursus) cloud.livretCursus = [];
+      if (!cloud.demandesAbsence) cloud.demandesAbsence = [];
+      normaliserAbsences(cloud);
       DB = cloud;
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
@@ -668,6 +672,8 @@ function loadData() {
     if (!parsed.livretAPS) parsed.livretAPS = [];
     if (!parsed.livretFinal) parsed.livretFinal = [];
     if (!parsed.livretCursus) parsed.livretCursus = [];
+    if (!parsed.demandesAbsence) parsed.demandesAbsence = [];
+    normaliserAbsences(parsed);
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
     if (parsed.absences) {
       parsed.absences.forEach(a => { if (!a.saison) a.saison = '2025-2026'; });
@@ -1609,6 +1615,240 @@ async function initCloudSync() {
 }
 
 // ══════════════════════════════════════════
+//  DEMANDES D'ABSENCE DES FAMILLES
+// ══════════════════════════════════════════
+// (showToast était appelée à plusieurs endroits sans être définie)
+function showToast(msg, isError) { showNotifToast(msg, isError); }
+
+function escTexte(t) {
+  return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function dateISOLocale(d) {
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+
+// Complète les champs manquants des absences (sans rien supprimer ni écraser) :
+// l'appli d'appel écrivait "excuse" (sans "e") et pas de saison.
+function normaliserAbsences(db) {
+  if (!db || !Array.isArray(db.absences)) return;
+  db.absences.forEach(a => {
+    if (a.excusee === undefined && a.excuse !== undefined) a.excusee = !!a.excuse;
+    if (a.excuse === undefined && a.excusee !== undefined) a.excuse = !!a.excusee;
+    if (!a.saison && a.date) {
+      const an = parseInt(a.date.slice(0, 4), 10), m = parseInt(a.date.slice(5, 7), 10);
+      a.saison = m >= 9 ? (an + '-' + (an + 1)) : ((an - 1) + '-' + an);
+    }
+  });
+}
+
+// Fusionne deux listes de demandes (par id). Une demande déjà traitée l'emporte sur "en attente".
+function fusionnerDemandes(a, b) {
+  const map = new Map();
+  [...(a || []), ...(b || [])].forEach(d => {
+    if (!d || d.id == null) return;
+    const prev = map.get(d.id);
+    if (!prev) { map.set(d.id, d); return; }
+    const traitePrev = prev.statut !== 'en_attente', traiteNew = d.statut !== 'en_attente';
+    if (traiteNew && !traitePrev) map.set(d.id, d);
+    else if (traiteNew && traitePrev && (d.tsTraitement || 0) > (prev.tsTraitement || 0)) map.set(d.id, d);
+  });
+  return [...map.values()];
+}
+
+// Modification "relire → modifier → écrire" avec contrôle : si quelqu'un d'autre a écrit
+// entre la lecture et l'écriture, on recommence sur les données fraîches.
+// `mutation(cloud)` modifie l'objet et renvoie true s'il y a quelque chose à écrire
+// (elle doit pouvoir être rejouée sans effet en double).
+async function majCloudAtomique(mutation) {
+  if (!supabaseClient) throw new Error('hors-ligne');
+  for (let essai = 0; essai < 4; essai++) {
+    const { data: row, error } = await supabaseClient
+      .from('carnet_jsp_data').select('data, updated_at').eq('id', 'main').single();
+    if (error || !row || !row.data || !row.data.jsps || !row.data.jsps.length) throw new Error('lecture');
+    const cloud = row.data;
+    if (!mutation(cloud)) return { cloud, ecrit: false };
+    let q = supabaseClient.from('carnet_jsp_data')
+      .update({ data: cloud, updated_at: new Date().toISOString() }).eq('id', 'main');
+    q = row.updated_at ? q.eq('updated_at', row.updated_at) : q.is('updated_at', null);
+    const res = await q.select('id');
+    if (res.error) throw res.error;
+    if (res.data && res.data.length) return { cloud, ecrit: true };
+  }
+  // Dernier recours : relecture puis écriture simple
+  const { data: row2, error: err2 } = await supabaseClient
+    .from('carnet_jsp_data').select('data').eq('id', 'main').single();
+  if (err2 || !row2 || !row2.data || !row2.data.jsps || !row2.data.jsps.length) throw new Error('lecture');
+  if (!mutation(row2.data)) return { cloud: row2.data, ecrit: false };
+  const fin = await supabaseClient.from('carnet_jsp_data')
+    .update({ data: row2.data, updated_at: new Date().toISOString() }).eq('id', 'main');
+  if (fin.error) throw fin.error;
+  return { cloud: row2.data, ecrit: true };
+}
+
+// Avant chaque sauvegarde complète : récupère les demandes arrivées entre-temps
+// pour qu'une sauvegarde depuis un écran pas à jour ne les efface pas.
+async function fusionnerDemandesDepuisCloud() {
+  try {
+    const { data: row, error } = await supabaseClient
+      .from('carnet_jsp_data').select('demandes:data->demandesAbsence').eq('id', 'main').single();
+    if (error || !row) return;
+    DB.demandesAbsence = fusionnerDemandes(DB.demandesAbsence, row.demandes);
+  } catch (e) { /* on sauvegarde quand même */ }
+}
+
+function majBadgeDemandesAbsence() {
+  const b = document.getElementById('badge-demandes-abs');
+  if (!b) return;
+  const nb = (DB.demandesAbsence || []).filter(d => d.statut === 'en_attente').length;
+  b.textContent = nb;
+  b.style.display = nb > 0 ? 'inline' : 'none';
+}
+
+// Relit les demandes (et absences) dans le cloud et rafraîchit l'écran si besoin
+async function rafraichirDemandesAbsence() {
+  if (!supabaseClient || !currentUser) return;
+  try {
+    const { data: row, error } = await supabaseClient
+      .from('carnet_jsp_data')
+      .select('demandes:data->demandesAbsence, absences:data->absences')
+      .eq('id', 'main').single();
+    if (error || !row) return;
+    const avant = JSON.stringify([DB.demandesAbsence || [], DB.absences || []]);
+    DB.demandesAbsence = fusionnerDemandes(DB.demandesAbsence, row.demandes);
+    if (Array.isArray(row.absences)) { DB.absences = row.absences; normaliserAbsences(DB); }
+    if (JSON.stringify([DB.demandesAbsence || [], DB.absences || []]) !== avant) {
+      localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+      majBadgeDemandesAbsence();
+      if (currentSection === 'absences' || currentSection === 'parent-absences') showSection(currentSection);
+    }
+  } catch (e) { /* silencieux : on garde les données locales */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && currentUser) rafraichirDemandesAbsence();
+});
+
+// ── Côté parent ──
+function modalDemandeAbsence() {
+  const j = getMyJSP();
+  if (!j) return;
+  const demain = new Date(); demain.setDate(demain.getDate() + 1);
+  openModal(`<h3><i class="ti ti-calendar-x"></i> Prévenir d'une absence</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:12px">Vous prévenez le chef de section pour <strong>${escTexte(j.prenom)}</strong>. L'absence sera confirmée lors de l'appel.</p>
+    <div class="form-group"><label>Date de la séance</label><input id="da_date" type="date" min="${dateISOLocale(new Date())}" value="${dateISOLocale(demain)}"></div>
+    <div class="form-group"><label>Raison</label>
+      <select id="da_motif"><option>Maladie</option><option>Rendez-vous médical</option><option>Raison familiale</option><option>Autre</option></select></div>
+    <div class="form-group"><label>Un mot pour le chef (facultatif)</label><textarea id="da_comm" maxlength="300" placeholder="Ex : il a de la fièvre"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" id="da_btn" onclick="envoyerDemandeAbsence()">Envoyer</button>
+    </div>`);
+}
+
+async function envoyerDemandeAbsence() {
+  const j = getMyJSP();
+  if (!j) return;
+  const date = document.getElementById('da_date').value;
+  const motif = document.getElementById('da_motif').value;
+  const commentaire = document.getElementById('da_comm').value.trim().slice(0, 300);
+  if (!date) { showToast("Merci de choisir la date de l'absence", true); return; }
+  if (date < dateISOLocale(new Date())) { showToast("La date doit être aujourd'hui ou plus tard", true); return; }
+  const btn = document.getElementById('da_btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
+  const demande = {
+    id: Date.now(), jspId: j.id, prenom: j.prenom, nom: j.nom, promotion: j.promotion,
+    date, motif, commentaire, ts: Date.now(), statut: 'en_attente'
+  };
+  let doublon = false;
+  try {
+    const r = await majCloudAtomique(cloud => {
+      doublon = false;
+      if (!cloud.demandesAbsence) cloud.demandesAbsence = [];
+      if (cloud.demandesAbsence.some(d => d.id === demande.id)) return false; // déjà écrite (nouvel essai)
+      if (cloud.demandesAbsence.some(d => d.jspId === demande.jspId && d.date === date && d.statut === 'en_attente')) {
+        doublon = true; return false;
+      }
+      cloud.demandesAbsence.push(demande);
+      return true;
+    });
+    DB.demandesAbsence = fusionnerDemandes(DB.demandesAbsence, r.cloud.demandesAbsence);
+    localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+    closeModal();
+    showToast(doublon ? 'Cette absence a déjà été signalée.' : "✅ Absence signalée. Le chef de section est prévenu.");
+    showSection('parent-absences');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Envoyer'; }
+    showToast("Envoi impossible pour le moment. Vérifiez votre connexion et réessayez.", true);
+  }
+}
+
+function renderDemandesParent(j) {
+  const libelles = {
+    en_attente: '⏳ En attente de confirmation',
+    validee: '✅ Absence enregistrée',
+    refusee: 'Non retenue — contactez le chef',
+    annulee_presente: '🙂 Présent à la séance'
+  };
+  const list = (DB.demandesAbsence || []).filter(d => d.jspId == j.id)
+    .sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5);
+  if (!list.length) return '';
+  return `<div class="table-card" style="margin-bottom:16px"><table>
+    <thead><tr><th>Absence signalée pour le</th><th>Raison</th><th>Suite donnée</th></tr></thead>
+    <tbody>${list.map(d => `<tr><td>${fmtDate(d.date)}</td><td>${escTexte(d.motif)}</td><td style="font-size:13px">${libelles[d.statut] || ''}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ── Côté chef / comptes avec accès Absences ──
+function blocDemandesAbsence() {
+  const en = (DB.demandesAbsence || []).filter(d => d.statut === 'en_attente')
+    .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  if (!en.length) return '';
+  return `<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:14px 18px;margin-bottom:18px">
+    <div style="font-weight:700;color:#1e40af;font-size:14px;margin-bottom:4px">📩 ${en.length} absence${en.length > 1 ? 's' : ''} annoncée${en.length > 1 ? 's' : ''} par les familles</div>
+    <div style="font-size:12px;color:var(--gris-txt);margin-bottom:10px">Elles sont confirmées lors de l'appel. Si l'enfant vient finalement, il suffit de le marquer présent.</div>
+    ${en.map(d => `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:white;border:1px solid #dbeafe;border-radius:8px;padding:8px 12px;margin-bottom:6px">
+      <div style="flex:1;min-width:200px"><strong>${escTexte(d.prenom)} ${escTexte(d.nom)}</strong> · ${fmtDate(d.date)} · ${escTexte(d.motif)}${d.commentaire ? `<div style="font-size:12px;color:var(--gris-txt)">« ${escTexte(d.commentaire)} »</div>` : ''}</div>
+      <button class="btn-save" style="padding:5px 12px;font-size:12px" onclick="traiterDemandeAbsence(${d.id},'validee')">Enregistrer maintenant</button>
+      <button class="btn-cancel" style="padding:5px 12px;font-size:12px" onclick="traiterDemandeAbsence(${d.id},'refusee')">Refuser</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+async function traiterDemandeAbsence(id, statut) {
+  if (!(DB.demandesAbsence || []).find(x => x.id === id)) return;
+  if (statut === 'validee' && !confirm("Enregistrer cette absence maintenant ?\nSi l'enfant vient finalement, il faudra la supprimer à la main. Le plus simple est de laisser l'appel la confirmer.")) return;
+  if (statut === 'refusee' && !confirm("Refuser cette demande ? La famille verra « Non retenue ».")) return;
+  try {
+    const r = await majCloudAtomique(cloud => {
+      const d = (cloud.demandesAbsence || []).find(x => x.id === id);
+      if (!d || d.statut !== 'en_attente') return false; // déjà traitée (ex. par l'appel)
+      d.statut = statut; d.tsTraitement = Date.now(); d.traitePar = 'carnet';
+      if (statut === 'validee') {
+        if (!cloud.absences) cloud.absences = [];
+        const existe = cloud.absences.some(a => a.jspId === d.jspId && a.date === d.date);
+        if (!existe) {
+          cloud.absences.push({
+            id: nextId(cloud.absences), jspId: d.jspId, saison: getSaisonFromDate(d.date), date: d.date,
+            motif: d.motif, excusee: true, excuse: true, statut: 'excuse',
+            remarque: 'Signalée par la famille' + (d.commentaire ? ' : ' + d.commentaire : ''),
+            origine: 'demande', demandeId: d.id
+          });
+        }
+      }
+      return true;
+    });
+    DB.demandesAbsence = fusionnerDemandes(DB.demandesAbsence, r.cloud.demandesAbsence);
+    if (Array.isArray(r.cloud.absences)) { DB.absences = r.cloud.absences; normaliserAbsences(DB); }
+    localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+    showToast(r.ecrit ? (statut === 'validee' ? '✅ Absence enregistrée' : 'Demande refusée') : 'Cette demande a déjà été traitée.');
+    showSection('absences');
+  } catch (e) {
+    showToast("Impossible de joindre le cloud. Réessaie dans un instant.", true);
+  }
+}
+
+// ══════════════════════════════════════════
 //  CONFIG EMAILJS
 // ══════════════════════════════════════════
 const EMAILJS_PUBLIC_KEY = 'bTc14Vd-hNQkzxP_G';
@@ -1923,6 +2163,8 @@ function showSection(sec) {
     case 'organigramme': c.innerHTML = renderOrganigramme(); break;
     case 'subventions': c.innerHTML = renderSubventions(); break;
   }
+  try { majBadgeDemandesAbsence(); } catch (e) {}
+  if (sec === 'absences' || sec === 'parent-absences') rafraichirDemandesAbsence();
 }
 
 // ══════════════════════════════════════════
@@ -2776,7 +3018,8 @@ async function remplirRH(pdfDoc, data, pieces, photoDataUrl) {
 // ══════════════════════════════════════════
 function getAbsenceStats(jspId, saison) {
   saison = saison || DB.saison;
-  const list = DB.absences.filter(a => a.jspId == jspId && a.saison === saison);
+  const list = DB.absences.filter(a => a.jspId == jspId && a.saison === saison
+    && a.statut !== 'retard' && a.statut !== 'excuse_retard');
   const nonExc = list.filter(a => !a.excusee).length;
   const exc = list.filter(a => a.excusee).length;
   const seuil = 3;
@@ -2815,6 +3058,7 @@ function renderAbsences(jspFilt, toutesSaisons) {
       <h2><i class="ti ti-calendar-x" aria-hidden="true"></i> Absences ${toutesSaisons ? '— Historique complet' : '— Saison ' + saisonActive}</h2>
       <button class="btn-add" onclick="modalAddAbsence()"><i class="ti ti-plus"></i> Ajouter</button>
     </div>
+    ${blocDemandesAbsence()}
     ${bandeauAlerte}
     <div class="jsp-selector" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
       <label><i class="ti ti-filter" aria-hidden="true"></i> Filtrer :</label>
@@ -5161,6 +5405,9 @@ function renderParentAccueil() {
     +'<div><h2>'+j.prenom+' '+j.nom+'</h2>'
     +'<p>'+j.promotion+' — Saison '+saison+'</p></div></div>';
 
+  // Bouton rapide : prévenir d'une absence
+  html2 += '<div style="margin-bottom:16px"><button class="btn-add" onclick="modalDemandeAbsence()"><i class="ti ti-calendar-x"></i> Prévenir d\'une absence</button></div>';
+
   // Stats cards
   html2 += '<div class="stats-grid" style="margin-bottom:20px">';
   html2 += '<div class="stat-card '+(absNE>0?'rouge':'vert')+'"><div class="stat-val">'+abs.length+'</div><div class="stat-lbl">Absences ('+absNE+' non excusées)</div></div>';
@@ -5214,7 +5461,9 @@ function renderParentAccueil() {
 function renderParentAbsences() {
   const j = getMyJSP();
   const list = [...DB.absences.filter(a=>a.jspId==j.id)].sort((a,b)=>b.date.localeCompare(a.date));
-  return `<div class="section-header"><h2><i class="ti ti-calendar-x" aria-hidden="true"></i> Absences de ${j.prenom}</h2></div>
+  return `<div class="section-header"><h2><i class="ti ti-calendar-x" aria-hidden="true"></i> Absences de ${j.prenom}</h2>
+      <button class="btn-add" onclick="modalDemandeAbsence()"><i class="ti ti-plus"></i> Prévenir d'une absence</button></div>
+    ${renderDemandesParent(j)}
     <div class="table-card"><table>
       <thead><tr><th>Date</th><th>Motif</th><th>Excusée</th><th>Remarque</th></tr></thead>
       <tbody>
