@@ -5160,6 +5160,15 @@ function resoudreMoisActifPlanning(moisActif) {
   }
   return moisActif;
 }
+// Programme du jour par groupe (JSP1..JSP4) pour une date donnée — même source que le calendrier
+function getProgrammeJourPartage(dateStr) {
+  var lignes = [];
+  ['JSP1','JSP2','JSP3','JSP4'].forEach(function(c) {
+    var items = (getProgrammeAnnuelCycle(c)[dateStr]) || [];
+    if (items.length) lignes.push({ cycle: c, texte: items.map(function(it){ return it.item; }).join(', ') });
+  });
+  return lignes;
+}
 function genererTextePlanningMois(moisActif) {
   moisActif = resoudreMoisActifPlanning(moisActif);
   var mois = getSaisonMois(DB.saison);
@@ -5167,16 +5176,29 @@ function genererTextePlanningMois(moisActif) {
   var moisInfo = mois.find(function(m){ return m.num===mActif && m.an===aActif; });
   var evts = DB.planning.filter(function(p){ return p.date.startsWith(aActif+'-'+mActif); }).sort(function(a,b){ return a.date.localeCompare(b.date); });
   var joursNoms = ['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
-  var txt = '📅 Planning JSP '+getSectionLabelPlanning()+' — '+(moisInfo?moisInfo.label:moisActif)+'\n\n';
+  var txt = '📅 *Planning JSP '+getSectionLabelPlanning()+' — '+(moisInfo?moisInfo.label:moisActif)+'*\n\n';
   if (!evts.length) { txt += 'Aucune séance prévue ce mois-ci.'; return txt; }
+  var datesProgDejaMises = {};
   evts.forEach(function(e) {
     var d = new Date(e.date+'T00:00:00');
     var jourNom = joursNoms[d.getDay()];
     var dd = e.date.slice(8,10)+'/'+e.date.slice(5,7);
-    txt += '🔸 '+jourNom+' '+dd+' — '+e.titre+'\n📍 '+(e.lieu||'—')+'\n\n';
+    txt += '🔸 *'+jourNom+' '+dd+'* — '+e.titre+'\n';
+    if (e.lieu && e.lieu.trim()) txt += '📍 '+e.lieu.trim()+'\n';
+    if (!datesProgDejaMises[e.date]) {
+      datesProgDejaMises[e.date] = true;
+      getProgrammeJourPartage(e.date).forEach(function(l){ txt += '   ▫️ '+l.cycle+' : '+l.texte+'\n'; });
+    }
+    txt += '\n';
   });
+  if (estJourVacancesMois(aActif, mActif)) txt += '🏖️ Pas de séance pendant les vacances scolaires.\n\n';
   txt += '— Envoyé depuis Carnet JSP';
   return txt;
+}
+function estJourVacancesMois(an, mois) {
+  var dernier = new Date(parseInt(an), parseInt(mois), 0).getDate();
+  for (var j=1;j<=dernier;j++) { if (estJourVacances(an+'-'+mois+'-'+String(j).padStart(2,'0'))) return true; }
+  return false;
 }
 function ouvrirWhatsAppPlanning() {
   var txt = genererTextePlanningMois(window._planningMois);
@@ -5190,6 +5212,17 @@ function copierTextePlanning() {
     alert('Copie impossible — sélectionne le texte manuellement dans la zone ci-dessus.');
   }
 }
+// Découpe un texte en lignes qui tiennent dans la largeur donnée (canvas)
+function decouperTexteCanvas(ctx, texte, largeurMax) {
+  var mots = String(texte).split(' '), lignes = [], ligne = '';
+  mots.forEach(function(mot) {
+    var essai = ligne ? ligne+' '+mot : mot;
+    if (ctx.measureText(essai).width > largeurMax && ligne) { lignes.push(ligne); ligne = mot; }
+    else ligne = essai;
+  });
+  if (ligne) lignes.push(ligne);
+  return lignes;
+}
 function telechargerImagePlanning() {
   var moisActif = resoudreMoisActifPlanning(window._planningMois);
   var mois = getSaisonMois(DB.saison);
@@ -5198,16 +5231,39 @@ function telechargerImagePlanning() {
   var evts = DB.planning.filter(function(p){ return p.date.startsWith(aActif+'-'+mActif); }).sort(function(a,b){ return a.date.localeCompare(b.date); });
   var joursNoms = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
   var typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c',sortie:'#6b21a8'};
+  var cycleColors = {JSP1:'#7c3aed',JSP2:'#ea580c',JSP3:'#0d9488',JSP4:'#db2777'};
+  var cycleBg = {JSP1:'#ede9fe',JSP2:'#ffedd5',JSP3:'#ccfbf1',JSP4:'#fce7f3'};
 
-  var W = 1000, rowH = 92, headerH = 150, footerH = 60;
-  var H = headerH + Math.max(evts.length,1)*rowH + footerH;
+  var W = 1000, headerH = 150, footerH = 60, padX = 56, largeurTexte = W - padX - 60;
+  var FONT_PROG = '18px Arial', LH_PROG = 24, labelW = 78;
+
+  // 1) Mesure : préparer chaque bloc et sa hauteur
+  var mesure = document.createElement('canvas').getContext('2d');
+  var datesProgDejaMises = {};
+  var blocs = evts.map(function(e) {
+    var prog = [];
+    if (!datesProgDejaMises[e.date]) {
+      datesProgDejaMises[e.date] = true;
+      mesure.font = FONT_PROG;
+      getProgrammeJourPartage(e.date).forEach(function(l) {
+        prog.push({ cycle: l.cycle, lignes: decouperTexteCanvas(mesure, l.texte, largeurTexte - labelW - 20) });
+      });
+    }
+    var lieu = (e.lieu && e.lieu.trim()) ? e.lieu.trim() : '';
+    var h = 20 + 30 + 30 + (lieu ? 28 : 0);
+    prog.forEach(function(p){ h += p.lignes.length*LH_PROG + 10; });
+    h += 14;
+    return { e: e, prog: prog, lieu: lieu, h: h };
+  });
+
+  var corpsH = blocs.length ? blocs.reduce(function(t,b){ return t + b.h + 14; }, 0) : 80;
+  var H = headerH + 16 + corpsH + footerH;
   var canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   var ctx = canvas.getContext('2d');
 
   ctx.fillStyle = '#f3f4f6';
   ctx.fillRect(0,0,W,H);
-
   ctx.fillStyle = '#1a3c6e';
   ctx.fillRect(0,0,W,headerH);
   ctx.fillStyle = '#ffffff';
@@ -5218,37 +5274,51 @@ function telechargerImagePlanning() {
   ctx.fillText((moisInfo?moisInfo.label:moisActif), W/2, 108);
 
   var y = headerH + 16;
-  if (!evts.length) {
+  if (!blocs.length) {
     ctx.fillStyle = '#374151';
     ctx.font = '26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Aucune séance prévue ce mois-ci.', W/2, y+30);
+    ctx.fillText('Aucune séance prévue ce mois-ci.', W/2, y+40);
   } else {
-    evts.forEach(function(e) {
+    blocs.forEach(function(b) {
+      var e = b.e;
       var d = new Date(e.date+'T00:00:00');
-      var jourNom = joursNoms[d.getDay()];
       var dd = e.date.slice(8,10)+'/'+e.date.slice(5,7);
       var col = typeColors[e.type] || '#374151';
 
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(30, y, W-60, rowH-14);
+      ctx.fillRect(30, y, W-60, b.h);
       ctx.fillStyle = col;
-      ctx.fillRect(30, y, 8, rowH-14);
+      ctx.fillRect(30, y, 8, b.h);
 
+      var cy = y + 20;
       ctx.textAlign = 'left';
       ctx.fillStyle = '#1f2937';
       ctx.font = 'bold 26px Arial';
-      ctx.fillText(jourNom+' '+dd, 56, y+34);
-
+      ctx.fillText(joursNoms[d.getDay()]+' '+dd, padX, cy+14);
+      cy += 30;
       ctx.font = '22px Arial';
-      ctx.fillStyle = '#1f2937';
-      ctx.fillText(e.titre, 56, y+62);
-
-      ctx.font = '18px Arial';
-      ctx.fillStyle = '#6b7280';
-      ctx.fillText('📍 '+(e.lieu||'—'), 56, y+84);
-
-      y += rowH;
+      ctx.fillStyle = col;
+      ctx.fillText(e.titre, padX, cy+14);
+      cy += 30;
+      if (b.lieu) {
+        ctx.font = '18px Arial';
+        ctx.fillStyle = '#6b7280';
+        ctx.fillText('📍 '+b.lieu, padX, cy+12);
+        cy += 28;
+      }
+      b.prog.forEach(function(p) {
+        var hBloc = p.lignes.length*LH_PROG + 4;
+        ctx.fillStyle = cycleBg[p.cycle];
+        ctx.fillRect(padX, cy, largeurTexte, hBloc);
+        ctx.fillStyle = cycleColors[p.cycle];
+        ctx.font = 'bold 18px Arial';
+        ctx.fillText(p.cycle, padX+10, cy+19);
+        ctx.font = FONT_PROG;
+        ctx.fillStyle = '#1f2937';
+        p.lignes.forEach(function(l, i){ ctx.fillText(l, padX+labelW, cy+19+i*LH_PROG); });
+        cy += hBloc + 6;
+      });
+      y += b.h + 14;
     });
   }
 
