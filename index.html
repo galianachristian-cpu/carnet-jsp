@@ -453,6 +453,8 @@
   .agenda-passes { background: none; border: none; color: var(--bleu-clair); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; padding: 6px 0 12px; }
   [data-theme="dark"] .agenda-vacances { background: #3b1c1c; border-color: #7f1d1d; color: #fecaca; }
   [data-theme="dark"] .agenda-titre { color: #f9fafb; }
+  .pp-lien { font-size: 13px; font-weight: 600; color: var(--bleu-clair); white-space: nowrap; text-decoration: none; padding: 4px 0; }
+  .pp-lien:hover { text-decoration: underline; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -5583,7 +5585,7 @@ function renderCarteProchaineSeance(j) {
     // Regroupement par thème (bloc) pour éviter les répétitions
     var blocs = [], parBloc = {};
     items.forEach(function(it){ if (!parBloc[it.bloc]) { parBloc[it.bloc] = []; blocs.push(it.bloc); } parBloc[it.bloc].push(it.item); });
-    var rendreBloc = function(b){ return '<div class="pp-bloc"><div class="pp-theme">'+escTexte(b)+'</div><ul>'+parBloc[b].map(function(x){ return '<li>'+escTexte(x)+'</li>'; }).join('')+'</ul></div>'; };
+    var rendreBloc = function(b){ return '<div class="pp-bloc"><div class="pp-theme">'+escTexte(b)+'</div><ul>'+parBloc[b].map(function(x){ return '<li>'+escTexte(x)+' <a class="pp-lien" href="'+getLienCours(cycle, b, x)+'" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Voir le cours</a></li>'; }).join('')+'</ul></div>'; };
     html += '<div class="prochaine-prog cycle-'+cycle+'"><div class="prochaine-prog-titre"><i class="ti ti-route"></i> Au programme pour '+escTexte(j.prenom)+' ('+cycle.replace('JSP','JSP ')+')</div>';
     html += blocs.map(rendreBloc).join('');
     html += '</div>';
@@ -6117,32 +6119,46 @@ function renderAgendaParent(saison) {
   return html;
 }
 
-// Détail d'une journée (lecture seule, vue parent) — utile sur tablette/téléphone où le survol n'existe pas
+// Détail d'une journée (lecture seule, vue parent) — même contenu que la vue admin, avec les liens vers les cours
 function modalJourParent(dateStr) {
-  const typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c',sortie:'#6b21a8'};
-  const typeBg = {formation:'#dbeafe',exercice:'#fef3c7',ceremonie:'#dcfce7',controle:'#fee2e2',sortie:'#f3e8ff'};
-  const cycleColors = {JSP1:'#7c3aed',JSP2:'#ea580c',JSP3:'#0d9488',JSP4:'#db2777'};
-  const cycleBg = {JSP1:'#ede9fe',JSP2:'#ffedd5',JSP3:'#ccfbf1',JSP4:'#fce7f3'};
-  const evts = DB.planning.filter(function(p){ return p.date === dateStr; });
-  let html = '<h3><i class="ti ti-calendar-event"></i> '+fmtDate(dateStr)+'</h3>';
-  evts.forEach(function(e) {
-    html += '<div style="padding:10px 12px;border-radius:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';margin-bottom:8px">'
-      +'<div style="font-weight:700;color:'+(typeColors[e.type]||'#374151')+'">'+escAttr(e.titre)+'</div>'
-      +(e.lieu ? '<div style="font-size:12px;color:var(--gris-txt)"><i class="ti ti-map-pin"></i> '+escAttr(e.lieu)+'</div>' : '')
-      +'</div>';
-  });
-  let prog = '';
-  ['JSP1','JSP2','JSP3','JSP4'].forEach(function(c) {
-    const items = (getProgrammeAnnuelCycle(c)[dateStr]) || [];
+  var typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c',sortie:'#6b21a8'};
+  var typeBg = {formation:'#dbeafe',exercice:'#fef3c7',ceremonie:'#dcfce7',controle:'#fee2e2',sortie:'#f3e8ff'};
+  var evts = DB.planning.filter(function(p){ return p.date === dateStr; });
+  var j = (typeof getMyJSP === 'function') ? getMyJSP() : null;
+  var cycleEnfant = j ? getCycleJSP(j) : null;
+  // Le groupe de l'enfant en premier, puis les autres
+  var cycles = ['JSP1','JSP2','JSP3','JSP4'];
+  if (cycleEnfant) cycles = [cycleEnfant].concat(cycles.filter(function(c){ return c !== cycleEnfant; }));
+  var progHtml = '';
+  cycles.forEach(function(c) {
+    var items = (getProgrammeAnnuelCycle(c)[dateStr]) || [];
     if (!items.length) return;
-    prog += '<div style="padding:8px 12px;border-radius:8px;background:'+cycleBg[c]+';margin-bottom:6px">'
-      +'<div style="font-weight:700;color:'+cycleColors[c]+';margin-bottom:2px">'+c+'</div>'
-      +items.map(function(it){ return '<div style="font-size:13px"><span style="color:var(--gris-txt);font-size:11px">'+escAttr(it.bloc)+'</span><br>'+escAttr(it.item)+'</div>'; }).join('')
-      +'</div>';
+    progHtml += '<div style="margin-bottom:14px">'
+      + '<span style="font-size:12px;font-weight:700;background:'+CYCLE_BG[c]+';color:'+CYCLE_COLORS[c]+';padding:3px 12px;border-radius:20px">'+c+(c===cycleEnfant && j ? ' — groupe de '+escAttr(j.prenom) : '')+'</span>'
+      + '<div style="margin-top:8px">'
+      + items.map(function(it){
+          return '<div style="font-size:13px;padding:8px 12px;background:'+CYCLE_BG[c]+';border-left:3px solid '+CYCLE_COLORS[c]+';border-radius:6px;margin-bottom:6px">'
+            + '<div style="font-size:11px;color:var(--gris-txt);margin-bottom:2px">'+(it.domaine ? escAttr(it.domaine)+' • ' : '')+escAttr(it.bloc)+'</div>'
+            + '<div style="font-weight:700;color:#1f2937;font-size:14px">'+escAttr(it.item)+'</div>'
+            + '<a href="'+getLienCours(c, it.bloc, it.item)+'" target="_blank" rel="noopener" style="display:inline-block;padding:6px 0;font-size:13px;font-weight:600;color:'+CYCLE_COLORS[c]+'"><i class="ti ti-external-link"></i> Voir le cours</a>'
+            + '</div>';
+        }).join('')
+      + '</div></div>';
   });
-  if (prog) html += '<div style="font-size:12px;font-weight:700;color:var(--gris-txt);margin:12px 0 6px;text-transform:uppercase">Programme du jour</div>'+prog;
-  html += '<div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Fermer</button></div>';
-  openModal(html);
+  var evtsHtml = '';
+  if (evts.length) {
+    evtsHtml = '<div style="margin-bottom:16px">' + evts.map(function(e){
+      return '<div style="font-size:13px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:8px;padding:10px 14px;margin-bottom:6px;font-weight:600">'
+        + '<i class="ti ti-calendar-event"></i> '+escAttr(e.titre)+((e.lieu && e.lieu.trim())?' — '+escAttr(e.lieu):'')+'</div>';
+    }).join('') + '</div>';
+  }
+  var lienHtml = progHtml ? '<p style="font-size:13px;margin-top:6px;margin-bottom:16px"><a href="'+LIEN_COURS_JSP_DRIVE+'" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ouvrir tous les supports de cours (Google Drive)</a></p>' : '';
+  var html = '<h3><i class="ti ti-calendar-event"></i> '+fmtDate(dateStr)+'</h3>'
+    + evtsHtml
+    + (progHtml || '<p style="font-size:13px;color:var(--gris-txt)">Aucun programme prévu pour cette date.</p>')
+    + lienHtml
+    + '<div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Fermer</button></div>';
+  openModalWide(html);
 }
 
 // ══════════════════════════════════════════
