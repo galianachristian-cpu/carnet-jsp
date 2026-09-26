@@ -357,6 +357,68 @@
   .nav-item.active { border-left-color: #cf1419; }
   [data-theme="dark"] .nav-item.active { border-left-color: #f05257; }
   button, input, select, textarea { font-family: inherit; }
+
+  /* ── Accueil parent : carte « Prochaine séance » ── */
+  .prochaine-seance {
+    display: flex; gap: 20px; align-items: stretch;
+    background: var(--blanc); border: 1px solid var(--gris-bord); border-radius: 14px;
+    padding: 18px; margin-bottom: 24px;
+  }
+  .prochaine-feuillet {
+    flex: 0 0 92px; border-radius: 10px; overflow: hidden; text-align: center;
+    background: var(--bleu); color: #fff; display: flex; flex-direction: column; align-self: flex-start;
+    box-shadow: 0 2px 0 #cf1419;
+  }
+  .pf-jour { background: #cf1419; font-size: 13px; font-weight: 700; padding: 4px 0; text-transform: capitalize; }
+  .pf-num { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 54px; font-weight: 700; line-height: 1; padding: 8px 0 0; }
+  .pf-mois { font-size: 14px; font-weight: 600; padding: 2px 0 10px; opacity: .9; }
+  .prochaine-corps { flex: 1; min-width: 0; }
+  .prochaine-entete { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
+  .prochaine-label { font-size: 14px; font-weight: 600; color: var(--gris-txt); }
+  .prochaine-rebours {
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 18px; font-weight: 700;
+    color: var(--bleu); background: var(--bleu-pale); border-radius: 20px; padding: 2px 14px; white-space: nowrap;
+  }
+  .prochaine-rebours.aujourdhui { background: #cf1419; color: #fff; }
+  .prochaine-date {
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 30px; font-weight: 700;
+    color: var(--bleu); line-height: 1.1; margin-bottom: 8px;
+  }
+  .prochaine-evt { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .prochaine-titre { font-size: 17px; font-weight: 600; }
+  .prochaine-type { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 20px; background: #f3f4f6; color: #374151; }
+  .prochaine-type.type-formation { background:#dbeafe; color:#2563b0; }
+  .prochaine-type.type-exercice { background:#fef3c7; color:#b45309; }
+  .prochaine-type.type-ceremonie { background:#dcfce7; color:#166534; }
+  .prochaine-type.type-controle { background:#fee2e2; color:#b91c1c; }
+  .prochaine-type.type-sortie { background:#f3e8ff; color:#6b21a8; }
+  .prochaine-lieu { font-size: 14px; color: var(--gris-txt); margin-top: 4px; }
+  .prochaine-prog { margin-top: 14px; border-radius: 10px; padding: 12px 14px; background: var(--gris-bg); border-left: 4px solid var(--bleu); }
+  .prochaine-prog.cycle-JSP1 { border-left-color:#7c3aed; } .prochaine-prog.cycle-JSP2 { border-left-color:#ea580c; }
+  .prochaine-prog.cycle-JSP3 { border-left-color:#0d9488; } .prochaine-prog.cycle-JSP4 { border-left-color:#db2777; }
+  .prochaine-prog-titre { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .pp-bloc + .pp-bloc { margin-top: 10px; }
+  .pp-theme { font-size: 13px; font-weight: 600; color: var(--gris-txt); margin-bottom: 3px; }
+  .prochaine-prog ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+  .prochaine-prog li { font-size: 15px; line-height: 1.35; }
+  .btn-prochaine-absence {
+    margin-top: 14px; background: transparent; border: 1.5px solid var(--gris-bord); color: var(--bleu);
+    border-radius: 8px; padding: 9px 14px; font-size: 14px; font-weight: 600; cursor: pointer; min-height: 44px;
+  }
+  .btn-prochaine-absence:hover { border-color: var(--bleu); background: var(--bleu-pale); }
+  .prochaine-vide {
+    display: flex; gap: 14px; align-items: center; background: var(--blanc); border: 1px dashed var(--gris-bord);
+    border-radius: 14px; padding: 18px; margin-bottom: 12px; font-size: 14px; color: var(--gris-txt);
+  }
+  .prochaine-vide i { font-size: 32px; color: var(--bleu); }
+  [data-theme="dark"] .prochaine-titre { color: #f9fafb; }
+  [data-theme="dark"] .btn-prochaine-absence { color: #93c5fd; }
+  @media (max-width: 560px) {
+    .prochaine-seance { flex-direction: column; gap: 12px; padding: 14px; }
+    .prochaine-feuillet { display: none; }
+    .prochaine-date { font-size: 24px; }
+    .btn-prochaine-absence { width: 100%; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -1749,13 +1811,14 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ── Côté parent ──
-function modalDemandeAbsence() {
+function modalDemandeAbsence(datePreremplie) {
   const j = getMyJSP();
   if (!j) return;
   const demain = new Date(); demain.setDate(demain.getDate() + 1);
+  const dateParDefaut = (typeof datePreremplie === 'string' && datePreremplie) ? datePreremplie : dateISOLocale(demain);
   openModal(`<h3><i class="ti ti-calendar-x"></i> Prévenir d'une absence</h3>
     <p style="font-size:13px;color:var(--gris-txt);margin-bottom:12px">Vous prévenez le chef de section pour <strong>${escTexte(j.prenom)}</strong>. L'absence sera confirmée lors de l'appel.</p>
-    <div class="form-group"><label>Date de la séance</label><input id="da_date" type="date" min="${dateISOLocale(new Date())}" value="${dateISOLocale(demain)}"></div>
+    <div class="form-group"><label>Date de la séance</label><input id="da_date" type="date" min="${dateISOLocale(new Date())}" value="${dateParDefaut}"></div>
     <div class="form-group"><label>Raison</label>
       <select id="da_motif"><option>Maladie</option><option>Rendez-vous médical</option><option>Raison familiale</option><option>Autre</option></select></div>
     <div class="form-group"><label>Un mot pour le chef (facultatif)</label><textarea id="da_comm" maxlength="300" placeholder="Ex : il a de la fièvre"></textarea></div>
@@ -5427,6 +5490,75 @@ async function importSheets() {
 // ══════════════════════════════════════════
 function getMyJSP() { return DB.jsps.find(j=>j.id===currentUser.jspId); }
 
+// ══════════════════════════════════════════
+//  ACCUEIL PARENT — carte « Prochaine séance »
+// ══════════════════════════════════════════
+function getCycleJSP(j) {
+  var c = String((j && j.promotion) || '').replace(/\s+/g,'').toUpperCase();
+  return /^JSP[1-4]$/.test(c) ? c : null;
+}
+function texteCompteARebours(dateStr) {
+  var auj = new Date(dateISOLocale(new Date())+'T00:00:00');
+  var d = new Date(dateStr+'T00:00:00');
+  var n = Math.round((d - auj) / 86400000);
+  if (n <= 0) return "Aujourd'hui";
+  if (n === 1) return 'Demain';
+  return 'Dans '+n+' jours';
+}
+function renderCarteProchaineSeance(j) {
+  var auj = dateISOLocale(new Date());
+  var futurs = DB.planning.filter(function(p){ return p.date >= auj; }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  var boutonAbsence = function(date) {
+    return '<button class="btn-prochaine-absence" onclick="modalDemandeAbsence('+(date?"'"+date+"'":'')+')"><i class="ti ti-calendar-x"></i> '
+      +(date ? 'Prévenir d\'une absence à cette séance' : 'Prévenir d\'une absence')+'</button>';
+  };
+  if (!futurs.length) {
+    return '<div class="prochaine-vide"><i class="ti ti-calendar-time"></i><div><b>Pas encore de séance planifiée.</b><br>'
+      +'Les prochaines dates apparaîtront ici dès qu\'elles seront ajoutées au planning.</div></div>'
+      +'<div style="margin-bottom:16px">'+boutonAbsence(null)+'</div>';
+  }
+  var date = futurs[0].date;
+  var evts = futurs.filter(function(p){ return p.date === date; });
+  var d = new Date(date+'T00:00:00');
+  var jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  var moisNoms = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var moisCourts = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+  var rebours = texteCompteARebours(date);
+  var estAujourdhui = date === auj;
+
+  var html = '<div class="prochaine-seance">';
+  // Feuillet de calendrier
+  html += '<div class="prochaine-feuillet" aria-hidden="true">'
+    + '<div class="pf-jour">'+jours[d.getDay()].slice(0,3)+'.</div>'
+    + '<div class="pf-num">'+d.getDate()+'</div>'
+    + '<div class="pf-mois">'+moisCourts[d.getMonth()]+'</div></div>';
+  // Contenu
+  html += '<div class="prochaine-corps">';
+  html += '<div class="prochaine-entete"><span class="prochaine-label">Prochaine séance</span>'
+    + '<span class="prochaine-rebours'+(estAujourdhui?' aujourdhui':'')+'">'+rebours+'</span></div>';
+  html += '<div class="prochaine-date">'+jours[d.getDay()]+' '+d.getDate()+' '+moisNoms[d.getMonth()]+'</div>';
+  evts.forEach(function(e) {
+    html += '<div class="prochaine-evt"><span class="prochaine-titre">'+escTexte(e.titre)+'</span>'
+      + '<span class="prochaine-type type-'+e.type+'">'+libelleTypePlanning(e.type)+'</span></div>';
+    if (e.lieu && e.lieu.trim()) html += '<div class="prochaine-lieu"><i class="ti ti-map-pin"></i> '+escTexte(e.lieu)+'</div>';
+  });
+  // Programme du groupe de l'enfant
+  var cycle = getCycleJSP(j);
+  var items = cycle ? ((getProgrammeAnnuelCycle(cycle)[date]) || []) : [];
+  if (items.length) {
+    // Regroupement par thème (bloc) pour éviter les répétitions
+    var blocs = [], parBloc = {};
+    items.forEach(function(it){ if (!parBloc[it.bloc]) { parBloc[it.bloc] = []; blocs.push(it.bloc); } parBloc[it.bloc].push(it.item); });
+    var rendreBloc = function(b){ return '<div class="pp-bloc"><div class="pp-theme">'+escTexte(b)+'</div><ul>'+parBloc[b].map(function(x){ return '<li>'+escTexte(x)+'</li>'; }).join('')+'</ul></div>'; };
+    html += '<div class="prochaine-prog cycle-'+cycle+'"><div class="prochaine-prog-titre"><i class="ti ti-route"></i> Au programme pour '+escTexte(j.prenom)+' ('+cycle.replace('JSP','JSP ')+')</div>';
+    html += blocs.map(rendreBloc).join('');
+    html += '</div>';
+  }
+  html += boutonAbsence(date);
+  html += '</div></div>';
+  return html;
+}
+
 function renderParentAccueil() {
   const j = getMyJSP();
   if (!j) return '<p>Aucun JSP associé à ce compte.</p>';
@@ -5442,8 +5574,10 @@ function renderParentAccueil() {
   const avatarHTML = j.photo
     ? '<img src="'+j.photo+'" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,0.5)">'
     : '<div class="enfant-avatar">'+initiales+'</div>';
-  const prochains = DB.planning.filter(p => p.date >= new Date().toISOString().slice(0,10))
-    .sort((a,b) => a.date.localeCompare(b.date)).slice(0,3);
+  const _auj = dateISOLocale(new Date());
+  const _futurs = DB.planning.filter(p => p.date >= _auj).sort((a,b) => a.date.localeCompare(b.date));
+  const _dateProchaine = _futurs.length ? _futurs[0].date : null;
+  const prochains = _futurs.filter(p => p.date !== _dateProchaine).slice(0,3);
 
   // Calcul assiduité %
   const totalSeances = abs.length || 1;
@@ -5492,12 +5626,12 @@ function renderParentAccueil() {
 
   // Card JSP
   html2 += '<div class="enfant-card">'
-    +'<div class="enfant-avatar">'+initiales+'</div>'
+    +avatarHTML
     +'<div><h2>'+j.prenom+' '+j.nom+'</h2>'
     +'<p>'+j.promotion+' — Saison '+saison+'</p></div></div>';
 
-  // Bouton rapide : prévenir d'une absence
-  html2 += '<div style="margin-bottom:16px"><button class="btn-add" onclick="modalDemandeAbsence()"><i class="ti ti-calendar-x"></i> Prévenir d\'une absence</button></div>';
+  // Carte « Prochaine séance » (ou bouton simple s'il n'y a rien de prévu)
+  html2 += renderCarteProchaineSeance(j);
 
   // Stats cards
   html2 += '<div class="stats-grid" style="margin-bottom:20px">';
@@ -5530,7 +5664,7 @@ function renderParentAccueil() {
 
   // Prochains événements
   if (prochains.length) {
-    html2 += '<div class="section-header"><h2><i class="ti ti-calendar" aria-hidden="true"></i> Prochains événements</h2></div>';
+    html2 += '<div class="section-header"><h2><i class="ti ti-calendar" aria-hidden="true"></i> Et ensuite</h2></div>';
     html2 += '<div class="planning-grid">';
     prochains.forEach(p => {
       const typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c'};
@@ -5538,8 +5672,8 @@ function renderParentAccueil() {
       html2 += '<div class="planning-item">'
         +'<div class="planning-date">'+fmtDate(p.date)+'</div>'
         +'<div style="flex:1"><div class="planning-titre">'+p.titre+'</div>'
-        +'<div class="planning-type"><i class="ti ti-map-pin" style="font-size:11px"></i> '+p.lieu+'</div></div>'
-        +'<span class="badge badge-bleu" style="background:'+(typeBg[p.type]||'#f3f4f6')+';color:'+(typeColors[p.type]||'#374151')+'">'+p.type+'</span>'
+        +((p.lieu && p.lieu.trim()) ? '<div class="planning-type"><i class="ti ti-map-pin" style="font-size:11px"></i> '+escTexte(p.lieu)+'</div>' : '')+'</div>'
+        +'<span class="badge badge-bleu" style="background:'+(typeBg[p.type]||'#f3f4f6')+';color:'+(typeColors[p.type]||'#374151')+'">'+libelleTypePlanning(p.type)+'</span>'
         +'</div>';
     });
     html2 += '</div>';
