@@ -419,6 +419,40 @@
     .prochaine-date { font-size: 24px; }
     .btn-prochaine-absence { width: 100%; }
   }
+
+  /* ── Planning parent : bascule Agenda / Calendrier + vue Agenda ── */
+  .entete-planning { flex-wrap: wrap; gap: 10px; }
+  .vue-bascule { display: inline-flex; background: var(--gris-bg); border: 1px solid var(--gris-bord); border-radius: 10px; padding: 3px; gap: 2px; }
+  .vue-bascule button { border: none; background: transparent; padding: 7px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--gris-txt); cursor: pointer; min-height: 38px; }
+  .vue-bascule button.actif { background: var(--blanc); color: var(--bleu); box-shadow: 0 1px 2px rgba(22,58,100,.15); }
+  .agenda { display: flex; flex-direction: column; gap: 8px; }
+  .agenda-mois { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 22px; font-weight: 700; color: var(--bleu); margin: 14px 0 2px; }
+  .agenda-mois:first-child { margin-top: 0; }
+  .agenda-jour {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; font: inherit; color: inherit;
+    background: var(--blanc); border: 1px solid var(--gris-bord); border-radius: 12px; padding: 12px 14px; cursor: pointer; min-height: 64px;
+  }
+  .agenda-jour:hover { border-color: var(--bleu-clair); }
+  .agenda-jour.prochaine { border: 2px solid var(--bleu); }
+  .agenda-jour.passe { opacity: .55; }
+  .agenda-date { flex: 0 0 52px; display: flex; flex-direction: column; align-items: center; border-radius: 8px; background: var(--bleu-pale); color: var(--bleu); padding: 4px 0; }
+  .agenda-jour.prochaine .agenda-date { background: var(--bleu); color: #fff; }
+  .ad-jour { font-size: 12px; font-weight: 700; }
+  .ad-num { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 28px; font-weight: 700; line-height: 1; }
+  .agenda-infos { flex: 1; min-width: 0; }
+  .agenda-rebours { display: inline-block; font-size: 12px; font-weight: 700; color: #fff; background: #cf1419; border-radius: 20px; padding: 1px 10px; margin-bottom: 4px; }
+  .agenda-evt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .agenda-titre { font-size: 16px; font-weight: 600; }
+  .agenda-lieu { font-size: 13px; color: var(--gris-txt); margin-top: 2px; }
+  .agenda-prog { font-size: 13px; margin-top: 4px; padding-left: 8px; border-left: 3px solid var(--bleu); color: var(--gris-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .agenda-prog.cycle-JSP1 { border-left-color:#7c3aed; } .agenda-prog.cycle-JSP2 { border-left-color:#ea580c; }
+  .agenda-prog.cycle-JSP3 { border-left-color:#0d9488; } .agenda-prog.cycle-JSP4 { border-left-color:#db2777; }
+  .agenda-chevron { color: var(--gris-txt); font-size: 18px; }
+  .agenda-vacances { display: flex; gap: 10px; align-items: center; background: #fef2f2; border: 1px dashed #fecaca; color: #991b1b; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+  .agenda-vacances i { font-size: 20px; }
+  .agenda-passes { background: none; border: none; color: var(--bleu-clair); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; padding: 6px 0 12px; }
+  [data-theme="dark"] .agenda-vacances { background: #3b1c1c; border-color: #7f1d1d; color: #fecaca; }
+  [data-theme="dark"] .agenda-titre { color: #f9fafb; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -5982,13 +6016,105 @@ function renderParentPlanning(moisActif) {
     +['JSP1','JSP2','JSP3','JSP4'].map(function(c){ return '<span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;background:'+cycleBg[c]+';color:'+cycleColors[c]+'">'+c+'</span>'; }).join('')
     +'</div>';
 
+  // Choix de la vue : Agenda (liste) par défaut sur téléphone, Calendrier sur tablette/ordinateur
+  if (!window._planningParentVue) window._planningParentVue = (window.innerWidth < 700) ? 'agenda' : 'calendrier';
+  const vue = window._planningParentVue;
+  const bascule = '<div class="vue-bascule" role="group" aria-label="Affichage du planning">'
+    + '<button class="'+(vue==='agenda'?'actif':'')+'" aria-pressed="'+(vue==='agenda')+'" onclick="window._planningParentVue=\'agenda\';showSection(\'parent-planning\')"><i class="ti ti-list"></i> Agenda</button>'
+    + '<button class="'+(vue==='calendrier'?'actif':'')+'" aria-pressed="'+(vue==='calendrier')+'" onclick="window._planningParentVue=\'calendrier\';showSection(\'parent-planning\')"><i class="ti ti-calendar-month"></i> Calendrier</button>'
+    + '</div>';
+  const entete = `<div class="section-header entete-planning"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning de la section ${saison}</h2>${bascule}</div>`;
+
+  if (vue === 'agenda') return entete + renderAgendaParent(saison);
+
   return `
-    <div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning de la section ${saison}</h2></div>
+    ${entete}
     ${legende}
     ${onglets}
-    <div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">
+    <div style="background:var(--blanc);border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">
       ${calHtml}${listeHtml}
     </div>`;
+}
+
+// ══════════════════════════════════════════
+//  PLANNING PARENT — vue Agenda (liste)
+// ══════════════════════════════════════════
+function renderAgendaParent(saison) {
+  const auj = dateISOLocale(new Date());
+  const j = (typeof getMyJSP === 'function') ? getMyJSP() : null;
+  const cycle = j ? getCycleJSP(j) : null;
+  const prog = cycle ? getProgrammeAnnuelCycle(cycle) : {};
+  const moisSaison = getSaisonMois(saison);
+  const debutSaison = moisSaison[0].an+'-'+moisSaison[0].num+'-01';
+  const finSaison = moisSaison[11].an+'-'+moisSaison[11].num+'-31';
+  const voirPasses = !!window._agendaVoirPasses;
+  const depart = voirPasses ? debutSaison : auj;
+
+  const evts = DB.planning.filter(p => p.date >= depart && p.date <= finSaison).sort((a,b)=>a.date.localeCompare(b.date));
+  const nbPasses = DB.planning.filter(p => p.date >= debutSaison && p.date < auj).length;
+
+  // Éléments de la liste : séances (regroupées par date) + périodes de vacances
+  const items = [];
+  const parDate = {};
+  evts.forEach(e => { if (!parDate[e.date]) { parDate[e.date] = []; items.push({ kind:'jour', date:e.date }); } parDate[e.date].push(e); });
+  // Vacances : seulement celles qui tombent avant la dernière séance planifiée (pas de liste vide en fin d'agenda)
+  const derniereSeance = evts.length ? evts[evts.length-1].date : depart;
+  VACANCES_ZONE_C.forEach(v => {
+    if (v.fin >= depart && v.debut <= derniereSeance) items.push({ kind:'vacances', date:v.debut, v:v });
+  });
+  items.sort((a,b) => a.date.localeCompare(b.date) || (a.kind==='vacances' ? -1 : 1));
+
+  const jours = ['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
+  const moisLong = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const moisCourt = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+  const fmtCourt = d => { const x = new Date(d+'T00:00:00'); return x.getDate()+' '+moisCourt[x.getMonth()]; };
+
+  let html = '';
+  if (nbPasses) {
+    html += '<button class="agenda-passes" onclick="window._agendaVoirPasses='+(voirPasses?'false':'true')+';showSection(\'parent-planning\')">'
+      + '<i class="ti ti-'+(voirPasses?'eye-off':'history')+'"></i> '
+      + (voirPasses ? 'Masquer les séances passées' : 'Voir les séances passées ('+nbPasses+')') + '</button>';
+  }
+  if (!items.length) {
+    return html + '<div class="prochaine-vide"><i class="ti ti-calendar-time"></i><div><b>Aucune séance à venir pour le moment.</b><br>Les dates apparaîtront ici dès qu\'elles seront ajoutées au planning.</div></div>';
+  }
+
+  let moisCourant = '';
+  let premierAVenir = true;
+  html += '<div class="agenda">';
+  items.forEach(it => {
+    const cleMois = it.date.slice(0,7);
+    if (cleMois !== moisCourant && it.kind === 'jour') {
+      moisCourant = cleMois;
+      const x = new Date(it.date+'T00:00:00');
+      html += '<div class="agenda-mois">'+moisLong[x.getMonth()]+' '+x.getFullYear()+'</div>';
+    }
+    if (it.kind === 'vacances') {
+      html += '<div class="agenda-vacances"><i class="ti ti-beach"></i> <span><b>Vacances de '+(it.v.nom==='Été'?'l\'été':it.v.nom==='Noël'?'Noël':it.v.nom==='Toussaint'?'la Toussaint':it.v.nom==='Hiver'?'l\'hiver':'printemps')+'</b><br>Du '+fmtCourt(it.v.debut)+' au '+fmtCourt(it.v.fin)+', pas de séance</span></div>';
+      return;
+    }
+    const x = new Date(it.date+'T00:00:00');
+    const passe = it.date < auj;
+    const estProchaine = !passe && premierAVenir;
+    if (!passe) premierAVenir = false;
+    const items2 = prog[it.date] || [];
+    html += '<button class="agenda-jour'+(passe?' passe':'')+(estProchaine?' prochaine':'')+'" onclick="modalJourParent(\''+it.date+'\')">';
+    html += '<div class="agenda-date"><span class="ad-jour">'+jours[x.getDay()]+'</span><span class="ad-num">'+x.getDate()+'</span></div>';
+    html += '<div class="agenda-infos">';
+    if (estProchaine) html += '<span class="agenda-rebours">'+texteCompteARebours(it.date)+'</span>';
+    parDate[it.date].forEach(e => {
+      html += '<div class="agenda-evt"><span class="agenda-titre">'+escTexte(e.titre)+'</span><span class="prochaine-type type-'+e.type+'">'+libelleTypePlanning(e.type)+'</span></div>';
+      if (e.lieu && e.lieu.trim()) html += '<div class="agenda-lieu"><i class="ti ti-map-pin"></i> '+escTexte(e.lieu)+'</div>';
+    });
+    if (items2.length) {
+      const themes = [];
+      items2.forEach(i2 => { if (themes.indexOf(i2.bloc) < 0) themes.push(i2.bloc); });
+      html += '<div class="agenda-prog cycle-'+cycle+'">'+cycle.replace('JSP','JSP ')+' : '+escTexte(themes.join(' · '))+'</div>';
+    }
+    html += '</div><i class="ti ti-chevron-right agenda-chevron" aria-hidden="true"></i></button>';
+  });
+  html += '</div>';
+  return html;
 }
 
 // Détail d'une journée (lecture seule, vue parent) — utile sur tablette/téléphone où le survol n'existe pas
