@@ -4,19 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Carnet JSP — CIS Cruzy-Quarante</title>
-<meta name="theme-color" content="#1a3c6e">
+<meta name="theme-color" content="#163a64">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Carnet JSP">
 <link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
   :root {
-    --bleu: #1a3c6e;
-    --bleu-clair: #2563b0;
-    --bleu-pale: #dbeafe;
-    --rouge: #b91c1c;
-    --rouge-pale: #fee2e2;
+    --bleu: #163a64;       /* marine du blason */
+    --bleu-clair: #245590;
+    --bleu-pale: #e2eaf4;
+    --rouge: #cf1419;      /* rouge du blason */
+    --rouge-pale: #fde4e5;
     --blanc: #ffffff;
     --gris-bg: #f3f4f6;
     --gris-bord: #e5e7eb;
@@ -43,7 +46,7 @@
   }
   [data-theme="dark"] body { background: #111827; color: #f9fafb; }
   [data-theme="dark"] .sidebar { background: #1f2937; }
-  [data-theme="dark"] .header { background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%); }
+  [data-theme="dark"] .header { background: linear-gradient(135deg, #0f2745 0%, #163a64 100%); }
   [data-theme="dark"] .tabs { background: #1f2937; }
   [data-theme="dark"] .card { background: #1f2937; border-color: #374151; }
   [data-theme="dark"] table tbody tr:hover { background: #374151; }
@@ -59,11 +62,12 @@
   [data-theme="dark"] .nav-item.active { background: #1e3a5f; color: #60a5fa; }
   [data-theme="dark"] .stat-card { background: #1f2937; border-color: #374151; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: Arial, sans-serif; background: var(--gris-bg); color: #1f2937; min-height: 100vh; }
+  body { font-family: 'Barlow', Arial, sans-serif; font-size: 15px; background: var(--gris-bg); color: #1f2937; min-height: 100vh; }
 
   /* ── HEADER ─────────────────────────── */
   .header {
-    background: linear-gradient(135deg, var(--bleu) 0%, var(--bleu-clair) 100%);
+    background: linear-gradient(135deg, #163a64 0%, #1d4b80 100%);
+    border-bottom: 3px solid #cf1419;
     color: white;
     padding: 0;
     display: flex;
@@ -244,7 +248,7 @@
   .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #374151; }
   .form-group input, .form-group select, .form-group textarea {
     width: 100%; padding: 9px 12px; border: 1px solid var(--gris-bord);
-    border-radius: 8px; font-size: 14px; font-family: Arial, sans-serif;
+    border-radius: 8px; font-size: 14px; font-family: inherit;
   }
   .form-group textarea { resize: vertical; min-height: 80px; }
   .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
@@ -338,6 +342,21 @@
   from { opacity:0; transform:translateY(10px); }
   to { opacity:1; transform:translateY(0); }
 }
+
+  /* ── IDENTITÉ VISUELLE (logo 2026) ─────────────── */
+  .header-titre h1, .section-header h2, .modal h3, .login-card h2, .enfant-card h2, .stat-card .stat-val {
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .header-titre h1 { font-size: 26px; letter-spacing: 0.6px; }
+  .section-header h2 { font-size: 24px; }
+  .modal h3 { font-size: 21px; }
+  .login-card h2 { font-size: 26px; }
+  .stat-card .stat-val { font-size: 38px; line-height: 1.05; }
+  .nav-item.active { border-left-color: #cf1419; }
+  [data-theme="dark"] .nav-item.active { border-left-color: #f05257; }
+  button, input, select, textarea { font-family: inherit; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -2193,9 +2212,11 @@ function noteDots(n, sur) {
   const color = noteColor(n, sur);
   return `<div class="note-bar">${[...Array(10)].map((_,i) => `<div class="note-dot ${i/10 < pct ? 'filled-'+color : ''}"></div>`).join('')}</div>`;
 }
+const LIBELLES_TYPE_PLANNING = { formation:'Formation', exercice:'Exercice', ceremonie:'Cérémonie', controle:'Contrôle', sortie:'Sortie' };
+function libelleTypePlanning(t) { return LIBELLES_TYPE_PLANNING[t] || t; }
 function planningTypeBadge(t) {
   const map = { formation: 'badge-bleu', exercice: 'badge-orange', controle: 'badge-rouge', ceremonie: 'badge-vert' };
-  return `<span class="badge ${map[t]||'badge-gris'}">${t}</span>`;
+  return `<span class="badge ${map[t]||'badge-gris'}">${libelleTypePlanning(t)}</span>`;
 }
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
@@ -2340,7 +2361,7 @@ function printTrombinoscope() {
   const card = (j) => {
     const photo = j.photo
       ? `<img src="${j.photo}" style="width:100%;height:110px;object-fit:cover;border-radius:8px 8px 0 0">`
-      : `<div style="width:100%;height:110px;background:#1a3c6e;color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;border-radius:8px 8px 0 0">${j.prenom[0]}${j.nom[0]}</div>`;
+      : `<div style="width:100%;height:110px;background:#163a64;color:white;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;border-radius:8px 8px 0 0">${j.prenom[0]}${j.nom[0]}</div>`;
     return `<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;break-inside:avoid">
       ${photo}
       <div style="padding:6px 8px;text-align:center">
@@ -2358,9 +2379,9 @@ function printTrombinoscope() {
     @page{size:A4 portrait;margin:10mm}
     .tricolore{display:flex;height:5px;margin-bottom:10px}
     .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
-    h1{font-size:16px;color:#1a3c6e;margin-bottom:2px}
+    h1{font-size:16px;color:#163a64;margin-bottom:2px}
     .sub{font-size:11px;color:#6b7280;margin-bottom:16px}
-    .grp-title{font-size:13px;font-weight:700;color:#1a3c6e;margin:14px 0 8px;border-bottom:2px solid #dbeafe;padding-bottom:4px}
+    .grp-title{font-size:13px;font-weight:700;color:#163a64;margin:14px 0 8px;border-bottom:2px solid #dbeafe;padding-bottom:4px}
     .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px}
   </style>
   </head><body>
@@ -4162,7 +4183,7 @@ function renderBilanQuestionnaires(promos, estAdmin) {
 
     // En-têtes des colonnes (mois + contrôle annuel)
     const entetes = rangs.map(r =>
-      `<th style="font-size:10px;padding:5px 4px;white-space:nowrap;text-align:center;background:#1a3c6e;color:white">${getLabelMoisRang(niveau, r).slice(0,3)}</th>`
+      `<th style="font-size:10px;padding:5px 4px;white-space:nowrap;text-align:center;background:#163a64;color:white">${getLabelMoisRang(niveau, r).slice(0,3)}</th>`
     ).join('') + `<th style="font-size:10px;padding:5px 4px;background:#7c3aed;color:white;text-align:center">Annuel</th>`
       + `<th style="font-size:10px;padding:5px 4px;background:#374151;color:white;text-align:center">Moy.</th>`;
 
@@ -4886,13 +4907,13 @@ function exporterCompetitionPDF(id) {
     @page{size:A4;margin:10mm}
     .tricolore{display:flex;height:5px;margin-bottom:14px}
     .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
-    h1{font-size:18px;color:#1a3c6e;margin-bottom:4px}
+    h1{font-size:18px;color:#163a64;margin-bottom:4px}
     table{width:100%;border-collapse:collapse;margin-top:16px}
-    thead th{background:#1a3c6e;color:white;padding:7px 8px;font-size:11px}
+    thead th{background:#163a64;color:white;padding:7px 8px;font-size:11px}
     tbody td{padding:6px 8px;border-bottom:1px solid #f3f4f6}
     .classement{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 16px;margin:14px 0;font-size:14px;font-weight:700;color:#166534}
     .footer{font-size:9px;color:#9ca3af;text-align:center;margin-top:20px}
-    .btn{background:#1a3c6e;color:white;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;margin-bottom:12px}
+    .btn{background:#163a64;color:white;border:none;padding:7px 16px;border-radius:6px;cursor:pointer;margin-bottom:12px}
     @media print{.btn{display:none}}
   </style></head><body>
   <button class="btn" onclick="window.print()">🖨️ Imprimer / PDF</button>
@@ -4972,7 +4993,7 @@ function getCouvertureVacances(saison) {
 
 function getSaisonMois(saison) {
   const [y1, y2] = saison.split('-').map(Number);
-  const labels = {1:'Jan',2:'Fev',3:'Mar',4:'Avr',5:'Mai',6:'Juin',7:'Juil',8:'Aout',9:'Sep',10:'Oct',11:'Nov',12:'Dec'};
+  const labels = {1:'Jan',2:'Fév',3:'Mar',4:'Avr',5:'Mai',6:'Juin',7:'Juil',8:'Août',9:'Sep',10:'Oct',11:'Nov',12:'Déc'};
   const mois = [];
   for (let m = 9; m <= 12; m++) mois.push({num: String(m).padStart(2,'0'), an: String(y1), label: labels[m]+' '+y1});
   for (let m = 1; m <= 8; m++) mois.push({num: String(m).padStart(2,'0'), an: String(y2), label: labels[m]+' '+y2});
@@ -5012,9 +5033,9 @@ function modalNouvelleSaison() {
   const annees = [];
   for (let y = 2024; y <= 2035; y++) annees.push(y+'-'+(y+1));
   openModal('<h3><i class="ti ti-calendar-plus"></i> Nouvelle saison</h3>'
-    +'<div class="form-group"><label>Annee scolaire</label>'
+    +'<div class="form-group"><label>Année scolaire</label>'
     +'<select id="f_saison">'+annees.map(a=>'<option value="'+a+'" '+(a===DB.saison?'selected':'')+'>'+a+'</option>').join('')+'</select></div>'
-    +'<p style="font-size:13px;color:var(--gris-txt);margin-top:8px">Le planning de la saison actuelle sera conserve. La nouvelle saison demarre vide.</p>'
+    +'<p style="font-size:13px;color:var(--gris-txt);margin-top:8px">Le planning de la saison actuelle sera conservé. La nouvelle saison démarre vide.</p>'
     +'<div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button>'
     +'<button class="btn-save" onclick="changerSaison(document.getElementById(&quot;f_saison&quot;).value);closeModal()">Changer de saison</button></div>');
 }
@@ -5079,25 +5100,25 @@ function renderPlanning(moisActif) {
 
   let listeHtml = '';
   if (evts.length) {
-    listeHtml = '<div style="margin-top:16px"><div style="font-size:13px;font-weight:700;color:var(--gris-txt);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Evenements du mois</div>';
+    listeHtml = '<div style="margin-top:16px"><div style="font-size:13px;font-weight:700;color:var(--gris-txt);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Événements du mois</div>';
     evts.forEach(e => {
       const col = typeColors[e.type]||'#374151';
       const bg = typeBg[e.type]||'#f3f4f6';
       listeHtml += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:white;border-radius:10px;border-left:4px solid '+col+';border-top:.5px solid var(--gris-bord);border-right:.5px solid var(--gris-bord);border-bottom:.5px solid var(--gris-bord);margin-bottom:8px">'
         +'<div style="min-width:36px;text-align:center;background:'+bg+';border-radius:6px;padding:4px 6px"><div style="font-size:18px;font-weight:700;color:'+col+';line-height:1">'+e.date.slice(8)+'</div></div>'
         +'<div style="flex:1"><div style="font-size:14px;font-weight:600">'+e.titre+'</div><div style="font-size:12px;color:var(--gris-txt)"><i class="ti ti-map-pin" style="font-size:12px"></i> '+e.lieu+'</div></div>'
-        +'<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+bg+';color:'+col+'">'+e.type+'</span>'
+        +'<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:'+bg+';color:'+col+'">'+libelleTypePlanning(e.type)+'</span>'
         +'<button onclick="deleteItem(\'planning\','+e.id+',\'planning\')" style="background:none;border:none;cursor:pointer;color:var(--rouge);padding:4px"><i class="ti ti-trash"></i></button>'
         +'</div>';
     });
     listeHtml += '</div>';
   } else {
-    listeHtml = '<div style="text-align:center;color:var(--gris-txt);font-size:14px;padding:24px 0"><i class="ti ti-calendar-off" style="font-size:32px;display:block;margin-bottom:8px"></i>Aucun evenement ce mois</div>';
+    listeHtml = '<div style="text-align:center;color:var(--gris-txt);font-size:14px;padding:24px 0"><i class="ti ti-calendar-off" style="font-size:32px;display:block;margin-bottom:8px"></i>Aucun événement ce mois</div>';
   }
 
   const legende = '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px">'
     +[['formation','#dbeafe','#2563b0'],['exercice','#fef3c7','#b45309'],['ceremonie','#dcfce7','#166534'],['controle','#fee2e2','#b91c1c'],['sortie','#f3e8ff','#6b21a8']].map(([t,bg,col])=>
-      '<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:'+bg+';color:'+col+'">'+t+'</span>'
+      '<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:'+bg+';color:'+col+'">'+libelleTypePlanning(t)+'</span>'
     ).join('')
     +'<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca"><i class="ti ti-beach" style="font-size:11px"></i> vacances scolaires</span>'
     +'</div>'
@@ -5135,12 +5156,12 @@ function renderPlanning(moisActif) {
   return '<div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning '+DB.saison+'</h2>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-add" style="background:#6b7280" onclick="modalNouvelleSaison()"><i class="ti ti-calendar-stats"></i> Saison</button>'
     +'<button class="btn-add" style="background:#25D366" onclick="modalPartagerPlanning()"><i class="ti ti-brand-whatsapp"></i> Partager (WhatsApp)</button>'
-    +'<button class="btn-add" style="background:#7c3aed" onclick="modalProgrammeAnnuel()"><i class="ti ti-route"></i> Programme de l\'année</button>'
+    +'<button class="btn-add" style="background:var(--bleu-clair)" onclick="modalProgrammeAnnuel()"><i class="ti ti-route"></i> Programme de l\'année</button>'
     +'<button class="btn-add" onclick="modalAddPlanning()"><i class="ti ti-plus"></i> Ajouter</button></div></div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">'+saisonBtns+'</div>'
     +alerteVacances
-    +'<div class="stats-grid" style="margin-bottom:20px"><div class="stat-card bleu"><div class="stat-val">'+evtsTotal+'</div><div class="stat-lbl">Total evenements</div></div>'
-    +'<div class="stat-card vert"><div class="stat-val">'+evtsFuturs+'</div><div class="stat-lbl">A venir</div></div></div>'
+    +'<div class="stats-grid" style="margin-bottom:20px"><div class="stat-card bleu"><div class="stat-val">'+evtsTotal+'</div><div class="stat-lbl">Événements</div></div>'
+    +'<div class="stat-card vert"><div class="stat-val">'+evtsFuturs+'</div><div class="stat-lbl">À venir</div></div></div>'
     +legende+ongletsHtml
     +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">'+calHtml+listeHtml+'</div>';
 }
@@ -5264,7 +5285,7 @@ function telechargerImagePlanning() {
 
   ctx.fillStyle = '#f3f4f6';
   ctx.fillRect(0,0,W,H);
-  ctx.fillStyle = '#1a3c6e';
+  ctx.fillStyle = '#163a64';
   ctx.fillRect(0,0,W,headerH);
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
@@ -5798,7 +5819,7 @@ function renderParentPlanning(moisActif) {
       listeHtml += `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:white;border-radius:10px;border-left:4px solid ${col};border:.5px solid var(--gris-bord);border-left:4px solid ${col};margin-bottom:8px">
         <div style="min-width:36px;text-align:center;background:${bg};border-radius:6px;padding:4px 6px"><div style="font-size:18px;font-weight:700;color:${col};line-height:1">${e.date.slice(8)}</div></div>
         <div style="flex:1"><div style="font-size:14px;font-weight:600">${e.titre}</div><div style="font-size:12px;color:var(--gris-txt)"><i class="ti ti-map-pin" style="font-size:12px"></i> ${e.lieu}</div></div>
-        <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${bg};color:${col}">${e.type}</span>
+        <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:${bg};color:${col}">${libelleTypePlanning(e.type)}</span>
       </div>`;
     });
     listeHtml += `</div>`;
@@ -5818,7 +5839,7 @@ function renderParentPlanning(moisActif) {
 
   const legende = '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px">'
     +[['formation','#dbeafe','#2563b0'],['exercice','#fef3c7','#b45309'],['ceremonie','#dcfce7','#166534'],['controle','#fee2e2','#b91c1c'],['sortie','#f3e8ff','#6b21a8']].map(([t,bg,col])=>
-      '<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:'+bg+';color:'+col+'">'+t+'</span>'
+      '<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:'+bg+';color:'+col+'">'+libelleTypePlanning(t)+'</span>'
     ).join('')
     +'<span style="font-size:12px;font-weight:600;padding:3px 12px;border-radius:20px;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca"><i class="ti ti-beach" style="font-size:11px"></i> vacances scolaires</span>'
     +'</div>'
@@ -7726,7 +7747,7 @@ function dessinerLiensOrganigramme(arbre, racine) {
     const d = `M ${p1.x} ${p1.y} L ${p1.x} ${midY} L ${p2.x} ${midY} L ${p2.x} ${p2.y}`;
     path.setAttribute('d', d);
     path.setAttribute('fill', 'none');
-    path.setAttribute('stroke', opts.color || '#1a3c6e');
+    path.setAttribute('stroke', opts.color || '#163a64');
     path.setAttribute('stroke-width', opts.width || 2);
     if (opts.dash) path.setAttribute('stroke-dasharray', opts.dash);
     svg.appendChild(path);
@@ -7738,7 +7759,7 @@ function dessinerLiensOrganigramme(arbre, racine) {
     const cibleId = n.lienVers || n.parent;
     const pCenter = center(cibleId);
     const nCenter = center(n.id);
-    if (pCenter && nCenter) drawLine(pCenter.bottom, nCenter.top, { color: '#1a3c6e', width: 2 });
+    if (pCenter && nCenter) drawLine(pCenter.bottom, nCenter.top, { color: '#163a64', width: 2 });
   });
 }
 
@@ -7892,8 +7913,8 @@ function genererOrganigrammePDF() {
   const now = new Date().toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
 
   const cardHTML = (n, isRoot) => `
-    <div style="background:white;border:2px solid ${isRoot?'#C8102E':'#1a3c6e'};border-radius:8px;padding:10px 16px;min-width:140px;text-align:center;${isRoot?'background:#fef2f2':''}">
-      <div style="font-size:10px;font-weight:700;color:${isRoot?'#C8102E':'#1a3c6e'};text-transform:uppercase;margin-bottom:4px">${n.titre}</div>
+    <div style="background:white;border:2px solid ${isRoot?'#C8102E':'#163a64'};border-radius:8px;padding:10px 16px;min-width:140px;text-align:center;${isRoot?'background:#fef2f2':''}">
+      <div style="font-size:10px;font-weight:700;color:${isRoot?'#C8102E':'#163a64'};text-transform:uppercase;margin-bottom:4px">${n.titre}</div>
       ${n.noms.map(nom => `<div style="font-size:12px;font-weight:600;color:#1f2937">${nom}</div>`).join('')}
     </div>`;
 
@@ -7913,7 +7934,7 @@ function genererOrganigrammePDF() {
   <div style="display:flex;align-items:center;gap:14px;padding:14px 0 22px">
     <img src="${LOGO_JSP_BASE64}" style="height:60px">
     <div>
-      <div style="font-size:18px;font-weight:800;color:#1a3c6e">CIS Cruzy-Quarante — Section JSP</div>
+      <div style="font-size:18px;font-weight:800;color:#163a64">CIS Cruzy-Quarante — Section JSP</div>
       <div style="font-size:11px;color:#6b7280">Organigramme du bureau · Édité le ${now}</div>
     </div>
   </div>
@@ -7953,7 +7974,7 @@ function genererOrganigrammePDF() {
         const midY = p1.y + (p2.y-p1.y)/2;
         path.setAttribute('d', 'M '+p1.x+' '+p1.y+' L '+p1.x+' '+midY+' L '+p2.x+' '+midY+' L '+p2.x+' '+p2.y);
         path.setAttribute('fill','none');
-        path.setAttribute('stroke', opts.color||'#1a3c6e');
+        path.setAttribute('stroke', opts.color||'#163a64');
         path.setAttribute('stroke-width', opts.width||2);
         if(opts.dash) path.setAttribute('stroke-dasharray', opts.dash);
         svg.appendChild(path);
@@ -7961,7 +7982,7 @@ function genererOrganigrammePDF() {
       ARBRE_PDF.forEach(function(n){
         if(n.parent===null) return;
         var cibleId = n.lienVers || n.parent;
-        drawLine(centerOf(cibleId) && centerOf(cibleId).bottom, centerOf(n.id) && centerOf(n.id).top, {color:'#1a3c6e',width:2});
+        drawLine(centerOf(cibleId) && centerOf(cibleId).bottom, centerOf(n.id) && centerOf(n.id).top, {color:'#163a64',width:2});
       });
     }
     window.onload = function(){ dessinerLiensPDF(); setTimeout(function(){ window.print(); }, 150); };
@@ -8432,9 +8453,9 @@ function genererSubventionPDF() {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,sans-serif;padding:14mm;color:#1f2937;font-size:12px;line-height:1.5}
     @page{size:A4;margin:12mm}
-    h1{font-size:16px;color:#1a3c6e;text-align:center;margin-bottom:2px}
+    h1{font-size:16px;color:#163a64;text-align:center;margin-bottom:2px}
     h2{font-size:12px;text-align:center;text-transform:uppercase;letter-spacing:.5px;color:#374151;margin-bottom:14px;font-weight:600}
-    h3{font-size:13px;color:#1a3c6e;border-bottom:2px solid #1a3c6e;padding-bottom:3px;margin:18px 0 10px;page-break-after:avoid}
+    h3{font-size:13px;color:#163a64;border-bottom:2px solid #163a64;padding-bottom:3px;margin:18px 0 10px;page-break-after:avoid}
     .tricolore{display:flex;height:5px;margin-bottom:14px}
     .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
     .ligne{display:flex;gap:6px;margin-bottom:5px}
@@ -8442,10 +8463,10 @@ function genererSubventionPDF() {
     .ligne .val{flex:1;border-bottom:1px dotted #9ca3af;padding-bottom:1px}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
     .pers{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;margin-bottom:8px}
-    .pers .titre{font-weight:700;color:#1a3c6e;margin-bottom:3px}
+    .pers .titre{font-weight:700;color:#163a64;margin-bottom:3px}
     .bloc{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;margin-bottom:10px}
     table.anim{width:100%;border-collapse:collapse;margin-bottom:10px}
-    table.anim th{background:#1a3c6e;color:white;font-size:10px;text-align:left;padding:5px 7px}
+    table.anim th{background:#163a64;color:white;font-size:10px;text-align:left;padding:5px 7px}
     table.anim td{border:1px solid #e5e7eb;padding:5px 7px;font-size:11px;vertical-align:top}
     .pagebreak{page-break-before:always}
     .footer-note{font-size:9px;color:#9ca3af;margin-top:18px;text-align:center}
@@ -8629,7 +8650,7 @@ function genererBilanAnnuelPDF() {
     }).join('');
 
     return `<div style="margin-bottom:20px;page-break-inside:avoid">
-      <div style="background:#1a3c6e;color:white;padding:7px 12px;font-size:13px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
+      <div style="background:#163a64;color:white;padding:7px 12px;font-size:13px;font-weight:700;border-radius:6px 6px 0 0;display:flex;justify-content:space-between">
         <span>${promo}</span><span style="font-weight:400;font-size:11px">${jspsDuNiveau.length} JSP</span>
       </div>
       <table style="border-collapse:collapse;width:100%;border:1px solid #e5e7eb;border-top:none">
@@ -8729,21 +8750,21 @@ function genererBilanAnnuelPDF() {
     .tricolore{display:flex;height:5px;margin-bottom:14px}
     .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
     .stat-card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;text-align:center}
-    .stat-val{font-size:22px;font-weight:800;color:#1a3c6e}
+    .stat-val{font-size:22px;font-weight:800;color:#163a64}
     .stat-lbl{font-size:10px;color:#6b7280;margin-top:2px}
-    h2{font-size:15px;color:#1a3c6e;border-bottom:2px solid #1a3c6e;padding-bottom:4px;margin:18px 0 12px}
+    h2{font-size:15px;color:#163a64;border-bottom:2px solid #163a64;padding-bottom:4px;margin:18px 0 12px}
     table{width:100%;border-collapse:collapse}
-    thead th{background:#1a3c6e;color:white;padding:7px 8px;font-size:11px;text-align:left}
+    thead th{background:#163a64;color:white;padding:7px 8px;font-size:11px;text-align:left}
     tbody td{padding:6px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
     .footer{font-size:9px;color:#9ca3af;text-align:center;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:8px}
-    .btn-print{background:#1a3c6e;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;margin-bottom:14px}
+    .btn-print{background:#163a64;color:white;border:none;padding:8px 20px;border-radius:6px;font-size:13px;cursor:pointer;margin-bottom:14px}
   </style>
 </head><body>
   <button class="btn-print no-print" onclick="window.print()">🖨️ Imprimer / Exporter PDF</button>
   <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
     <div>
-      <div style="font-size:20px;font-weight:800;color:#1a3c6e">Bilan annuel — Section JSP</div>
+      <div style="font-size:20px;font-weight:800;color:#163a64">Bilan annuel — Section JSP</div>
       <div style="font-size:12px;color:#6b7280">CIS Cruzy-Quarante · SDIS 34 · Saison ${saison}</div>
     </div>
     <div style="text-align:right;font-size:11px;color:#6b7280">Édité le ${now}<br>Chef de section : Galiana Christian</div>
@@ -8806,19 +8827,19 @@ function genererBilanFinancePDF() {
     .tricolore{display:flex;height:6px}
     .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
     table{width:100%;border-collapse:collapse;margin-bottom:16px}
-    thead th{background:#1a3c6e;color:white;padding:8px;font-size:11px;text-align:left}
+    thead th{background:#163a64;color:white;padding:8px;font-size:11px;text-align:left}
     tbody td{padding:6px 8px;font-size:12px;border-bottom:1px solid #e5e7eb}
     .sig-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:20px}
     .sig-box{border-top:1.5px solid #374151;padding-top:5px}
     .sig-label{font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase}
     .sig-space{height:32px}
-    .section-title{background:#1a3c6e;color:white;padding:7px 12px;font-size:13px;font-weight:700;border-radius:6px;margin:18px 0 8px}
+    .section-title{background:#163a64;color:white;padding:7px 12px;font-size:13px;font-weight:700;border-radius:6px;margin:18px 0 8px}
   </style>
 </head><body>
   <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
   <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 8px">
     <div>
-      <div style="font-size:18px;font-weight:800;color:#1a3c6e">CIS Cruzy-Quarante — Section JSP</div>
+      <div style="font-size:18px;font-weight:800;color:#163a64">CIS Cruzy-Quarante — Section JSP</div>
       <div style="font-size:11px;color:#6b7280">Bilan financier · Saison ${saison}</div>
     </div>
     <div style="font-size:11px;color:#6b7280;text-align:right">Édité le ${now}</div>
@@ -8827,7 +8848,7 @@ function genererBilanFinancePDF() {
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin:14px 0 18px">
     <div style="background:#eff6ff;border-radius:8px;padding:10px 12px;text-align:center">
       <div style="font-size:10px;color:#6b7280;margin-bottom:3px">Solde antérieur</div>
-      <div style="font-size:16px;font-weight:800;color:#1a3c6e">${fmtEUR(soldeAnterieur)}</div>
+      <div style="font-size:16px;font-weight:800;color:#163a64">${fmtEUR(soldeAnterieur)}</div>
     </div>
     <div style="background:#f0fdf4;border-radius:8px;padding:10px 12px;text-align:center">
       <div style="font-size:10px;color:#6b7280;margin-bottom:3px">Total recettes</div>
@@ -8837,7 +8858,7 @@ function genererBilanFinancePDF() {
       <div style="font-size:10px;color:#6b7280;margin-bottom:3px">Total dépenses</div>
       <div style="font-size:16px;font-weight:800;color:#b91c1c">${fmtEUR(totalDepenses)}</div>
     </div>
-    <div style="background:#1a3c6e;border-radius:8px;padding:10px 12px;text-align:center">
+    <div style="background:#163a64;border-radius:8px;padding:10px 12px;text-align:center">
       <div style="font-size:10px;color:#cbd5e1;margin-bottom:3px">Solde à jour</div>
       <div style="font-size:16px;font-weight:800;color:white">${fmtEUR(soldeAJour)}</div>
     </div>
@@ -9755,12 +9776,12 @@ function renderFeuilleAppel() {
 }
 
 function genererApercu(date, heure, theme) {
-  const niv_colors = { "JSP 1": "#1a3c6e", "JSP 2": "#c8a800", "JSP 3": "#c05000", "JSP 4": "#006633" };
+  const niv_colors = { "JSP 1": "#163a64", "JSP 2": "#c8a800", "JSP 3": "#c05000", "JSP 4": "#006633" };
   let html = '<div id="feuille-print" style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:20px;background:white;border:1px solid #dde2ec;border-radius:8px">';
 
   // Header
-  html += '<div style="display:flex;align-items:center;gap:16px;border-bottom:3px solid #1a3c6e;padding-bottom:12px;margin-bottom:16px">';
-  html += '<div style="flex:1"><div style="font-size:20px;font-weight:700;color:#1a3c6e">FEUILLE D\'APPEL JSP</div>';
+  html += '<div style="display:flex;align-items:center;gap:16px;border-bottom:3px solid #163a64;padding-bottom:12px;margin-bottom:16px">';
+  html += '<div style="flex:1"><div style="font-size:20px;font-weight:700;color:#163a64">FEUILLE D\'APPEL JSP</div>';
   html += '<div style="font-size:13px;color:#6b7280">CIS Cruzy-Quarante — Saison '+DB.saison+'</div></div>';
   html += '<div style="text-align:right;font-size:13px">';
   html += '<div><strong>Date :</strong> '+fmtDate(date)+'</div>';
@@ -9768,7 +9789,7 @@ function genererApercu(date, heure, theme) {
   html += '<div><strong>Thème :</strong> '+(theme||'—')+'</div></div></div>';
 
   // Bandeau tricolore
-  html += '<div style="display:flex;height:4px;margin-bottom:16px"><div style="flex:1;background:#1a3c6e"></div><div style="flex:1;background:white;border:1px solid #dde2ec"></div><div style="flex:1;background:#b91c1c"></div></div>';
+  html += '<div style="display:flex;height:4px;margin-bottom:16px"><div style="flex:1;background:#163a64"></div><div style="flex:1;background:white;border:1px solid #dde2ec"></div><div style="flex:1;background:#b91c1c"></div></div>';
 
   // Légende statuts
   html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;font-size:11px">';
@@ -9783,7 +9804,7 @@ function genererApercu(date, heure, theme) {
     const list = DB.jsps.filter(j => j.promotion === niv);
     if (!list.length) return;
     html += '<div style="margin-bottom:16px">';
-    html += '<div style="background:'+(niv_colors[niv]||'#1a3c6e')+';color:white;padding:6px 12px;font-size:12px;font-weight:700;border-radius:4px 4px 0 0">'+niv+' — '+list.length+' JSP</div>';
+    html += '<div style="background:'+(niv_colors[niv]||'#163a64')+';color:white;padding:6px 12px;font-size:12px;font-weight:700;border-radius:4px 4px 0 0">'+niv+' — '+list.length+' JSP</div>';
     html += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
     html += '<thead><tr style="background:#f3f4f6">'
       +'<th style="padding:8px;text-align:left;border:1px solid #dde2ec;width:40px">#</th>'
@@ -10411,7 +10432,7 @@ function showEvtDetail(id) {
       <div style="font-size:20px;font-weight:700;color:${col};margin-bottom:6px">${e.titre}</div>
       <div style="font-size:14px;color:#374151;margin-bottom:4px"><i class="ti ti-calendar"></i> ${fmtDate(e.date)}</div>
       <div style="font-size:14px;color:#374151;margin-bottom:4px"><i class="ti ti-map-pin"></i> ${e.lieu}</div>
-      <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:20px;background:white;color:${col}">${e.type}</span>
+      <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:20px;background:white;color:${col}">${libelleTypePlanning(e.type)}</span>
       ${enVacances ? `<div style="margin-top:10px;font-size:12px;color:#b91c1c"><i class="ti ti-beach"></i> Cet événement tombe pendant les vacances scolaires (${getNomVacances(e.date)})</div>` : ''}
     </div>
     <div class="modal-btns">
@@ -10872,7 +10893,7 @@ function renderICPJsp(j, icp, saison) {
       <text x="${pt.x}" y="${pt.y-9}" text-anchor="middle" font-size="10" fill="${col}" font-weight="700">${pt.v.toFixed(1)}</text>`;
   }).join('');
 
-  const courbe = pathD ? `<path d="${pathD}" fill="none" stroke="#1a3c6e" stroke-width="2.5" stroke-linejoin="round"/>` : '';
+  const courbe = pathD ? `<path d="${pathD}" fill="none" stroke="#163a64" stroke-width="2.5" stroke-linejoin="round"/>` : '';
 
   // Labels périodes en bas
   const labelsX = ICP_PERIODES.map((p, i) =>
@@ -11043,7 +11064,7 @@ function printICPFiche(jspId) {
     .tricolore{display:flex;height:6px}
     .tc-b{flex:1;background:#002395}.tc-w{flex:1;background:#fff;border-top:1px solid #ddd;border-bottom:1px solid #ddd}.tc-r{flex:1;background:#C8102E}
     table{width:100%;border-collapse:collapse}
-    thead th{background:#1a3c6e;color:white;padding:9px 8px;font-size:12px;text-align:center}
+    thead th{background:#163a64;color:white;padding:9px 8px;font-size:12px;text-align:center}
     thead th:first-child{text-align:left}
     .sig-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
     .sig-box{border-top:1.5px solid #374151;padding-top:5px}
@@ -11054,12 +11075,12 @@ function printICPFiche(jspId) {
   <div class="tricolore"><div class="tc-b"></div><div class="tc-w"></div><div class="tc-r"></div></div>
   <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 8px">
     <div>
-      <div style="font-size:18px;font-weight:800;color:#1a3c6e">CIS Cruzy-Quarante — JSP</div>
+      <div style="font-size:18px;font-weight:800;color:#163a64">CIS Cruzy-Quarante — JSP</div>
       <div style="font-size:11px;color:#6b7280">SDIS 34 · Indice de Condition Physique (ICP) · Saison ${saison}</div>
     </div>
     <div style="font-size:11px;color:#6b7280;text-align:right">Édité le ${now}</div>
   </div>
-  <div style="background:#1a3c6e;color:white;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+  <div style="background:#163a64;color:white;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
     <div>
       <div style="font-size:19px;font-weight:800">${j.prenom} ${j.nom}</div>
       <div style="font-size:12px;opacity:.8">${j.promotion} · ${j.ville||''}</div>
@@ -11077,7 +11098,7 @@ function printICPFiche(jspId) {
     </thead>
     <tbody>
       ${rows}
-      <tr style="background:#f3f4f6;font-weight:700;border-top:2px solid #1a3c6e">
+      <tr style="background:#f3f4f6;font-weight:700;border-top:2px solid #163a64">
         <td style="padding:8px 10px;font-size:13px">📊 Moyenne générale</td>
         ${moyRow}
       </tr>
@@ -11114,7 +11135,7 @@ function printICPTableau() {
     const progColor = progression===null?'#6b7280':parseFloat(progression)>=0?'#166534':'#b91c1c';
     return `<tr style="border-bottom:1px solid #e5e7eb">
       <td style="padding:7px 10px;font-weight:700">${j.prenom} ${j.nom}</td>
-      <td style="padding:7px 10px;text-align:center"><span style="background:#dbeafe;color:#1a3c6e;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${j.promotion}</span></td>
+      <td style="padding:7px 10px;text-align:center"><span style="background:#dbeafe;color:#163a64;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700">${j.promotion}</span></td>
       ${moys.map(m => `<td style="padding:7px 10px;text-align:center;font-weight:700;color:${m?( parseFloat(m)>=14?'#166534':parseFloat(m)>=10?'#b45309':'#b91c1c'):'#9ca3af'}">${m?m+'/20':'—'}</td>`).join('')}
       <td style="padding:7px 10px;text-align:center;font-weight:800;color:${progColor}">${progression!==null?(parseFloat(progression)>0?'+':'')+progression:'—'}</td>
     </tr>`;
@@ -11127,10 +11148,10 @@ function printICPTableau() {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,sans-serif;padding:10mm;font-size:12px}
     @page{size:A4 landscape;margin:8mm}
-    h1{font-size:15px;color:#1a3c6e;margin-bottom:3px}
+    h1{font-size:15px;color:#163a64;margin-bottom:3px}
     .sub{font-size:11px;color:#6b7280;margin-bottom:12px}
     table{width:100%;border-collapse:collapse}
-    thead{background:#1a3c6e;color:white}
+    thead{background:#163a64;color:white}
     thead th{padding:8px 10px;font-size:11px;text-align:center}
     thead th:first-child{text-align:left}
     tbody tr:nth-child(even){background:#f9fafb}
@@ -11517,12 +11538,12 @@ function printCommandeHabillement(id) {
       * { box-sizing:border-box; margin:0; padding:0; }
       body { font-family:Arial,sans-serif; font-size:13px; padding:14mm; color:#111; }
       @page { size:A4 portrait; margin:14mm; }
-      h1 { font-size:19px; color:#1a3c6e; margin-bottom:4px; }
+      h1 { font-size:19px; color:#163a64; margin-bottom:4px; }
       .sub { font-size:12px; color:#6b7280; margin-bottom:18px; }
       .infos { display:flex; gap:30px; margin-bottom:18px; font-size:13px; }
-      .infos div strong { display:block; color:#1a3c6e; font-size:11px; text-transform:uppercase; margin-bottom:2px; }
+      .infos div strong { display:block; color:#163a64; font-size:11px; text-transform:uppercase; margin-bottom:2px; }
       table { width:100%; border-collapse:collapse; margin-bottom:20px; }
-      thead { background:#1a3c6e; color:white; }
+      thead { background:#163a64; color:white; }
       thead th { padding:9px 12px; text-align:left; font-size:12px; }
       tbody tr { border-bottom:1px solid #e5e7eb; }
       tbody tr:nth-child(even) { background:#f3f4f6; }
@@ -12316,10 +12337,10 @@ function printFicheMouvementsHabillement(jspId) {
   <title>Historique habillement — ${jsp.prenom} ${jsp.nom}</title>
   <style>
     body{font-family:Arial,sans-serif;color:#1f2937;max-width:800px;margin:30px auto;padding:0 20px}
-    h1{color:#1a3c6e;font-size:20px;border-bottom:3px solid #1a3c6e;padding-bottom:10px}
+    h1{color:#163a64;font-size:20px;border-bottom:3px solid #163a64;padding-bottom:10px}
     .meta{font-size:13px;color:#6b7280;margin-bottom:20px}
     table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px}
-    th{background:#1a3c6e;color:white;padding:8px 10px;text-align:left}
+    th{background:#163a64;color:white;padding:8px 10px;text-align:left}
     td{padding:7px 10px;border-bottom:1px solid #e5e7eb}
     tr:nth-child(even){background:#f9fafb}
     .footer{margin-top:30px;font-size:11px;color:#9ca3af;text-align:center}
@@ -12360,7 +12381,7 @@ function printFicheHabillement(jspId) {
 
   // Logo pompiers SVG (casque stylisé + flamme)
   const logoSVG = `<svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="26" cy="26" r="25" fill="#1a3c6e"/>
+    <circle cx="26" cy="26" r="25" fill="#163a64"/>
     <!-- Flamme -->
     <path d="M26 8 C22 14 18 16 20 22 C17 20 17 14 19 11 C15 15 13 21 16 27 C14 25 14 22 15 20 C12 25 13 32 18 36 C20 38 23 39 26 39 C29 39 32 38 34 36 C39 32 40 25 37 20 C38 22 38 25 36 27 C39 21 37 15 33 11 C35 14 35 20 32 22 C34 16 30 14 26 8Z" fill="#C8102E"/>
     <!-- Lettre JSP -->
@@ -12396,22 +12417,22 @@ function printFicheHabillement(jspId) {
       /* ── EN-TÊTE DOCUMENT ── */
       .doc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px}
       .doc-header-left{display:flex;align-items:center;gap:14px}
-      .org-name{font-size:18px;font-weight:800;color:#1a3c6e;line-height:1.2}
+      .org-name{font-size:18px;font-weight:800;color:#163a64;line-height:1.2}
       .org-sub{font-size:11px;color:#6b7280;margin-top:2px}
       .doc-title-block{text-align:center;flex:1}
-      .doc-title{font-size:13px;font-weight:700;color:#1a3c6e;text-transform:uppercase;letter-spacing:.08em}
+      .doc-title{font-size:13px;font-weight:700;color:#163a64;text-transform:uppercase;letter-spacing:.08em}
       .fiche-num{font-size:10px;color:#6b7280;margin-top:3px;font-family:monospace}
 
       /* ── BLOC JSP ── */
-      .jsp-block{background:#1a3c6e;color:white;border-radius:8px 8px 0 0;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+      .jsp-block{background:#163a64;color:white;border-radius:8px 8px 0 0;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;margin-top:10px}
       .jsp-name{font-size:20px;font-weight:800;letter-spacing:.03em}
       .jsp-meta{font-size:12px;opacity:.85;margin-top:3px}
       .jsp-promo{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700}
 
       /* ── TABLEAU FOURNITURES ── */
-      .fournitures{width:100%;border-collapse:collapse;border:1.5px solid #1a3c6e}
+      .fournitures{width:100%;border-collapse:collapse;border:1.5px solid #163a64}
       .fournitures thead tr{background:#e8edf5}
-      .fournitures thead th{padding:8px 12px;font-size:10px;font-weight:700;color:#1a3c6e;text-transform:uppercase;letter-spacing:.06em;text-align:left}
+      .fournitures thead th{padding:8px 12px;font-size:10px;font-weight:700;color:#163a64;text-transform:uppercase;letter-spacing:.06em;text-align:left}
       .fournitures thead th:last-child{text-align:center;width:70px}
       .fournitures tbody tr{border-bottom:1px solid #e5e7eb}
       .fournitures tbody tr:nth-child(even){background:#f9fafb}
@@ -12422,16 +12443,16 @@ function printFicheHabillement(jspId) {
       .icon{font-size:14px;width:20px;display:inline-block}
 
       /* ── STATUT ── */
-      .statut-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border:1.5px solid #1a3c6e;border-top:none;background:${statutBg}}
+      .statut-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border:1.5px solid #163a64;border-top:none;background:${statutBg}}
       .statut-lbl{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em}
       .statut-val{font-size:13px;font-weight:800;color:${statutColor}}
 
       /* ── REMARQUES ── */
-      .remarques{border:1.5px solid #1a3c6e;border-top:none;padding:10px 16px;font-size:12px;background:#fffbeb}
+      .remarques{border:1.5px solid #163a64;border-top:none;padding:10px 16px;font-size:12px;background:#fffbeb}
       .remarques strong{color:#b45309}
 
       /* ── SIGNATURES ── */
-      .sig-block{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:14px;padding:14px 16px;border:1.5px solid #1a3c6e;border-radius:0 0 8px 8px;background:#f9fafb}
+      .sig-block{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:14px;padding:14px 16px;border:1.5px solid #163a64;border-radius:0 0 8px 8px;background:#f9fafb}
       .sig-box{}
       .sig-label{font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
       .sig-line{border-top:1.5px solid #374151;margin-top:32px}
@@ -12577,10 +12598,10 @@ function printTableauHabillement() {
       * { box-sizing:border-box; margin:0; padding:0; }
       body { font-family:Arial,sans-serif; font-size:11px; padding:10mm; }
       @page { size:A4 landscape; margin:10mm; }
-      h1 { font-size:16px; color:#1a3c6e; margin-bottom:4px; }
+      h1 { font-size:16px; color:#163a64; margin-bottom:4px; }
       .sub { font-size:11px; color:#6b7280; margin-bottom:14px; }
       table { width:100%; border-collapse:collapse; }
-      thead { background:#1a3c6e; color:white; }
+      thead { background:#163a64; color:white; }
       thead th { padding:8px 10px; text-align:left; font-size:11px; }
       tbody tr { border-bottom:1px solid #e5e7eb; }
       tbody tr:nth-child(even) { background:#f3f4f6; }
