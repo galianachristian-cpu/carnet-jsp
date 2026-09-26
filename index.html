@@ -5662,19 +5662,13 @@ function finaliserQuestionnairePourJSP(assignation, questions, reponsesData) {
 }
 
 function renderParentPlanning(moisActif) {
-  const mois = [
-    {num:'09',an:'2025',label:'Sep 2025'},{num:'10',an:'2025',label:'Oct 2025'},
-    {num:'11',an:'2025',label:'Nov 2025'},{num:'12',an:'2025',label:'Déc 2025'},
-    {num:'01',an:'2026',label:'Jan 2026'},{num:'02',an:'2026',label:'Fév 2026'},
-    {num:'03',an:'2026',label:'Mar 2026'},{num:'04',an:'2026',label:'Avr 2026'},
-    {num:'05',an:'2026',label:'Mai 2026'},{num:'06',an:'2026',label:'Juin 2026'},
-    {num:'07',an:'2026',label:'Juil 2026'},{num:'08',an:'2026',label:'Août 2026'}
-  ];
   const today = new Date().toISOString().slice(0,10);
+  const saison = DB.saison || getSaisonFromDate(today);
+  const mois = getSaisonMois(saison);
   if (!moisActif) {
     const todayMois = today.slice(0,7);
     const cur = mois.find(m => `${m.an}-${m.num}` === todayMois);
-    moisActif = cur ? cur.num+'-'+cur.an : '09-2025';
+    moisActif = cur ? cur.num+'-'+cur.an : mois[0].num+'-'+mois[0].an;
   }
   const [mActif, aActif] = moisActif.split('-');
 
