@@ -604,6 +604,20 @@
   .hy-run { font-variant-numeric: tabular-nums; font-weight: 700; }
   .hy-pastille { display: inline-block; width: 22px; height: 22px; line-height: 22px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 700; text-align: center; margin-right: 3px; }
   .hy-vide { background: var(--gris-bord); color: var(--gris-txt); }
+
+  .hy-mini { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--gris-bord); background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+  .hy-check { width: 22px; height: 22px; }
+  .hy-galons { display: inline-flex; gap: 2px; vertical-align: middle; }
+  .hy-galons span { width: 4px; background: #E8B100; border-radius: 1px; display: inline-block; }
+  .hy-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .hy-kpi { text-align: center; }
+  .hy-kpi-v { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 34px; font-weight: 700; color: var(--bleu); }
+  .hy-bar { width: 90px; height: 8px; background: var(--gris-bord); border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .hy-bar span { display: block; height: 100%; background: linear-gradient(90deg, #2E7D32, #1F3A68, #C62828); }
+  .hy-up { color: #2E7D32; font-weight: 700; } .hy-down { color: #C62828; font-weight: 700; }
+  .hy-fiche-tete { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+  .hy-grade { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 24px; }
+  .hy-etoiles { margin-left: auto; font-weight: 700; font-size: 18px; color: #B8860B; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -737,6 +751,9 @@
         </div>
         <div class="nav-item" onclick="showSection('icp')">
           <i class="ti ti-run"></i><span>ICP JSP</span>
+        </div>
+        <div class="nav-item" onclick="showSection('hyrox')">
+          <i class="ti ti-trophy"></i><span>Hyrox</span>
         </div>
         <div class="sidebar-section">Gestion</div>
         <div class="nav-item" onclick="showSection('finance')">
@@ -2351,6 +2368,7 @@ const MODULES_ACCES = [
   { key:'envoi-identifiants', label:'Envoi identifiants', icon:'ti-key', section:'envoi-identifiants', groupe:'Administration' },
   { key:'habillement', label:'Habillement', icon:'ti-shirt', section:'habillement', groupe:'Équipement' },
   { key:'icp', label:'ICP JSP', icon:'ti-run', section:'icp', groupe:'Équipement' },
+  { key:'hyrox', label:'Hyrox', icon:'ti-trophy', section:'hyrox', groupe:'Équipement' },
   { key:'finance', label:'Finance', icon:'ti-cash', section:'finance', groupe:'Association' },
   { key:'organigramme', label:'Organigramme', icon:'ti-sitemap', section:'organigramme', groupe:'Association' },
   { key:'subventions', label:'Subventions', icon:'ti-receipt', section:'subventions', groupe:'Association' }
@@ -2447,8 +2465,9 @@ function renderAnimation() {
   h += '<div class="tabs">'
     + '<div class="tab'+(onglet==='seance'?' active':'')+'" onclick="window._animTab=\'seance\';showSection(\'animation\')">Séance</div>'
     + '<div class="tab'+(onglet==='fiches'?' active':'')+'" onclick="window._animTab=\'fiches\';showSection(\'animation\')">Toutes les fiches</div>'
-    + '<div class="tab'+(onglet==='hyrox'?' active':'')+'" onclick="window._animTab=\'hyrox\';showSection(\'animation\')">Hyrox</div>'
+    + '<div class="tab'+(onglet==='hyrox'?' active':'')+'" onclick="window._animTab=\'hyrox\';window._hySec=\'animation\';showSection(\'animation\')">Hyrox</div>'
     + '</div>';
+  if (onglet === 'hyrox') window._hySec = 'animation';
   h += onglet === 'fiches' ? renderAnimFiches() : onglet === 'hyrox' ? renderAnimHyrox() : renderAnimSeance();
   return h;
 }
@@ -2902,12 +2921,12 @@ function renderAnimHyrox() {
   const i = dates.indexOf(date);
   const d = hyData(date, false);
   let h = '<div class="an-datebar">'
-    + '<button class="an-btn an-btn-icone" '+(i>0?'':'disabled')+' onclick="window._animDate=\''+(dates[i-1]||'')+'\';showSection(\'animation\')" aria-label="Séance précédente"><i class="ti ti-chevron-left"></i></button>'
-    + '<select class="an-select" onchange="window._animDate=this.value;showSection(\'animation\')">'
+    + '<button class="an-btn an-btn-icone" '+(i>0?'':'disabled')+' onclick="window._animDate=\''+(dates[i-1]||'')+'\';showSection(\''+(window._hySec||'animation')+'\')" aria-label="Séance précédente"><i class="ti ti-chevron-left"></i></button>'
+    + '<select class="an-select" onchange="window._animDate=this.value;showSection(\''+(window._hySec||'animation')+'\')">'
     + (dates.includes(date) ? '' : '<option value="'+date+'" selected>'+fmtDate(date)+'</option>')
     + dates.map(x => '<option value="'+x+'" '+(x===date?'selected':'')+'>'+fmtDate(x)+'</option>').join('')
     + '</select>'
-    + '<button class="an-btn an-btn-icone" '+(i>=0&&i<dates.length-1?'':'disabled')+' onclick="window._animDate=\''+(dates[i+1]||'')+'\';showSection(\'animation\')" aria-label="Séance suivante"><i class="ti ti-chevron-right"></i></button>'
+    + '<button class="an-btn an-btn-icone" '+(i>=0&&i<dates.length-1?'':'disabled')+' onclick="window._animDate=\''+(dates[i+1]||'')+'\';showSection(\''+(window._hySec||'animation')+'\')" aria-label="Séance suivante"><i class="ti ti-chevron-right"></i></button>'
     + '</div>';
   h += '<div class="card an-card"><p class="an-p an-small an-muted">Touche une case de station pour changer le niveau (vide → R → S → C). '
     + '« Départ » puis « Arrivée » calcule le temps tout seul ; tu peux aussi le taper (ex. 14:32). Tout est enregistré automatiquement.</p>'
@@ -2918,10 +2937,10 @@ function renderAnimHyrox() {
   let promoCourante = null;
   h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th>'
     + HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.replace(' ', '<br>')+'</th>').join('')
-    + '<th class="hy-c">Tours</th><th class="hy-c">Chrono</th><th class="hy-c">Temps</th><th class="hy-c">RPE</th><th>Remarques</th></tr></thead><tbody>';
+    + '<th class="hy-c">Tours</th><th class="hy-c">Chrono</th><th class="hy-c">Temps</th><th class="hy-c">RPE</th><th class="hy-c">Étoiles</th><th class="hy-c" title="Geste validé par l\'encadrant">Validé</th><th class="hy-c" title="A aidé un camarade">Aide</th><th>Remarques</th></tr></thead><tbody>';
   jsps.forEach(j => {
     const p = hyPromo(j);
-    if (p !== promoCourante) { promoCourante = p; h += '<tr class="hy-promo"><td colspan="11" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
+    if (p !== promoCourante) { promoCourante = p; h += '<tr class="hy-promo"><td colspan="14" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
     const r = d[j.id] || { niv:{}, tours:'', temps:'', rpe:'', rem:'' };
     const enCours = HY_CHRONO[j.id];
     h += '<tr data-jsp="'+j.id+'"><td><button class="hy-nom" onclick="hyProgression('+j.id+')" title="Voir la progression">'+escTexte(j.prenom+' '+j.nom)+'</button></td>'
@@ -2933,6 +2952,9 @@ function renderAnimHyrox() {
       + '<td class="hy-c"><input class="hy-in hy-temps" inputmode="numeric" placeholder="mm:ss" value="'+escTexte(r.temps)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'temps\',this.value)" aria-label="Temps total"></td>'
       + '<td class="hy-c"><select class="hy-in" onchange="hyMaj(\''+date+'\','+j.id+',\'rpe\',this.value)" aria-label="Ressenti RPE"><option value=""></option>'
       + [0,1,2,3,4,5,6,7,8,9,10].map(n => '<option '+(String(r.rpe)===String(n)?'selected':'')+'>'+n+'</option>').join('')+'</select></td>'
+      + '<td class="hy-c an-nowrap"><button class="hy-mini" onclick="hyEtoile(\''+date+'\','+j.id+',-1)" aria-label="Retirer une étoile">−</button> <strong>'+(+r.etoiles||0)+'★</strong> <button class="hy-mini" onclick="hyEtoile(\''+date+'\','+j.id+',1)" aria-label="Ajouter une étoile">+</button></td>'
+      + '<td class="hy-c"><input type="checkbox" class="hy-check" '+(r.valide?'checked':'')+' onchange="hyCoche(\''+date+'\','+j.id+',\'valide\',this.checked)" aria-label="Geste validé"></td>'
+      + '<td class="hy-c"><input type="checkbox" class="hy-check" '+(r.aide?'checked':'')+' onchange="hyCoche(\''+date+'\','+j.id+',\'aide\',this.checked)" aria-label="A aidé un camarade"></td>'
       + '<td><input class="hy-in hy-rem" value="'+escTexte(r.rem)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'rem\',this.value)" aria-label="Remarques"></td></tr>';
   });
   h += '</tbody></table></div></div>';
@@ -2959,6 +2981,7 @@ function hyRafraichir() {
   const c = document.getElementById('content');
   const y = window.scrollY;
   if (c && currentSection === 'animation') { c.innerHTML = renderAnimation(); window.scrollTo(0, y); }
+  else if (c && currentSection === 'hyrox') { c.innerHTML = renderHyroxSection(); window.scrollTo(0, y); }
 }
 function hyCycleNiv(date, id, k) {
   const r = hyLigne(date, id, true);
@@ -3009,6 +3032,133 @@ function hyProgression(id) {
   openModalWide(h);
 }
 
+
+// ══════════════════════════════════════════
+//  SUIVI HYROX (section du menu) — progression, grades et étoiles par JSP
+// ══════════════════════════════════════════
+const HY_GRADES = [
+  { nom:'Sapeur',     cond:'Terminer sa première mission, quel que soit le niveau.' },
+  { nom:'Caporal',    cond:'Terminer une mission en Standard (ou mieux) sur les 5 stations.' },
+  { nom:'Sergent',    cond:'Battre son propre record de temps.' },
+  { nom:'Adjudant',   cond:'Passer en Confirmé sur au moins 3 stations.' },
+  { nom:'Lieutenant', cond:'Mission complète en Confirmé, geste validé par l\'encadrant.' },
+  { nom:'Capitaine',  cond:'Lieutenant + avoir aidé un camarade à gagner son galon.' }];
+const HY_NIV_PTS = { R:1, S:2, C:3 };
+function hyHistorique(id) {
+  return Object.entries(getAnim().hyrox || {})
+    .filter(([d, v]) => v[id] && (hyEnSecondes(v[id].temps) !== null || Object.keys(v[id].niv || {}).length || +v[id].etoiles))
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([d, v]) => Object.assign({ date: d }, v[id]));
+}
+function hyNiveauMoyen(r) {
+  const n = HY_STATIONS.map(s => HY_NIV_PTS[(r.niv || {})[s.k]] || 0).filter(Boolean);
+  return n.length ? n.reduce((a, b) => a + b, 0) / n.length : 0;
+}
+function hyGrade(hist) {
+  const fini = hist.filter(r => hyEnSecondes(r.temps) !== null);
+  const niv = r => HY_STATIONS.map(s => (r.niv || {})[s.k] || '');
+  const ok = [
+    fini.length > 0,
+    fini.some(r => niv(r).every(n => n === 'S' || n === 'C')),
+    fini.some((r, i) => i > 0 && hyEnSecondes(r.temps) < Math.min(...fini.slice(0, i).map(x => hyEnSecondes(x.temps)))),
+    fini.some(r => niv(r).filter(n => n === 'C').length >= 3),
+    fini.some(r => niv(r).every(n => n === 'C') && r.valide),
+    hist.some(r => r.aide)];
+  let g = 0;
+  while (g < ok.length && ok[g]) g++;
+  return g; // 0 = pas encore de grade, 1 = Sapeur … 6 = Capitaine
+}
+function hyGalons(g, taille) {
+  taille = taille || 14;
+  let h = '<span class="hy-galons" title="'+(g ? HY_GRADES[g-1].nom : 'Pas encore de galon')+'">';
+  for (let k = 0; k < Math.min(g, 5); k++) h += '<span style="height:'+taille+'px"></span>';
+  return h + '</span>';
+}
+function renderHyroxSection() {
+  window._hySec = 'hyrox';
+  const onglet = window._hyTab || 'suivi';
+  let h = '<div class="section-header"><h2><i class="ti ti-trophy"></i> Hyrox caserne</h2></div>'
+    + '<div class="tabs"><div class="tab'+(onglet==='suivi'?' active':'')+'" onclick="window._hyTab=\'suivi\';showSection(\'hyrox\')">Suivi des JSP</div>'
+    + '<div class="tab'+(onglet==='saisie'?' active':'')+'" onclick="window._hyTab=\'saisie\';showSection(\'hyrox\')">Saisie d\'une séance</div></div>';
+  if (onglet === 'saisie') return h + renderAnimHyrox();
+  const promos = ['JSP1','JSP2','JSP3','JSP4'];
+  const jsps = (DB.jsps || []).slice().sort((a,b) => (promos.indexOf(hyPromo(a)) - promos.indexOf(hyPromo(b))) || a.nom.localeCompare(b.nom));
+  const lignes = jsps.map(j => {
+    const hist = hyHistorique(j.id);
+    const fini = hist.filter(r => hyEnSecondes(r.temps) !== null);
+    const temps = fini.map(r => hyEnSecondes(r.temps));
+    const g = hyGrade(hist);
+    const etoiles = hist.reduce((n, r) => n + (+r.etoiles || 0), 0);
+    const dernier = fini.length ? fini[fini.length-1] : null;
+    return { j, hist, g, etoiles, nb: fini.length, meilleur: temps.length ? Math.min(...temps) : null,
+      dernier, gain: temps.length >= 2 ? temps[0] - temps[temps.length-1] : null, niv: dernier ? hyNiveauMoyen(dernier) : 0 };
+  });
+  const actifs = lignes.filter(l => l.hist.length);
+  h += '<div class="hy-kpis">'
+    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+actifs.length+'</div><div class="an-muted an-small">JSP suivis</div></div>'
+    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+Object.keys(getAnim().hyrox || {}).length+'</div><div class="an-muted an-small">séances Hyrox</div></div>'
+    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+actifs.filter(l => l.g >= 2).length+'</div><div class="an-muted an-small">Caporal ou plus</div></div>'
+    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+lignes.reduce((n,l)=>n+l.etoiles,0)+' ★</div><div class="an-muted an-small">étoiles gagnées</div></div></div>';
+  h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th><th>Grade</th><th class="hy-c">Missions</th><th class="hy-c">Meilleur temps</th><th class="hy-c">Dernier temps</th><th class="hy-c">Progrès</th><th>Niveau (dernière)</th><th class="hy-c">Étoiles</th></tr></thead><tbody>';
+  let promo = null;
+  lignes.forEach(l => {
+    const p = hyPromo(l.j);
+    if (p !== promo) { promo = p; h += '<tr class="hy-promo"><td colspan="8" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
+    const pct = Math.round(l.niv / 3 * 100);
+    h += '<tr><td><button class="hy-nom" onclick="hyFicheJsp('+l.j.id+')">'+escTexte(l.j.prenom+' '+l.j.nom)+'</button></td>'
+      + '<td class="an-nowrap">'+(l.g ? hyGalons(l.g)+' <strong>'+HY_GRADES[l.g-1].nom+'</strong>' : '<span class="an-muted">—</span>')+'</td>'
+      + '<td class="hy-c">'+(l.nb || '—')+'</td>'
+      + '<td class="hy-c"><strong>'+(l.meilleur !== null ? hyFormat(l.meilleur) : '—')+'</strong></td>'
+      + '<td class="hy-c">'+(l.dernier ? escTexte(l.dernier.temps) : '—')+'</td>'
+      + '<td class="hy-c">'+(l.gain === null ? '—' : (l.gain >= 0 ? '<span class="hy-up">−'+hyFormat(l.gain)+'</span>' : '<span class="hy-down">+'+hyFormat(-l.gain)+'</span>'))+'</td>'
+      + '<td>'+(l.niv ? '<div class="hy-bar"><span style="width:'+pct+'%"></span></div><span class="an-small an-muted">'+(l.niv < 1.5 ? 'Reprise' : l.niv < 2.5 ? 'Standard' : 'Confirmé')+'</span>' : '<span class="an-muted">—</span>')+'</td>'
+      + '<td class="hy-c">'+(l.etoiles ? l.etoiles+' ★' : '—')+'</td></tr>';
+  });
+  h += '</tbody></table></div><p class="an-small an-muted">Touche un nom pour voir sa progression. Progrès = temps gagné entre la première et la dernière mission.</p></div>';
+  return h;
+}
+function hyFicheJsp(id) {
+  const j = (DB.jsps || []).find(x => x.id === id); if (!j) return;
+  const hist = hyHistorique(id);
+  const fini = hist.filter(r => hyEnSecondes(r.temps) !== null);
+  const g = hyGrade(hist);
+  const etoiles = hist.reduce((n, r) => n + (+r.etoiles || 0), 0);
+  let h = '<div class="an-modal"><h3>'+escTexte(j.prenom+' '+j.nom)+' <span class="an-muted an-small">'+escTexte(hyPromo(j).replace('JSP','JSP '))+'</span></h3>';
+  h += '<div class="hy-fiche-tete">'+(g ? hyGalons(g, 22)+' <strong class="hy-grade">'+HY_GRADES[g-1].nom+'</strong>' : '<strong class="hy-grade">Pas encore de galon</strong>')
+    + '<span class="hy-etoiles">'+etoiles+' ★</span></div>';
+  if (g < HY_GRADES.length) h += '<p class="an-p"><strong>Prochain galon — '+HY_GRADES[g].nom+' :</strong> '+HY_GRADES[g].cond+'</p>';
+  if (etoiles >= 10) h += '<p class="an-p hy-up"><strong>10 étoiles atteintes : récompense de la section !</strong></p>';
+  // graphique des temps
+  if (fini.length >= 2) {
+    const W = 560, H = 170, P = 30, t = fini.map(r => hyEnSecondes(r.temps));
+    const mx = Math.max(...t), mn = Math.min(...t), span = Math.max(mx - mn, 30);
+    const X = i => P + i * (W - 2*P) / (fini.length - 1), Yv = v => P/2 + ((mx + span*0.1) - v) / (span*1.2) * (H - P);
+    const pts = t.map((v, i) => X(i)+','+Yv(v)).join(' ');
+    h += '<h4 class="an-h4">Temps de mission</h4><div class="an-scroll"><svg viewBox="0 0 '+W+' '+(H+20)+'" width="100%" style="max-width:'+W+'px" role="img" aria-label="Évolution du temps">'
+      + '<polyline points="'+pts+'" fill="none" stroke="#C62828" stroke-width="3"/>'
+      + t.map((v, i) => '<circle cx="'+X(i)+'" cy="'+Yv(v)+'" r="5" fill="#C62828"/><text x="'+X(i)+'" y="'+(Yv(v)-10)+'" text-anchor="middle" font-size="12" fill="currentColor">'+hyFormat(v)+'</text>'
+        + '<text x="'+X(i)+'" y="'+(H+14)+'" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">'+fmtDate(fini[i].date).slice(0,5)+'</text>').join('')
+      + '</svg></div><p class="an-small an-muted">Plus la courbe descend, plus le temps s\'améliore.</p>';
+  }
+  if (hist.length) {
+    h += '<h4 class="an-h4">Historique</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Temps</th><th>RPE</th><th>★</th></tr></thead><tbody>'
+      + hist.map(r => '<tr><td class="an-nowrap">'+fmtDate(r.date)+'</td>'+HY_STATIONS.map(s => { const n = (r.niv||{})[s.k]; return '<td class="hy-c">'+(n ? '<span class="hy-pastille" style="background:'+HY_NIV_COL[n]+'">'+n+'</span>' : '·')+'</td>'; }).join('')
+        + '<td><strong>'+escTexte(r.temps || '—')+'</strong></td><td>'+escTexte(r.rpe || '')+'</td><td>'+(+r.etoiles || '')+'</td></tr>').join('')
+      + '</tbody></table></div>';
+  } else h += '<p class="an-muted">Aucune mission Hyrox enregistrée pour l\'instant.</p>';
+  h += '<h4 class="an-h4">Les galons</h4><ul class="an-ul">'+HY_GRADES.map((x, k) => '<li>'+(k < g ? '✅ ' : '⬜ ')+'<strong>'+x.nom+'</strong> — '+x.cond+'</li>').join('')+'</ul>';
+  h += '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Fermer</button></div></div>';
+  openModalWide(h);
+}
+function hyEtoile(date, id, d) {
+  const r = hyLigne(date, id, true);
+  r.etoiles = Math.max(0, (+r.etoiles || 0) + d);
+  hySauverPlusTard(); hyRafraichir();
+}
+function hyCoche(date, id, champ, val) {
+  const r = hyLigne(date, id, true); r[champ] = !!val; hySauverPlusTard();
+}
+
 function showSection(sec) {
   currentSection = sec;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -3051,6 +3201,7 @@ function showSection(sec) {
     case 'envoi-identifiants': c.innerHTML = renderEnvoiIdentifiants(); break;
     case 'habillement': c.innerHTML = renderHabillement(); break;
     case 'icp': c.innerHTML = renderICP(); break;
+    case 'hyrox': c.innerHTML = renderHyroxSection(); break;
     case 'finance': c.innerHTML = renderFinance(); break;
     case 'organigramme': c.innerHTML = renderOrganigramme(); break;
     case 'subventions': c.innerHTML = renderSubventions(); break;
