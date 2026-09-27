@@ -455,6 +455,139 @@
   [data-theme="dark"] .agenda-titre { color: #f9fafb; }
   .pp-lien { font-size: 13px; font-weight: 600; color: var(--bleu-clair); white-space: nowrap; text-decoration: none; padding: 4px 0; }
   .pp-lien:hover { text-decoration: underline; }
+
+  /* ── GUIDE D'ANIMATION ─────────────────── */
+  .an-card { background: #fff; border: 0.5px solid var(--gris-bord); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  [data-theme="dark"] .an-card { background: #1f2937; border-color: #374151; }
+  .an-card-tete { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .an-card-tete h3 { font-size: 16px; color: var(--bleu); display: flex; align-items: center; gap: 6px; }
+  .an-cycle { border-left: 6px solid; }
+  .an-cycle h3 { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 22px; margin-bottom: 6px; }
+  .an-datebar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .an-select, .an-input, .an-textarea { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid var(--gris-bord); border-radius: 8px; background: inherit; color: inherit; width: 100%; box-sizing: border-box; }
+  .an-datebar .an-select { width: auto; min-width: 170px; font-weight: 600; font-size: 17px; }
+  .an-textarea { resize: vertical; line-height: 1.4; }
+  .an-mono { font-size: 13px; }
+  .an-label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  .an-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--gris-bord);
+    background: transparent; color: inherit; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .an-btn:hover { border-color: var(--bleu); }
+  .an-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .an-btn-icone { width: 44px; justify-content: center; padding: 0; font-size: 20px; }
+  .an-btn-plein { background: var(--bleu); border-color: var(--bleu); color: #fff; }
+  .an-btn-quiz { background: var(--rouge); border-color: var(--rouge); color: #fff; }
+  .an-btn-danger { color: var(--rouge); min-height: 34px; padding: 4px 10px; }
+  .an-large { width: 100%; justify-content: center; font-size: 17px; min-height: 54px; margin-bottom: 14px; }
+  .an-cours { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--gris-bord); flex-wrap: wrap; }
+  .an-cours:first-of-type { border-top: 0; }
+  .an-cours-compact { padding: 8px 0; }
+  .an-cours-titre { flex: 1; min-width: 220px; }
+  .an-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .an-actions-bas { margin-top: 18px; justify-content: flex-end; }
+  .an-statut { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 4px; }
+  .an-ok { background: #dcfce7; color: #166534; }
+  .an-brouillon { background: #fef3c7; color: #92400e; }
+  .an-vide { background: #f3f4f6; color: #6b7280; }
+  [data-theme="dark"] .an-ok { background: #14532d; color: #bbf7d0; }
+  [data-theme="dark"] .an-brouillon { background: #78350f; color: #fde68a; }
+  [data-theme="dark"] .an-vide { background: #374151; color: #d1d5db; }
+  .an-muted { color: var(--gris-txt); }
+  .an-small { font-size: 12px; }
+  .an-p { margin: 6px 0; line-height: 1.45; }
+  .an-h4 { font-size: 15px; color: var(--bleu); margin: 14px 0 6px; }
+  .an-ul { margin: 4px 0 8px; padding-left: 20px; line-height: 1.45; }
+  .an-scroll { overflow-x: auto; }
+  .an-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .an-table th { text-align: left; font-size: 12px; color: var(--gris-txt); padding: 6px 8px; border-bottom: 2px solid var(--gris-bord); }
+  .an-table td { padding: 8px; border-bottom: 1px solid var(--gris-bord); vertical-align: top; }
+  .an-nowrap { white-space: nowrap; }
+  .an-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .an-chip { min-height: 44px; padding: 8px 18px; border-radius: 40px; border: 2px solid var(--gris-bord); background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+  .an-chip.on { color: #fff; }
+  .an-bloc { font-size: 12px; font-weight: 700; color: var(--gris-txt); margin: 14px 0 2px; }
+  .an-bloc:first-child { margin-top: 0; }
+  .an-modal h3 { font-size: 18px; color: var(--bleu); margin-bottom: 4px; }
+  .an-fiche-tete { border-left: 6px solid; padding-left: 12px; margin-bottom: 12px; }
+  .an-fiche-titre { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 26px; line-height: 1.1; margin: 2px 0 4px; }
+  .an-activite { border-left: 4px solid; background: var(--gris-bg); border-radius: 0 10px 10px 0; padding: 10px 14px; margin: 10px 0; }
+  .an-activite-tete { display: flex; justify-content: space-between; gap: 10px; font-size: 16px; }
+  .an-phrase { font-style: italic; }
+  .an-secu { color: var(--rouge); font-weight: 600; }
+  .an-details { margin-top: 12px; }
+  .an-details summary { cursor: pointer; font-weight: 700; color: var(--bleu); min-height: 36px; display: flex; align-items: center; }
+  .an-retour { border-top: 1px solid var(--gris-bord); padding: 6px 0; font-size: 14px; }
+  .an-check { display: flex; align-items: center; gap: 10px; font-weight: 600; margin: 12px 0; min-height: 44px; }
+  .an-check input { width: 22px; height: 22px; }
+  .an-edit-act { border: 1px dashed var(--gris-bord); border-radius: 10px; padding: 10px; margin: 8px 0; display: grid; gap: 6px; }
+  .an-edit-act-tete { display: flex; justify-content: space-between; align-items: center; }
+  .an-grid2 { display: grid; grid-template-columns: 2fr 1fr; gap: 6px; }
+  .an-btn:focus-visible, .an-chip:focus-visible, .aq-rep:focus-visible, .aq-btn:focus-visible, .aq-chip:focus-visible { outline: 3px solid #F2D22E; outline-offset: 2px; }
+
+  /* ── QUIZ TABLETTE ─────────────────── */
+  #aq-overlay { position: fixed; inset: 0; z-index: 2000; background: var(--gris-bg); color: #13263D; overflow-y: auto; display: none;
+    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  [data-theme="dark"] #aq-overlay { background: #111827; color: #f3f4f6; }
+  .aq-barre { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--rouge); color: #fff; border-bottom: 5px solid #F2D22E; }
+  .aq-titre { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .aq-sp { flex: 1; }
+  .aq-barre button { background: rgba(255,255,255,.18); color: #fff; border: 0; padding: 8px 14px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer; min-height: 40px; white-space: nowrap; }
+  .aq-wrap { max-width: 1100px; margin: 0 auto; padding: 18px 18px 30px; }
+  .aq-intro { font-size: 18px; color: var(--gris-txt); }
+  .aq-h { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 28px; margin: 18px 0 10px; }
+  .aq-centre { text-align: center; font-size: 38px; }
+  .aq-stepper { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .aq-stepper button { width: 48px; height: 48px; border-radius: 12px; border: 2px solid var(--gris-bord); background: transparent; color: inherit; font-size: 24px; font-weight: 700; cursor: pointer; }
+  .aq-stepper span { min-width: 110px; text-align: center; font-weight: 700; font-size: 18px; }
+  .aq-noms { display: flex; flex-wrap: wrap; gap: 10px; }
+  .aq-noms input { font: inherit; font-size: 18px; padding: 10px 12px; border-radius: 10px; border: 2px solid var(--gris-bord); background: transparent; color: inherit; width: 170px; }
+  .aq-go { margin-top: 26px; width: 100%; padding: 20px; border-radius: 16px; border: 0; background: var(--bleu); color: #fff; font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 30px; cursor: pointer; }
+  .aq-qtete { display: flex; align-items: center; margin-bottom: 10px; }
+  .aq-compte { font-weight: 700; color: var(--gris-txt); }
+  .aq-timer { margin-left: auto; position: relative; width: 72px; height: 72px; }
+  .aq-num { position: absolute; inset: 0; display: grid; place-items: center; font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 32px; }
+  .aq-question { background: #fff; border-left: 10px solid var(--rouge); border-radius: 16px; padding: 20px 22px; font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    font-weight: 700; font-size: clamp(26px, 4vw, 44px); line-height: 1.12; min-height: 110px; display: flex; align-items: center; }
+  [data-theme="dark"] .aq-question, [data-theme="dark"] .aq-row, [data-theme="dark"] .aq-expl, [data-theme="dark"] .aq-chip { background: #1f2937; }
+  .aq-reps { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .aq-rep { display: flex; align-items: center; gap: 14px; text-align: left; padding: 16px; border-radius: 16px; border: 0; min-height: 100px; color: #fff;
+    font: inherit; font-weight: 700; font-size: clamp(19px, 2.4vw, 26px); line-height: 1.15; cursor: pointer; transition: opacity .25s, transform .25s; }
+  .aq-forme { flex: none; width: 40px; height: 40px; }
+  .aq-a { background: #C8102E; } .aq-b { background: #1E5AA8; } .aq-c { background: #E8B100; color: #1B1B1B; } .aq-d { background: #2E8B57; }
+  .aq-revele .aq-rep:not(.aq-bonne) { opacity: .28; }
+  .aq-revele .aq-rep.aq-fausse { opacity: .9; outline: 4px dashed #fff; outline-offset: -10px; }
+  .aq-revele .aq-bonne { transform: scale(1.02); box-shadow: 0 0 0 5px #13263D; }
+  [data-theme="dark"] .aq-revele .aq-bonne { box-shadow: 0 0 0 5px #f3f4f6; }
+  .aq-tick { margin-left: auto; font-size: 32px; display: none; }
+  .aq-revele .aq-bonne .aq-tick { display: block; }
+  .aq-expl { display: none; margin-top: 14px; background: #fff; border: 2px dashed var(--gris-bord); border-radius: 14px; padding: 14px 18px; font-size: 19px; }
+  .aq-expl.on, .aq-qui.on { display: block; }
+  .aq-qui { display: none; margin-top: 14px; }
+  .aq-qui p { margin: 0 0 8px; font-weight: 700; }
+  .aq-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .aq-chip { padding: 14px 18px; border-radius: 40px; border: 2px solid var(--gris-bord); background: #fff; color: inherit; font: inherit; font-weight: 700; font-size: 18px; cursor: pointer; }
+  .aq-chip[aria-pressed="true"] { background: #2E8B57; border-color: #2E8B57; color: #fff; }
+  .aq-actions { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .aq-btn { padding: 16px 22px; border-radius: 14px; font: inherit; font-weight: 700; font-size: 19px; background: transparent; color: inherit; border: 2px solid var(--gris-bord); cursor: pointer; }
+  .aq-main { background: var(--bleu); border-color: var(--bleu); color: #fff; margin-left: auto; }
+  .aq-board { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .aq-row { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: 14px; padding: 12px 16px; }
+  .aq-rk, .aq-pts { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 28px; }
+  .aq-rk { width: 36px; }
+  .aq-col { flex: 1; }
+  .aq-nm { font-weight: 700; font-size: 20px; }
+  .aq-fill { height: 10px; background: var(--rouge); border-radius: 6px; margin-top: 6px; transition: width .6s; }
+  .aq-podium { display: flex; align-items: flex-end; justify-content: center; gap: 14px; margin: 20px 0; min-height: 300px; }
+  .aq-step { width: min(30%, 210px); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .aq-qui2 { font-weight: 700; font-size: 20px; text-align: center; }
+  .aq-blk { width: 100%; border-radius: 14px 14px 0 0; display: flex; justify-content: center; padding-top: 12px; color: #fff;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 50px; transform-origin: bottom; animation: aq-monte .9s cubic-bezier(.2,.8,.2,1) both; }
+  .aq-p1 .aq-blk { background: var(--rouge); height: 230px; animation-delay: .9s; }
+  .aq-p2 .aq-blk { background: #1E5AA8; height: 160px; animation-delay: .45s; }
+  .aq-p3 .aq-blk { background: #2E8B57; height: 110px; }
+  .aq-sc { font-weight: 700; color: var(--gris-txt); }
+  @keyframes aq-monte { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @media (prefers-reduced-motion: reduce) { .aq-blk { animation: none; } .aq-rep, .aq-fill { transition: none; } }
+  @media (max-width: 640px) { .aq-reps { grid-template-columns: 1fr; } .aq-rep { min-height: 72px; } .an-grid2 { grid-template-columns: 1fr; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -544,6 +677,9 @@
         </div>
         <div class="nav-item" onclick="showSection('livret')">
           <i class="ti ti-book-2"></i><span>Livret JSP officiel</span>
+        </div>
+        <div class="nav-item" onclick="showSection('animation')">
+          <i class="ti ti-presentation"></i><span>Guide d'animation</span>
         </div>
         <div class="sidebar-section">Gestion</div>
         <div class="nav-item" onclick="showSection('jsps')">
@@ -2186,6 +2322,8 @@ const MODULES_ACCES = [
   { key:'planning', label:'Planning', icon:'ti-calendar-event', section:'planning', groupe:'Suivi JSP' },
   { key:'bilans', label:'Bilans annuels', icon:'ti-clipboard-list', section:'bilans', groupe:'Suivi JSP' },
   { key:'livret', label:'Livret JSP officiel', icon:'ti-book-2', section:'livret', groupe:'Suivi JSP' },
+  { key:'animation', label:"Guide d'animation", icon:'ti-presentation', section:'animation', groupe:'Animation' },
+  { key:'animation-edit', label:"Guide d'animation : modifier les fiches", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'jsps', label:'JSP (fiches)', icon:'ti-users', section:'jsps', groupe:'Administration' },
   { key:'trombinoscope', label:'Trombinoscope', icon:'ti-photo', section:'trombinoscope', groupe:'Administration' },
   { key:'historique', label:'Historique', icon:'ti-history', section:'historique', groupe:'Administration' },
@@ -2224,7 +2362,8 @@ function migrerComptesSpeciaux() {
 // des accès cochés par l'admin pour ce compte.
 function buildSidebarSpecial(user) {
   const acces = user.acces || {};
-  const items = MODULES_ACCES.filter(m => acces[m.key]);
+  const vues = {};
+  const items = MODULES_ACCES.filter(m => acces[m.key] && !vues[m.section] && (vues[m.section] = true));
   let html = '<div class="sidebar-section">Mon espace</div>';
   items.forEach((m, i) => {
     html += `<div class="nav-item${i === 0 ? ' active' : ''}" onclick="showSection('${m.section}')"><i class="ti ${m.icon}"></i><span>${m.label}</span></div>`;
@@ -2233,6 +2372,473 @@ function buildSidebarSpecial(user) {
     html += '<div style="padding:12px;font-size:13px;color:var(--gris-txt)">Aucun accès configuré. Contacte l\'administrateur.</div>';
   }
   document.getElementById('sidebarSpecial').innerHTML = html;
+}
+
+
+const ANIMATION_SEED = {"fiches": {"JSP2|Les règles et précautions d'emploi des tuyaux": {"cycle": "JSP2", "bloc": "Eteindre un incendie", "item": "Les règles et précautions d'emploi des tuyaux", "objectif": "Citer et appliquer les règles d'emploi des tuyaux lors d'un établissement.", "pointsCles": ["Alimentation (point d'eau → engin) : 70 ou 110 · refoulement (engin → lance) : 45 ou 70", "Conditionnement : rouleaux, écheveaux, dévidoir · raccords symétriques", "Pas de coude brusque ni de « coque » : le débit chute, le tuyau s'abîme", "Pas de passage sur arêtes vives, verre, braises → protège-tuyau", "Jamais sous les roues : contourner ou pont passe-tuyaux", "Éviter hydrocarbures, acides, sources de chaleur", "Raccords : ne pas les laisser tomber ni traîner dans la terre", "Ouvrir et fermer lentement les vannes (coup de bélier)", "Toujours une réserve de tuyau à la lance", "Après usage : rincer, contrôler, sécher, signaler toute fuite"], "materiel": "Tuyaux 45 et 70, division, lance (FPT), protège-tuyaux / pont passe-tuyaux, 2 seaux, bandeaux, chrono, ardoises.", "activites": [{"titre": "Chasse aux erreurs", "duree": "15 min", "prep": "Un établissement depuis le FPT avec 6 pièges : coque, pliure à angle vif, tuyau sur une arête, sous une roue, raccord dans la terre, pas de réserve à la lance.", "deroule": ["Par binôme, les JSP cherchent une erreur.", "Ils expliquent le risque.", "Ils la corrigent. On passe au binôme suivant."], "phrase": "Chaque erreur, c'est moins d'eau pour le binôme à la lance.", "securite": ""}, {"titre": "Relais du débit", "duree": "15 min", "prep": "2 établissements identiques en 45, 2 seaux, 1 chrono. Sur l'un, une coque et une pliure volontaires.", "deroule": ["Deux équipes, une par établissement, sans savoir lequel est piégé.", "Mise en eau à faible pression, ouverture lente : chacun remplit son seau.", "On compare les temps : « Pourquoi l'équipe B est plus lente ? »", "Les JSP trouvent et corrigent les défauts, on refait un essai."], "phrase": "Ce seau qui se remplit lentement, c'est votre binôme qui n'a pas assez d'eau.", "securite": "Pression faible, encadrant au refoulement. Personne devant la lance."}, {"titre": "Tuyau à l'aveugle", "duree": "15 min", "prep": "Sol dégagé, 2 ou 3 tuyaux 45 en rouleau, 1 bandeau par binôme. Pas d'eau.", "deroule": ["Un JSP a les yeux bandés, l'autre le guide à la voix.", "Mission : dérouler et raccorder à la division sans poser le raccord dans la terre.", "On inverse les rôles.", "Débrief : quels mots ont aidé ?"], "phrase": "Dans la fumée, vous ne voyez rien : il faut connaître le matériel par cœur.", "securite": "Un encadrant à côté de chaque JSP aveugle. On marche, on ne court pas."}, {"titre": "Le coup de bélier (démonstration)", "duree": "10 min", "prep": "1 établissement 45 en eau à faible pression. L'encadrant tient la lance.", "deroule": ["Les JSP posent la main à plat sur le tuyau, loin de la lance.", "L'encadrant ferme lentement : rien.", "Puis plus vite : ils sentent le coup.", "« Avec une forte pression, que pourrait-il arriver ? »"], "phrase": "", "securite": "C'est l'encadrant qui manœuvre, JSP loin de la lance."}], "questions": [{"q": "À quoi sert un tuyau de refoulement ?", "r": "À amener l'eau de l'engin jusqu'à la lance."}, {"q": "À quoi sert un tuyau d'alimentation ?", "r": "À amener l'eau du point d'eau (PI, réserve) jusqu'à l'engin."}, {"q": "Cite 2 diamètres de tuyaux de refoulement.", "r": "45 et 70."}, {"q": "Qu'est-ce qu'une « coque » et pourquoi l'éviter ?", "r": "Une boucle ou torsion qui étrangle le tuyau : l'eau passe mal et le tuyau s'abîme."}, {"q": "Pourquoi ne jamais laisser un véhicule rouler sur un tuyau ?", "r": "Il peut l'écraser ou le faire éclater : plus d'eau à la lance."}, {"q": "Que met-on quand un tuyau passe sur une arête vive ?", "r": "Un protège-tuyau."}, {"q": "Pourquoi ouvrir et fermer les vannes lentement ?", "r": "Pour éviter le coup de bélier (surpression qui peut faire éclater le tuyau ou déséquilibrer le porte-lance)."}, {"q": "Pourquoi garder une réserve de tuyau à la lance ?", "r": "Pour pouvoir progresser sans tirer sur tout l'établissement."}, {"q": "Pourquoi faire attention aux raccords ?", "r": "Un raccord abîmé ou plein de terre fuit ou ne se raccorde plus."}, {"q": "Que fait-on d'un tuyau après l'intervention ?", "r": "On le nettoie, on le contrôle, on le fait sécher et on signale les fuites."}, {"q": "Pourquoi établit-on parfois plusieurs lignes de tuyaux ?", "r": "Pour attaquer le feu sur plusieurs fronts et/ou protéger une zone."}], "quiz": [{"q": "À quoi sert un tuyau de refoulement ?", "bonne": "Amener l'eau de l'engin à la lance", "fausses": ["Amener l'eau du PI à l'engin", "Aspirer l'eau d'une rivière", "Évacuer l'eau d'une cave"], "expl": "Refoulement : de l'engin vers la lance. Alimentation : du point d'eau vers l'engin."}, {"q": "À quoi sert un tuyau d'alimentation ?", "bonne": "Amener l'eau du point d'eau à l'engin", "fausses": ["Amener l'eau de l'engin à la lance", "Remplir le réservoir de mousse", "Arroser la cabine"], "expl": "Il relie le PI (ou une réserve) à l'engin."}, {"q": "Quels diamètres pour les tuyaux de refoulement ?", "bonne": "45 et 70", "fausses": ["20 et 25", "110 et 150", "100 et 200"], "expl": "Refoulement en 45 ou 70 ; l'alimentation se fait en 70 ou 110."}, {"q": "Qu'est-ce qu'une « coque » ?", "bonne": "Une torsion qui étrangle le tuyau", "fausses": ["Un raccord spécial", "Un tuyau neuf", "Une réserve à la lance"], "expl": "L'eau passe mal et le tuyau s'abîme : on la supprime tout de suite."}, {"q": "Un véhicule doit passer sur ton établissement. Que fais-tu ?", "bonne": "Pont passe-tuyaux ou on le fait contourner", "fausses": ["Rien, le tuyau est solide", "On coupe l'eau pour qu'il passe", "On gonfle plus le tuyau"], "expl": "Écrasé, le tuyau peut éclater : plus d'eau pour le binôme à la lance."}, {"q": "Le tuyau passe sur une arête vive. Que mets-tu ?", "bonne": "Un protège-tuyau", "fausses": ["Du scotch", "Une division", "Rien"], "expl": "Arêtes, verre, braises percent le tuyau."}, {"q": "Pourquoi ouvrir et fermer les vannes lentement ?", "bonne": "Pour éviter le coup de bélier", "fausses": ["Pour économiser l'eau", "Pour faire moins de bruit", "C'est juste une habitude"], "expl": "Le coup de bélier est une surpression : tuyau qui éclate, porte-lance déséquilibré."}, {"q": "Pourquoi garder une réserve de tuyau à la lance ?", "bonne": "Pour progresser sans tirer l'établissement", "fausses": ["Pour faire joli", "Pour avoir plus de pression", "Pour s'asseoir dessus"], "expl": "Quelques mètres de mou permettent d'avancer facilement."}, {"q": "Ton raccord tombe dans la terre. Le risque ?", "bonne": "Il fuit ou ne se raccorde plus", "fausses": ["Aucun risque", "Plus de pression", "Le tuyau s'allonge"], "expl": "On protège toujours les raccords des chocs et de la terre."}, {"q": "Après l'intervention, on fait quoi du tuyau ?", "bonne": "Nettoyer, contrôler, sécher", "fausses": ["Le ranger mouillé tout de suite", "Le jeter", "Le laisser sur place"], "expl": "Et on signale toute fuite pour qu'il soit réparé."}, {"q": "Vrai ou faux : un tuyau peut traîner dans une flaque d'huile.", "bonne": "Faux", "fausses": ["Vrai"], "expl": "Hydrocarbures et acides abîment le tuyau."}, {"q": "Pourquoi établir plusieurs lignes de tuyaux ?", "bonne": "Attaquer sur plusieurs fronts ou protéger", "fausses": ["Pour occuper tout le monde", "Pour aller plus vite au retour", "Ça ne sert à rien"], "expl": "Question tirée de la banque QCM du carnet."}], "statut": "brouillon", "source": "Programme national JSP (diaporama non retrouvé dans le Drive)"}, "JSP3|Les moyens facilitant l'action des secours": {"cycle": "JSP3", "bloc": "Sécuriser la zone d'intervention", "item": "Les moyens facilitant l'action des secours", "objectif": "Énumérer par écrit les moyens facilitant l'action des secours — 10 min, 1 erreur admise.", "pointsCles": ["Plan d'intervention à chaque entrée : fluides, commandes de sécurité, locaux à risques, moyens d'extinction", "Tours d'incendie (escaliers protégés + colonne) · ascenseurs prioritaires", "Trémies d'attaque : trappes 0,60 m, tous les 20 m, pour attaquer un feu de sous-sol", "Raccord ZAG au bout des « gaines pompier » : ventiler, évacuer les fumées", "Voies engins / échelle, façades et baies accessibles, balcons, passerelles, échelles", "Colonnes sèches ou humides : tuyau rigide qui traverse l'immeuble", "Matériels : outils de forcement et de déblai, explosimètre, caméra thermique, détecteur CO, thermomètre infrarouge"], "materiel": "Tablette avec photos d'installations (plan d'intervention, trémie, raccord ZAG, colonne sèche, baies accessibles), matériel des engins (caméra thermique, détecteur CO, explosimètre, thermomètre IR, outils de forcement), petits papiers, ardoises.", "activites": [{"titre": "Chasse au matériel dans les engins", "duree": "15 min", "prep": "Vérifier avant ce qu'il y a vraiment dans les coffres.", "deroule": ["Par binôme, retrouver : caméra thermique, détecteur CO, explosimètre, thermomètre IR, 2 outils de forcement.", "Chacun dit à quoi sert ce qu'il a trouvé.", "Test caméra thermique : repérer un camarade caché, un moteur chaud."], "phrase": "Dans la fumée on ne voit rien : la caméra voit la chaleur.", "securite": "Matériel fragile : l'encadrant le tient."}, {"titre": "Photo-mystère", "duree": "15 min", "prep": "6 à 8 photos sur la tablette : plan d'intervention, tour d'incendie, trémie, raccord ZAG, colonne sèche, baies accessibles, voie échelle, ascenseur prioritaire.", "deroule": ["Une photo à la fois.", "Le premier binôme dit le nom et à quoi ça sert.", "1 point pour le nom, 1 pour l'utilité.", "À la fin, on reclasse : installations / matériels."], "phrase": "Tout ce qui est prévu pour nous aider, il faut le reconnaître en arrivant.", "securite": ""}, {"titre": "Qui suis-je ?", "duree": "15 min", "prep": "Petits papiers avec les noms des installations et matériels.", "deroule": ["Un JSP tire un papier sans le montrer.", "Il fait deviner en décrivant l'utilité, sans dire le nom.", "30 secondes par papier.", "Variante : réponses par oui / non."], "phrase": "Si tu sais expliquer à quoi ça sert, tu ne l'oublieras pas.", "securite": ""}], "questions": [{"q": "Où doit être placé le plan d'intervention ?", "r": "À chaque entrée du bâtiment (pancarte inaltérable : sous-sol, RDC, étages)."}, {"q": "Que doit-on trouver sur ce plan ?", "r": "Dégagements, locaux à risques, commandes de sécurité, coupures des fluides et énergies, moyens d'extinction et d'alarme."}, {"q": "Qu'est-ce qu'une tour d'incendie ?", "r": "Un escalier protégé, facile d'accès depuis l'extérieur, qui dessert tous les niveaux, avec colonne sèche ou en charge."}, {"q": "À quoi sert une trémie d'attaque ?", "r": "Trappe qui permet d'attaquer un feu en sous-sol (0,60 m, tous les 20 m environ, abords dégagés)."}, {"q": "À quoi sert le raccord ZAG ?", "r": "À ventiler et évacuer rapidement les fumées, au bout des « gaines pompier »."}, {"q": "À quoi servent les baies accessibles ?", "r": "À entrer directement dans les étages, depuis une façade desservie par une voie."}, {"q": "Qu'est-ce qu'une colonne sèche ou humide ?", "r": "Un long tuyau rigide qui traverse l'immeuble de haut en bas pour lutter contre l'incendie."}, {"q": "À quoi sert l'explosimètre ?", "r": "À mesurer la concentration des gaz et savoir si l'atmosphère est explosive."}, {"q": "À quoi sert la caméra thermique ?", "r": "À repérer victimes et flammes dans les locaux enfumés, et les points chauds au déblai."}, {"q": "Pourquoi un détecteur de CO ?", "r": "Le CO est incolore, inodore, insipide."}, {"q": "À quoi sert le thermomètre infrarouge ?", "r": "À mesurer une température à distance (souvent avec un laser de visée)."}], "quiz": [{"q": "Où doit être placé le plan d'intervention ?", "bonne": "À chaque entrée du bâtiment", "fausses": ["Dans le bureau du directeur", "Sur le toit", "Dans l'engin pompe"], "expl": "Une pancarte inaltérable, avec au minimum le sous-sol, le rez-de-chaussée et les étages."}, {"q": "Que trouve-t-on sur le plan d'intervention ?", "bonne": "Coupures des fluides et commandes de sécurité", "fausses": ["Les horaires d'ouverture", "Le nom des employés", "Le menu de la cantine"], "expl": "Aussi : locaux à risques, moyens d'extinction et d'alarme, dégagements."}, {"q": "Qu'est-ce qu'une tour d'incendie ?", "bonne": "Un escalier protégé, facile d'accès pour les secours", "fausses": ["Une tour de séchage des tuyaux", "Un château d'eau", "Une grande échelle"], "expl": "Elle dessert tous les niveaux et est équipée d'une colonne sèche ou en charge."}, {"q": "À quoi sert une trémie d'attaque ?", "bonne": "Attaquer un feu de sous-sol par une trappe", "fausses": ["Ranger les tuyaux", "Faire entrer les engins", "Aérer les bureaux"], "expl": "Trappe fermée par un tampon étanche, enlevable rapidement."}, {"q": "Quelle taille fait une trémie d'attaque ?", "bonne": "0,60 m de côté ou de diamètre", "fausses": ["0,20 m", "2 m", "5 m"], "expl": "Distantes d'environ 20 m, signalées, abords toujours dégagés."}, {"q": "À quoi sert le raccord ZAG ?", "bonne": "Ventiler et évacuer les fumées", "fausses": ["Alimenter une lance", "Couper le gaz", "Ouvrir une porte"], "expl": "Installé au bout des gaines de ventilation dites « gaines pompier »."}, {"q": "Les baies accessibles permettent aux pompiers de…", "bonne": "Entrer directement aux étages", "fausses": ["Se reposer", "Garer les engins", "Stocker du matériel"], "expl": "Avec des façades accessibles desservies par une voie ou un espace libre."}, {"q": "Qu'est-ce qu'une colonne sèche ou humide ?", "bonne": "Un tuyau rigide qui traverse le bâtiment", "fausses": ["Un poteau incendie", "Un extincteur", "Une gaine électrique"], "expl": "Installée dans les immeubles à étages pour faciliter l'attaque du feu."}, {"q": "À quoi sert l'explosimètre ?", "bonne": "Savoir si l'atmosphère est explosive", "fausses": ["Mesurer la pression d'eau", "Détecter les victimes", "Mesurer le vent"], "expl": "Il mesure la concentration des différents gaz."}, {"q": "À quoi sert la caméra thermique ?", "bonne": "Repérer victimes et points chauds dans la fumée", "fausses": ["Filmer l'intervention", "Mesurer la vitesse du feu", "Éclairer la zone"], "expl": "Elle sert aussi à chercher les points chauds pendant le déblai."}, {"q": "Le monoxyde de carbone (CO) est…", "bonne": "Incolore, inodore, insipide", "fausses": ["Rouge et piquant", "Sucré", "Très bruyant"], "expl": "D'où l'utilité du détecteur de CO. Nombreux décès à l'approche de l'hiver."}, {"q": "Le thermomètre infrarouge permet de…", "bonne": "Mesurer une température à distance", "fausses": ["Mesurer la fièvre d'une victime", "Allumer un feu", "Mesurer la hauteur"], "expl": "Souvent équipé d'un laser pour viser."}, {"q": "Vrai ou faux : les ascenseurs prioritaires facilitent l'action des secours.", "bonne": "Vrai", "fausses": ["Faux"], "expl": "Ils font partie des installations prévues pour les pompiers."}, {"q": "Vrai ou faux : les abords d'une trémie peuvent être encombrés.", "bonne": "Faux", "fausses": ["Vrai"], "expl": "Ils doivent être constamment dégagés."}], "statut": "brouillon", "source": "Diaporama JSP3-Moyens_facilitants_action_des_secours (Lt Luc Béhague)"}, "JSP4|Les fumées d'incendie": {"cycle": "JSP4", "bloc": "Sécuriser la zone d'intervention", "item": "Les fumées d'incendie", "objectif": "Citer les dangers des fumées et les mesures pour s'en protéger.", "pointsCles": ["Chaudes (brûlures, propagation) · opaques (on s'y perd)", "Toxiques : monoxyde de carbone, gaz cyanhydrique, suies", "Inflammables (elles peuvent s'enflammer, voire exploser) · mobiles", "Lire les fumées : volume, couleur, épaisseur, vitesse", "Engins garés hors des fumées, vitres et ventilation fermées", "EPI complets + contrôle croisé · ARI aussi au déblai", "Visage et mains : eau froide + savon ou lingettes", "EPI sales séparés des propres, pas de toxiques dans la cabine", "Douche avant les espaces de vie, vêtements propres, bien boire"], "materiel": "Rubalise ou ruban pour lire le vent, plots, fumigène si possible, lingettes + savon + gants jetables, sac « EPI sales », tenues complètes.", "activites": [{"titre": "Où je gare le FPT ?", "duree": "20 min", "prep": "Un ruban au rétroviseur ou sur un piquet, un plot « feu », fumigène si possible.", "deroule": ["Tu places le plot « feu » (et le fumigène).", "Les JSP observent : où part la fumée, à quelle vitesse ?", "Chacun place un plot là où il garerait le FPT, et justifie.", "Correction : hors fumées, vent dans le dos, vitres fermées."], "phrase": "La fumée ne pardonne pas l'erreur de placement.", "securite": "Fumigène manipulé par l'encadrant, loin des engins et bâtiments."}, {"titre": "Vrai ou faux — course aux engins", "duree": "15 min", "prep": "Deux engins garés à 15-20 m. Les affirmations vrai/faux des questions.", "deroule": ["Tu lis une affirmation.", "FPT si c'est vrai, VSAV si c'est faux.", "Ceux qui se trompent expliquent, un camarade corrige."], "phrase": "", "securite": "Engins à l'arrêt, clés retirées. On touche, on ne monte pas."}, {"titre": "Contrôle croisé chronométré", "duree": "20 min", "prep": "JSP en tenue, un défaut discret préparé par binôme.", "deroule": ["L'un s'équipe, tu glisses un défaut (col ouvert, gant mal mis, jugulaire…).", "L'autre a 30 secondes pour le trouver et le corriger.", "On inverse.", "« Par où la suie entre dans une tenue mal fermée ? »"], "phrase": "Chacun est responsable de sa sécurité et de celle de son binôme.", "securite": ""}], "questions": [{"q": "Cite les 5 caractéristiques des fumées.", "r": "Chaudes, opaques, toxiques, inflammables, mobiles."}, {"q": "Pourquoi les fumées sont-elles souvent plus dangereuses que les flammes ?", "r": "Elles contiennent des gaz toxiques qui intoxiquent vite, même loin du foyer."}, {"q": "Cite 2 gaz toxiques présents dans les fumées.", "r": "Le monoxyde de carbone (CO) et le gaz cyanhydrique (HCN)."}, {"q": "Pourquoi le monoxyde de carbone est-il piégeux ?", "r": "Il est incolore et inodore : on ne le sent pas venir."}, {"q": "Pourquoi se déplacer bas dans une fumée dense ?", "r": "L'air y est généralement moins chaud et moins toxique."}, {"q": "Pourquoi une fumée peut-elle s'enflammer ?", "r": "Elle contient des gaz combustibles qui n'ont pas encore brûlé."}, {"q": "Que regarde-t-on quand on « lit » les fumées ?", "r": "Le volume, la couleur, l'épaisseur, la vitesse."}, {"q": "Où gare-t-on les engins ?", "r": "Hors des fumées, vent dans le dos, vitres et ventilation fermées."}, {"q": "Pourquoi garde-t-on l'ARI au déblai ?", "r": "Les gaz et particules toxiques sont encore présents après l'extinction."}, {"q": "Pourquoi se laver visage et mains à l'eau froide ?", "r": "Pour ne pas ouvrir les pores de la peau aux suies toxiques."}, {"q": "Pourquoi décontamine-t-on EPI et matériel après un feu ?", "r": "Pour limiter l'exposition aux particules et résidus toxiques."}, {"q": "Que fait-on avant de rejoindre les pièces de vie de la caserne ?", "r": "Une douche, et on met des vêtements propres. On boit bien."}], "quiz": [{"q": "Laquelle N'EST PAS une caractéristique des fumées ?", "bonne": "Froides", "fausses": ["Toxiques", "Inflammables", "Opaques"], "expl": "Chaudes, opaques, toxiques, inflammables, mobiles."}, {"q": "Qu'est-ce qui tue le plus dans un incendie ?", "bonne": "Les fumées", "fausses": ["Les flammes", "Le bruit", "L'eau des lances"], "expl": "Les gaz toxiques intoxiquent vite, même loin du foyer."}, {"q": "Quel gaz toxique est présent dans les fumées ?", "bonne": "Le monoxyde de carbone (CO)", "fausses": ["L'oxygène", "L'azote", "La vapeur d'eau"], "expl": "Il y a aussi le gaz cyanhydrique (HCN)."}, {"q": "Pourquoi le monoxyde de carbone est-il piégeux ?", "bonne": "Incolore et inodore", "fausses": ["Il sent très fort", "Il est rouge", "Il est froid"], "expl": "On ne le voit pas, on ne le sent pas."}, {"q": "Dans une fumée dense, on se déplace…", "bonne": "Bas, près du sol", "fausses": ["Debout", "En sautant", "En courant"], "expl": "L'air y est moins chaud et moins toxique, mais jamais sans risque."}, {"q": "Pourquoi une fumée peut-elle s'enflammer ?", "bonne": "Elle contient des gaz non brûlés", "fausses": ["Elle est mouillée", "Elle est froide", "Elle ne peut pas"], "expl": "C'est pour ça qu'on dit que les fumées sont inflammables."}, {"q": "Où gare-t-on l'engin ?", "bonne": "Hors fumées, vent dans le dos", "fausses": ["Dans les fumées", "Au plus près du feu", "N'importe où"], "expl": "Vitres et ventilation fermées."}, {"q": "Au déblai, l'ARI…", "bonne": "On le garde", "fausses": ["On l'enlève, c'est éteint", "On le prête", "On le laisse dans l'engin"], "expl": "Les gaz et particules toxiques sont encore là."}, {"q": "Après un feu, visage et mains à l'eau…", "bonne": "Froide et savon", "fausses": ["Chaude", "Bouillante", "On ne se lave pas"], "expl": "L'eau froide n'ouvre pas les pores de la peau aux suies."}, {"q": "Tenue pleine de suie : je remonte en cabine ?", "bonne": "Non, pas de toxiques dans la cabine", "fausses": ["Oui, pas grave", "Oui si je suis pressé", "Oui en fermant la vitre"], "expl": "EPI sales séparés des propres."}, {"q": "Avant les pièces de vie de la caserne ?", "bonne": "Douche et vêtements propres", "fausses": ["Un café", "Rien", "Juste enlever le casque"], "expl": "Et on boit bien."}, {"q": "Vrai ou faux : une fumée claire est sans danger.", "bonne": "Faux", "fausses": ["Vrai"], "expl": "Toute fumée d'incendie est toxique."}, {"q": "Vrai ou faux : bien boire après un feu est recommandé.", "bonne": "Vrai", "fausses": ["Faux"], "expl": "Recommandation du guide de doctrine sur la toxicité des fumées."}], "statut": "brouillon", "source": "Guide de doctrine DGSCGC toxicité des fumées (diaporama non retrouvé dans le Drive)"}}, "seances": {"2026-09-27": {"deroule": [{"duree": "10'", "quoi": "Rassemblement devant les engins", "comment": "Appel, tenue, consignes : on n'ouvre rien sans encadrant, on reste hors de la zone de manœuvre."}, {"duree": "45'", "quoi": "Ateliers par niveau (1 encadrant / groupe)", "comment": "Accroche 5' → découverte active 25' → défi / évaluation 10' → retour 5'."}, {"duree": "10'", "quoi": "Pause", "comment": "Eau, on remet en place le matériel sorti."}, {"duree": "10'", "quoi": "« Prof d'un jour »", "comment": "Chaque niveau explique en 3' ses 3 idées clés aux autres."}, {"duree": "20'", "quoi": "Exercice fil rouge commun", "comment": "« Feu dans un garage, fumées vers la route » : JSP 4 fumées et sécurité, JSP 3 les moyens, JSP 2 l'établissement."}, {"duree": "10'", "quoi": "Débriefing + rangement", "comment": "1 mot par JSP : « ce que je retiens ». Tuyaux rincés, séchés, reconditionnés."}], "materiel": "Tuyaux 45/70, division, lance, protège-tuyaux, rubalise, lingettes + savon + gants, sac EPI sales, tablette avec photos, ardoises, chrono.", "notes": "Déroulé prévu pour 1 encadrant par niveau."}}};
+
+// ══════════════════════════════════════════
+//  GUIDE D'ANIMATION — fiches par cours, déroulé par séance, quiz tablette
+//  Données : DB.animation = { fiches: {"JSP3|item": {...}}, seances: {"2026-09-27": {...}}, retours: [...] }
+//  Accès : module "animation" (lecture) et "animation-edit" (modifier les fiches) dans Comptes spéciaux.
+// ══════════════════════════════════════════
+function getAnim() {
+  if (!DB.animation) DB.animation = { fiches: {}, seances: {}, retours: [] };
+  if (!DB.animation.fiches) DB.animation.fiches = {};
+  if (!DB.animation.seances) DB.animation.seances = {};
+  if (!DB.animation.retours) DB.animation.retours = [];
+  return DB.animation;
+}
+function animCle(cycle, item) { return cycle + '|' + item; }
+function animPeutModifier() {
+  return !!currentUser && (currentUser.role === 'admin' || !!(currentUser.acces && currentUser.acces['animation-edit']));
+}
+// Ajoute les fiches de départ (séance du 27/09/2026) sans jamais écraser une fiche existante.
+function animInjecterFichesDepart() {
+  if (typeof ANIMATION_SEED === 'undefined' || !currentUser || currentUser.role !== 'admin') return;
+  const a = getAnim(); let ajout = false;
+  Object.keys(ANIMATION_SEED.fiches).forEach(k => {
+    if (!a.fiches[k]) { a.fiches[k] = Object.assign({}, ANIMATION_SEED.fiches[k], { maj: new Date().toISOString(), auteur: 'Fiche de départ' }); ajout = true; }
+  });
+  Object.keys(ANIMATION_SEED.seances).forEach(d => { if (!a.seances[d]) { a.seances[d] = ANIMATION_SEED.seances[d]; ajout = true; } });
+  if (ajout) saveData();
+}
+function animDateParDefaut() {
+  const dates = getDimanchesCours();
+  const auj = dateISOLocale(new Date());
+  if (!dates.length) return auj;
+  return dates.find(d => d >= auj) || dates[dates.length - 1];
+}
+function animItemsDuJour(date) {
+  const res = [];
+  ['JSP1','JSP2','JSP3','JSP4'].forEach(c => {
+    const items = (getProgrammeAnnuelCycle(c)[date]) || [];
+    items.forEach(it => res.push(Object.assign({ cycle: c }, it)));
+  });
+  return res;
+}
+function animBadgeStatut(f) {
+  if (!f) return '<span class="an-statut an-vide">Pas de fiche</span>';
+  if (f.statut === 'validee') return '<span class="an-statut an-ok"><i class="ti ti-circle-check"></i> Fiche validée</span>';
+  return '<span class="an-statut an-brouillon"><i class="ti ti-pencil"></i> À vérifier</span>';
+}
+function animJs(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+function renderAnimation() {
+  animInjecterFichesDepart();
+  const onglet = window._animTab || 'seance';
+  let h = '<div class="section-header"><h2><i class="ti ti-presentation"></i> Guide d\'animation</h2></div>';
+  h += '<div class="tabs">'
+    + '<div class="tab'+(onglet==='seance'?' active':'')+'" onclick="window._animTab=\'seance\';showSection(\'animation\')">Séance</div>'
+    + '<div class="tab'+(onglet==='fiches'?' active':'')+'" onclick="window._animTab=\'fiches\';showSection(\'animation\')">Toutes les fiches</div>'
+    + '</div>';
+  h += onglet === 'fiches' ? renderAnimFiches() : renderAnimSeance();
+  return h;
+}
+
+function renderAnimSeance() {
+  const a = getAnim();
+  const dates = getDimanchesCours();
+  const date = window._animDate || animDateParDefaut();
+  const i = dates.indexOf(date);
+  const peut = animPeutModifier();
+  let h = '<div class="an-datebar">'
+    + '<button class="an-btn an-btn-icone" '+(i>0?'':'disabled')+' onclick="window._animDate=\''+(dates[i-1]||'')+'\';showSection(\'animation\')" aria-label="Séance précédente"><i class="ti ti-chevron-left"></i></button>'
+    + '<select class="an-select" onchange="window._animDate=this.value;showSection(\'animation\')">'
+    + (dates.includes(date) ? '' : '<option value="'+date+'" selected>'+fmtDate(date)+'</option>')
+    + dates.map(d => '<option value="'+d+'" '+(d===date?'selected':'')+'>'+fmtDate(d)+'</option>').join('')
+    + '</select>'
+    + '<button class="an-btn an-btn-icone" '+(i>=0&&i<dates.length-1?'':'disabled')+' onclick="window._animDate=\''+(dates[i+1]||'')+'\';showSection(\'animation\')" aria-label="Séance suivante"><i class="ti ti-chevron-right"></i></button>'
+    + '</div>';
+
+  // Déroulé de la séance
+  const s = a.seances[date];
+  h += '<div class="card an-card"><div class="an-card-tete"><h3><i class="ti ti-list-check"></i> Déroulé de la séance</h3>'
+    + (peut ? '<button class="an-btn" onclick="animEditerSeance(\''+date+'\')"><i class="ti ti-pencil"></i> '+(s?'Modifier':'Créer le déroulé')+'</button>' : '')
+    + '</div>';
+  if (s && s.deroule && s.deroule.length) {
+    h += '<div class="an-scroll"><table class="an-table"><thead><tr><th>Durée</th><th>Quoi</th><th>Comment</th></tr></thead><tbody>'
+      + s.deroule.map(r => '<tr><td class="an-nowrap">'+escTexte(r.duree)+'</td><td><strong>'+escTexte(r.quoi)+'</strong></td><td>'+escTexte(r.comment)+'</td></tr>').join('')
+      + '</tbody></table></div>';
+    if (s.materiel) h += '<p class="an-p"><strong>Matériel :</strong> '+escTexte(s.materiel)+'</p>';
+    if (s.notes) h += '<p class="an-p an-muted">'+escTexte(s.notes)+'</p>';
+  } else {
+    h += '<p class="an-muted">Pas encore de déroulé pour cette séance.</p>';
+  }
+  h += '</div>';
+
+  // Cours du jour par niveau
+  const items = animItemsDuJour(date);
+  if (!items.length) {
+    h += '<div class="card an-card"><p class="an-muted">Aucun cours prévu ce jour-là dans le programme.</p></div>';
+    return h;
+  }
+  const nbQuiz = items.reduce((n, it) => { const f = a.fiches[animCle(it.cycle, it.item)]; return n + (f && f.quiz ? f.quiz.length : 0); }, 0);
+  if (nbQuiz) h += '<button class="an-btn an-btn-quiz an-large" onclick="animLancerQuizSeance(\''+date+'\')"><i class="ti ti-player-play"></i> Quiz de toute la séance (équipes mixtes)</button>';
+  ['JSP1','JSP2','JSP3','JSP4'].forEach(c => {
+    const du = items.filter(it => it.cycle === c);
+    if (!du.length) return;
+    h += '<div class="card an-card an-cycle" style="border-left-color:'+CYCLE_COLORS[c]+'"><h3 style="color:'+CYCLE_COLORS[c]+'">'+c.replace('JSP','JSP ')+'</h3>';
+    du.forEach(it => {
+      const cle = animCle(c, it.item);
+      const f = a.fiches[cle];
+      const nq = f && f.quiz ? f.quiz.length : 0;
+      h += '<div class="an-cours"><div class="an-cours-titre"><strong>'+escTexte(it.item)+'</strong><div class="an-muted an-small">'+escTexte(it.bloc)+'</div>'+animBadgeStatut(f)+'</div>'
+        + '<div class="an-actions">'
+        + (f ? '<button class="an-btn an-btn-plein" onclick="animOuvrirFiche(\''+animJs(cle)+'\')"><i class="ti ti-file-text"></i> Fiche</button>'
+             : (peut ? '<button class="an-btn" onclick="animEditerFiche(\''+animJs(cle)+'\',\''+animJs(it.bloc)+'\')"><i class="ti ti-plus"></i> Créer la fiche</button>' : ''))
+        + (nq ? '<button class="an-btn an-btn-quiz" onclick="animLancerQuizFiche(\''+animJs(cle)+'\')"><i class="ti ti-player-play"></i> Quiz ('+nq+')</button>' : '')
+        + '<a class="an-btn" href="'+getLienCours(c, it.bloc, it.item)+'" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Cours</a>'
+        + '<button class="an-btn" onclick="animRetour(\''+animJs(cle)+'\',\''+date+'\')"><i class="ti ti-message-check"></i> Retour</button>'
+        + '</div></div>';
+    });
+    h += '</div>';
+  });
+  return h;
+}
+
+function renderAnimFiches() {
+  const a = getAnim();
+  const cycle = window._animCycle || 'JSP2';
+  const peut = animPeutModifier();
+  let h = '<div class="an-chips">' + ['JSP1','JSP2','JSP3','JSP4'].map(c =>
+    '<button class="an-chip'+(c===cycle?' on':'')+'" style="'+(c===cycle?'background:'+CYCLE_COLORS[c]+';border-color:'+CYCLE_COLORS[c]:'')+'" onclick="window._animCycle=\''+c+'\';showSection(\'animation\')">'+c.replace('JSP','JSP ')+'</button>').join('') + '</div>';
+  const items = LIVRET_CONNAISSANCES[cycle] || [];
+  const faites = items.filter(it => a.fiches[animCle(cycle, it.item)]).length;
+  h += '<p class="an-muted">'+faites+' fiche'+(faites>1?'s':'')+' sur '+items.length+' cours.</p>';
+  let bloc = null;
+  h += '<div class="card an-card">';
+  items.forEach(it => {
+    if (it.bloc !== bloc) { bloc = it.bloc; h += '<div class="an-bloc">'+escTexte(bloc)+'</div>'; }
+    const cle = animCle(cycle, it.item);
+    const f = a.fiches[cle];
+    h += '<div class="an-cours an-cours-compact"><div class="an-cours-titre">'+escTexte(it.item)+' '+animBadgeStatut(f)+'</div><div class="an-actions">'
+      + (f ? '<button class="an-btn" onclick="animOuvrirFiche(\''+animJs(cle)+'\')">Ouvrir</button>'
+           : (peut ? '<button class="an-btn" onclick="animEditerFiche(\''+animJs(cle)+'\',\''+animJs(it.bloc)+'\')"><i class="ti ti-plus"></i> Créer</button>' : ''))
+      + '</div></div>';
+  });
+  h += '</div>';
+  return h;
+}
+
+// ── Affichage d'une fiche ──
+function animFicheHTML(f, pourImpression) {
+  const col = CYCLE_COLORS[f.cycle] || '#163a64';
+  let h = '<div class="an-fiche-tete" style="border-color:'+col+'"><div class="an-small" style="color:'+col+';font-weight:700">'+f.cycle.replace('JSP','JSP ')+' · '+escTexte(f.bloc||'')+'</div>'
+    + '<h2 class="an-fiche-titre">'+escTexte(f.item)+'</h2>' + (pourImpression ? '' : animBadgeStatut(f)) + '</div>';
+  if (f.objectif) h += '<p class="an-p"><strong>Objectif :</strong> '+escTexte(f.objectif)+'</p>';
+  if (f.pointsCles && f.pointsCles.length) h += '<h4 class="an-h4">Points clés</h4><ul class="an-ul">'+f.pointsCles.map(p => '<li>'+escTexte(p)+'</li>').join('')+'</ul>';
+  if (f.materiel) h += '<p class="an-p"><strong>Matériel :</strong> '+escTexte(f.materiel)+'</p>';
+  (f.activites||[]).forEach(ac => {
+    h += '<div class="an-activite" style="border-left-color:'+col+'"><div class="an-activite-tete"><strong>'+escTexte(ac.titre)+'</strong><span>'+escTexte(ac.duree||'')+'</span></div>';
+    if (ac.prep) h += '<p class="an-p"><strong>Préparation :</strong> '+escTexte(ac.prep)+'</p>';
+    if (ac.deroule && ac.deroule.length) h += '<ol class="an-ul">'+ac.deroule.map(x => '<li>'+escTexte(x)+'</li>').join('')+'</ol>';
+    if (ac.phrase) h += '<p class="an-p an-phrase">« '+escTexte(ac.phrase)+' »</p>';
+    if (ac.securite) h += '<p class="an-p an-secu"><i class="ti ti-alert-triangle"></i> '+escTexte(ac.securite)+'</p>';
+    h += '</div>';
+  });
+  if (f.questions && f.questions.length) {
+    h += (pourImpression ? '<h4 class="an-h4">Questions et réponses attendues</h4><div>' : '<details class="an-details"><summary>Questions et réponses attendues ('+f.questions.length+')</summary>')
+      + '<table class="an-table"><tbody>'+f.questions.map((q,i) => '<tr><td class="an-nowrap">'+(i+1)+'</td><td>'+escTexte(q.q)+'</td><td>'+escTexte(q.r)+'</td></tr>').join('')+'</tbody></table>'
+      + (pourImpression ? '</div>' : '</details>');
+  }
+  if (f.source) h += '<p class="an-p an-muted an-small">Source : '+escTexte(f.source)+'</p>';
+  return h;
+}
+function animOuvrirFiche(cle) {
+  const a = getAnim(); const f = a.fiches[cle]; if (!f) return;
+  const peut = animPeutModifier();
+  const retours = a.retours.filter(r => r.cle === cle).slice(-5).reverse();
+  let h = animFicheHTML(f, false);
+  if (retours.length) {
+    h += '<h4 class="an-h4">Retours des animateurs</h4>' + retours.map(r =>
+      '<div class="an-retour"><span class="an-small an-muted">'+fmtDate(r.date)+' · '+escTexte(r.auteur)+(r.fait?' · cours fait':' · pas fait')+'</span>'+(r.note?'<div>'+escTexte(r.note)+'</div>':'')+'</div>').join('');
+  }
+  h += '<div class="an-actions an-actions-bas">'
+    + (f.quiz && f.quiz.length ? '<button class="an-btn an-btn-quiz" onclick="closeModal();animLancerQuizFiche(\''+animJs(cle)+'\')"><i class="ti ti-player-play"></i> Lancer le quiz</button>' : '')
+    + '<button class="an-btn" onclick="animImprimerFiche(\''+animJs(cle)+'\')"><i class="ti ti-printer"></i> Imprimer</button>'
+    + (peut ? '<button class="an-btn" onclick="animEditerFiche(\''+animJs(cle)+'\')"><i class="ti ti-pencil"></i> Modifier</button>' : '')
+    + (peut && f.statut !== 'validee' ? '<button class="an-btn an-btn-plein" onclick="animValiderFiche(\''+animJs(cle)+'\')"><i class="ti ti-circle-check"></i> Valider la fiche</button>' : '')
+    + '<button class="an-btn" onclick="closeModal()">Fermer</button></div>';
+  openModalWide('<div class="an-modal">'+h+'</div>');
+}
+function animValiderFiche(cle) {
+  const f = getAnim().fiches[cle]; if (!f) return;
+  f.statut = 'validee'; f.maj = new Date().toISOString(); f.auteur = currentUser.nom;
+  saveData(); showToast('Fiche validée'); animOuvrirFiche(cle); if (currentSection === 'animation') { const c = document.getElementById('content'); c.innerHTML = renderAnimation(); }
+}
+function animImprimerFiche(cle) {
+  const f = getAnim().fiches[cle]; if (!f) return;
+  const w = window.open('', '_blank');
+  if (!w) { showToast('Autorise les fenêtres pop-up pour imprimer', true); return; }
+  w.document.write('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>'+escTexte(f.item)+'</title><style>'
+    + 'body{font-family:Barlow,Arial,sans-serif;font-size:12px;color:#1f2937;margin:16mm}h2{font-size:18px;margin:2px 0 6px}'
+    + '.an-fiche-tete{border-left:5px solid;padding-left:10px;margin-bottom:10px}.an-h4{font-size:13px;margin:10px 0 4px}.an-p{margin:4px 0}'
+    + '.an-ul{margin:2px 0 6px;padding-left:18px}.an-activite{border-left:3px solid;padding:4px 10px;margin:8px 0;break-inside:avoid}'
+    + '.an-activite-tete{display:flex;justify-content:space-between}.an-phrase{font-style:italic}.an-secu{color:#b91c1c}'
+    + '.an-table{border-collapse:collapse;width:100%}.an-table td{border:1px solid #ccc;padding:3px 5px;vertical-align:top}.an-muted{color:#6b7280}.an-small{font-size:11px}'
+    + '</style></head><body>'+animFicheHTML(f, true)+'<script>window.onload=function(){window.print();}<\/script></body></html>');
+  w.document.close();
+}
+
+// ── Retour après séance ──
+function animRetour(cle, date) {
+  const f = getAnim().fiches[cle];
+  const titre = f ? f.item : cle.split('|')[1];
+  openModal('<div class="an-modal"><h3>Retour après séance</h3><p class="an-muted">'+escTexte(titre)+' · '+fmtDate(date)+'</p>'
+    + '<label class="an-check"><input type="checkbox" id="an-ret-fait" checked> Le cours a été fait</label>'
+    + '<label class="an-label" for="an-ret-note">Ce qui a marché, ce qu\'il faudrait changer</label>'
+    + '<textarea id="an-ret-note" class="an-textarea" rows="4" placeholder="Ex. la chasse au matériel a bien marché, prévoir plus de temps pour le quiz"></textarea>'
+    + '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Annuler</button>'
+    + '<button class="an-btn an-btn-plein" onclick="animEnregistrerRetour(\''+animJs(cle)+'\',\''+date+'\')">Enregistrer le retour</button></div></div>');
+}
+function animEnregistrerRetour(cle, date) {
+  getAnim().retours.push({ cle, date, fait: document.getElementById('an-ret-fait').checked,
+    note: document.getElementById('an-ret-note').value.trim(), auteur: currentUser.nom, le: new Date().toISOString() });
+  saveData(); closeModal(); showToast('Retour enregistré');
+}
+
+// ── Édition d'une fiche ──
+function animLignes(txt) { return String(txt||'').split('\n').map(s => s.trim()).filter(Boolean); }
+function animEditerFiche(cle, bloc) {
+  const a = getAnim();
+  const [cycle, item] = [cle.split('|')[0], cle.slice(cle.indexOf('|')+1)];
+  const f = a.fiches[cle] || { cycle, item, bloc: bloc || '', objectif:'', pointsCles:[], materiel:'', activites:[], questions:[], quiz:[], statut:'brouillon' };
+  window._animBrouillon = JSON.parse(JSON.stringify(f));
+  window._animCleEdit = cle;
+  animAfficherEdition();
+}
+function animAfficherEdition() {
+  const f = window._animBrouillon;
+  const acts = (f.activites||[]).map((ac, i) =>
+    '<div class="an-edit-act"><div class="an-edit-act-tete"><strong>Activité '+(i+1)+'</strong><button class="an-btn an-btn-danger" onclick="animSynchroEdition();window._animBrouillon.activites.splice('+i+',1);animAfficherEdition()">Retirer</button></div>'
+    + '<div class="an-grid2"><input class="an-input" data-act="'+i+'" data-champ="titre" placeholder="Nom de l\'activité" value="'+escTexte(ac.titre)+'">'
+    + '<input class="an-input" data-act="'+i+'" data-champ="duree" placeholder="Durée (ex. 15 min)" value="'+escTexte(ac.duree)+'"></div>'
+    + '<textarea class="an-textarea" rows="2" data-act="'+i+'" data-champ="prep" placeholder="Préparation / matériel">'+escTexte(ac.prep)+'</textarea>'
+    + '<textarea class="an-textarea" rows="4" data-act="'+i+'" data-champ="deroule" placeholder="Déroulé : une étape par ligne">'+escTexte((ac.deroule||[]).join('\n'))+'</textarea>'
+    + '<input class="an-input" data-act="'+i+'" data-champ="phrase" placeholder="Phrase à dire aux jeunes (facultatif)" value="'+escTexte(ac.phrase)+'">'
+    + '<input class="an-input" data-act="'+i+'" data-champ="securite" placeholder="Point sécurité (facultatif)" value="'+escTexte(ac.securite)+'"></div>').join('');
+  const qTxt = (f.questions||[]).map(q => q.q + ' | ' + q.r).join('\n');
+  const quizTxt = (f.quiz||[]).map(q => [q.q, q.bonne, (q.fausses||[]).join(' ; '), q.expl||''].join(' | ')).join('\n');
+  openModalWide('<div class="an-modal"><h3>'+escTexte(f.item)+'</h3><p class="an-muted">'+f.cycle.replace('JSP','JSP ')+' · '+escTexte(f.bloc)+'</p>'
+    + '<label class="an-label">Objectif</label><textarea id="an-e-obj" class="an-textarea" rows="2">'+escTexte(f.objectif)+'</textarea>'
+    + '<label class="an-label">Points clés <span class="an-muted">(un par ligne)</span></label><textarea id="an-e-pts" class="an-textarea" rows="5">'+escTexte((f.pointsCles||[]).join('\n'))+'</textarea>'
+    + '<label class="an-label">Matériel</label><textarea id="an-e-mat" class="an-textarea" rows="2">'+escTexte(f.materiel)+'</textarea>'
+    + '<h4 class="an-h4">Activités</h4>'+acts
+    + '<button class="an-btn" onclick="animSynchroEdition();window._animBrouillon.activites.push({titre:\'\',duree:\'\',prep:\'\',deroule:[],phrase:\'\',securite:\'\'});animAfficherEdition()"><i class="ti ti-plus"></i> Ajouter une activité</button>'
+    + '<label class="an-label">Questions à poser <span class="an-muted">(une par ligne : Question | Réponse attendue)</span></label><textarea id="an-e-qr" class="an-textarea" rows="5">'+escTexte(qTxt)+'</textarea>'
+    + '<label class="an-label">Quiz tablette <span class="an-muted">(une question par ligne : Question | Bonne réponse | Fausse 1 ; Fausse 2 ; Fausse 3 | Explication)</span></label>'
+    + '<textarea id="an-e-quiz" class="an-textarea an-mono" rows="7">'+escTexte(quizTxt)+'</textarea>'
+    + '<p class="an-muted an-small">Pour un vrai / faux : « Vrai ou faux : … | Faux | Vrai | explication ».</p>'
+    + '<label class="an-label">Source <span class="an-muted">(diaporama, référentiel…)</span></label><input id="an-e-src" class="an-input" value="'+escTexte(f.source||'')+'">'
+    + '<label class="an-label">Statut</label><select id="an-e-statut" class="an-select"><option value="brouillon" '+(f.statut!=='validee'?'selected':'')+'>À vérifier</option><option value="validee" '+(f.statut==='validee'?'selected':'')+'>Validée</option></select>'
+    + '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Annuler</button><button class="an-btn an-btn-plein" onclick="animEnregistrerFiche()">Enregistrer la fiche</button></div></div>');
+}
+function animSynchroEdition() {
+  const f = window._animBrouillon; if (!f) return;
+  const v = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  f.objectif = v('an-e-obj').trim(); f.pointsCles = animLignes(v('an-e-pts')); f.materiel = v('an-e-mat').trim();
+  f.source = v('an-e-src').trim(); f.statut = v('an-e-statut') || f.statut;
+  document.querySelectorAll('[data-act]').forEach(el => {
+    const ac = f.activites[+el.dataset.act]; if (!ac) return;
+    ac[el.dataset.champ] = el.dataset.champ === 'deroule' ? animLignes(el.value) : el.value.trim();
+  });
+  f.questions = animLignes(v('an-e-qr')).map(l => { const p = l.split('|'); return { q: p[0].trim(), r: (p.slice(1).join('|')||'').trim() }; });
+  f.quiz = [];
+  f.erreursQuiz = [];
+  animLignes(v('an-e-quiz')).forEach((l, i) => {
+    const p = l.split('|').map(x => x.trim());
+    const fausses = (p[2]||'').split(';').map(x => x.trim()).filter(Boolean);
+    if (!p[0] || !p[1] || !fausses.length) { f.erreursQuiz.push(i+1); return; }
+    f.quiz.push({ q: p[0], bonne: p[1], fausses: fausses.slice(0,3), expl: p[3] || '' });
+  });
+}
+function animEnregistrerFiche() {
+  animSynchroEdition();
+  const f = window._animBrouillon;
+  if (f.erreursQuiz && f.erreursQuiz.length) {
+    showToast('Quiz : ligne '+f.erreursQuiz.join(', ')+' incomplète (question, bonne réponse et au moins une fausse)', true); return;
+  }
+  delete f.erreursQuiz;
+  f.activites = (f.activites||[]).filter(ac => ac.titre || (ac.deroule && ac.deroule.length));
+  f.maj = new Date().toISOString(); f.auteur = currentUser.nom;
+  getAnim().fiches[window._animCleEdit] = f;
+  saveData(); showToast('Fiche enregistrée');
+  const cle = window._animCleEdit;
+  window._animBrouillon = null;
+  document.getElementById('content').innerHTML = renderAnimation();
+  animOuvrirFiche(cle);
+}
+
+// ── Édition du déroulé d'une séance ──
+function animEditerSeance(date) {
+  const s = getAnim().seances[date] || { deroule: [], materiel: '', notes: '' };
+  const txt = (s.deroule||[]).map(r => [r.duree, r.quoi, r.comment].join(' | ')).join('\n');
+  openModalWide('<div class="an-modal"><h3>Déroulé du '+fmtDate(date)+'</h3>'
+    + '<label class="an-label">Étapes <span class="an-muted">(une par ligne : Durée | Quoi | Comment)</span></label>'
+    + '<textarea id="an-s-der" class="an-textarea an-mono" rows="8" placeholder="10\' | Rassemblement | Appel, tenue, consignes">'+escTexte(txt)+'</textarea>'
+    + '<label class="an-label">Matériel</label><textarea id="an-s-mat" class="an-textarea" rows="2">'+escTexte(s.materiel)+'</textarea>'
+    + '<label class="an-label">Remarques pour les animateurs</label><textarea id="an-s-notes" class="an-textarea" rows="2">'+escTexte(s.notes)+'</textarea>'
+    + '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Annuler</button><button class="an-btn an-btn-plein" onclick="animEnregistrerSeance(\''+date+'\')">Enregistrer le déroulé</button></div></div>');
+}
+function animEnregistrerSeance(date) {
+  const deroule = animLignes(document.getElementById('an-s-der').value).map(l => { const p = l.split('|').map(x => x.trim()); return { duree: p[0]||'', quoi: p[1]||'', comment: p.slice(2).join(' | ') }; });
+  getAnim().seances[date] = { deroule, materiel: document.getElementById('an-s-mat').value.trim(), notes: document.getElementById('an-s-notes').value.trim(),
+    maj: new Date().toISOString(), auteur: currentUser.nom };
+  saveData(); closeModal(); showToast('Déroulé enregistré');
+  document.getElementById('content').innerHTML = renderAnimation();
+}
+
+// ══════════════════════════════════════════
+//  QUIZ TABLETTE (plein écran, façon Kahoot)
+// ══════════════════════════════════════════
+const AQ = { titre:'', questions:[], equipes:['Équipe 1','Équipe 2','Équipe 3'], scores:[], ordre:[], idx:0, timer:null, reste:20, total:20,
+  pause:false, phase:'ask', son:true, gagne:[], actx:null };
+const AQ_FORMES = [
+  '<svg class="aq-forme" viewBox="0 0 40 40"><polygon points="20,4 37,35 3,35" fill="#fff"/></svg>',
+  '<svg class="aq-forme" viewBox="0 0 40 40"><polygon points="20,3 37,20 20,37 3,20" fill="#fff"/></svg>',
+  '<svg class="aq-forme" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="#1B1B1B"/></svg>',
+  '<svg class="aq-forme" viewBox="0 0 40 40"><rect x="5" y="5" width="30" height="30" rx="3" fill="#fff"/></svg>'];
+
+function animLancerQuizFiche(cle) {
+  const f = getAnim().fiches[cle]; if (!f || !f.quiz || !f.quiz.length) return;
+  aqOuvrir(f.cycle.replace('JSP','JSP ') + ' — ' + f.item, f.quiz);
+}
+function animLancerQuizSeance(date) {
+  const a = getAnim(); let qs = [];
+  animItemsDuJour(date).forEach(it => {
+    const f = a.fiches[animCle(it.cycle, it.item)];
+    if (f && f.quiz) qs = qs.concat(f.quiz.slice().sort(() => Math.random() - .5).slice(0, 4).map(q => Object.assign({}, q, { q: it.cycle.replace('JSP','JSP ') + ' — ' + q.q })));
+  });
+  if (!qs.length) return;
+  aqOuvrir('Quiz de la séance du ' + fmtDate(date), qs);
+}
+function aqEl(id) { return document.getElementById(id); }
+function aqOuvrir(titre, questions) {
+  AQ.titre = titre; AQ.questions = questions;
+  let ov = aqEl('aq-overlay');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'aq-overlay'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-modal','true'); document.body.appendChild(ov); }
+  ov.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  aqAccueil();
+}
+function aqFermer() {
+  if (AQ.phase !== 'fin' && AQ.phase !== 'accueil' && !confirm('Quitter le quiz ? La partie en cours sera perdue.')) return;
+  clearInterval(AQ.timer); AQ.timer = null;
+  const ov = aqEl('aq-overlay'); if (ov) ov.style.display = 'none';
+  document.body.style.overflow = '';
+}
+function aqBarre() {
+  return '<div class="aq-barre"><strong class="aq-titre">'+escTexte(AQ.titre)+'</strong><span class="aq-sp"></span>'
+    + '<button type="button" onclick="AQ.son=!AQ.son;this.textContent=\'Son : \'+(AQ.son?\'oui\':\'non\')">Son : '+(AQ.son?'oui':'non')+'</button>'
+    + '<button type="button" onclick="aqFermer()">Quitter</button></div>';
+}
+function aqAccueil() {
+  AQ.phase = 'accueil';
+  aqEl('aq-overlay').innerHTML = aqBarre() + '<div class="aq-wrap">'
+    + '<p class="aq-intro">'+AQ.questions.length+' questions. Les équipes répondent sur ardoise ou en levant la couleur, puis tu coches celles qui ont bon. Avec une seule équipe, on touche directement la réponse.</p>'
+    + '<h3 class="aq-h">Équipes</h3><div class="aq-stepper"><button type="button" onclick="aqNbEquipes(-1)" aria-label="Une équipe de moins">−</button><span id="aq-nb"></span><button type="button" onclick="aqNbEquipes(1)" aria-label="Une équipe de plus">+</button></div>'
+    + '<div id="aq-noms" class="aq-noms"></div>'
+    + '<button class="aq-go" type="button" onclick="aqDemarrer()">Lancer le quiz</button></div>';
+  aqRendreNoms();
+}
+function aqNbEquipes(d) {
+  const n = AQ.equipes.length + d; if (n < 1 || n > 8) return;
+  if (d > 0) AQ.equipes.push('Équipe ' + n); else AQ.equipes.pop();
+  aqRendreNoms();
+}
+function aqRendreNoms() {
+  aqEl('aq-nb').textContent = AQ.equipes.length + (AQ.equipes.length > 1 ? ' équipes' : ' équipe');
+  aqEl('aq-noms').innerHTML = AQ.equipes.map((t,i) => '<input aria-label="Nom de l\'équipe '+(i+1)+'" value="'+escTexte(t)+'" oninput="AQ.equipes['+i+']=this.value.trim()||\'Équipe '+(i+1)+'\'">').join('');
+}
+function aqDemarrer() {
+  AQ.scores = AQ.equipes.map(() => 0); AQ.idx = 0;
+  AQ.ordre = AQ.questions.map(q => ({ q: q.q, bonne: q.bonne, expl: q.expl, rep: [q.bonne].concat(q.fausses||[]).sort(() => Math.random() - .5) }));
+  aqQuestion();
+}
+function aqBip(f, d, type, vol) {
+  if (!AQ.son) return;
+  try { AQ.actx = AQ.actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AQ.actx.createOscillator(), g = AQ.actx.createGain(); o.type = type||'square'; o.frequency.value = f; g.gain.value = vol||.05;
+    o.connect(g); g.connect(AQ.actx.destination); o.start(); g.gain.exponentialRampToValueAtTime(.0001, AQ.actx.currentTime + (d||.08)); o.stop(AQ.actx.currentTime + (d||.08) + .02);
+  } catch(e) {}
+}
+function aqQuestion() {
+  AQ.phase = 'ask'; AQ.pause = false;
+  const it = AQ.ordre[AQ.idx];
+  const solo = AQ.equipes.length === 1;
+  AQ.gagne = AQ.equipes.map(() => false);
+  AQ.total = /^(JSP \d — )?Vrai ou faux/.test(it.q) ? 10 : 20; AQ.reste = AQ.total;
+  const lettres = ['a','b','c','d'];
+  aqEl('aq-overlay').innerHTML = aqBarre() + '<div class="aq-wrap">'
+    + '<div class="aq-qtete"><span class="aq-compte">Question '+(AQ.idx+1)+' / '+AQ.ordre.length+'</span>'
+    + '<div class="aq-timer"><svg width="72" height="72" viewBox="0 0 78 78" aria-hidden="true"><circle cx="39" cy="39" r="33" fill="none" stroke="var(--gris-bord)" stroke-width="8"/>'
+    + '<circle id="aq-ring" cx="39" cy="39" r="33" fill="none" stroke="#cf1419" stroke-width="8" stroke-linecap="round" stroke-dasharray="207.3" stroke-dashoffset="0" transform="rotate(-90 39 39)"/></svg><div class="aq-num" id="aq-num">'+AQ.total+'</div></div></div>'
+    + '<div class="aq-question">'+escTexte(it.q)+'</div>'
+    + '<div class="aq-reps" id="aq-reps">'+it.rep.map((r,i) => '<button type="button" class="aq-rep aq-'+lettres[i]+(r===it.bonne?' aq-bonne':'')+'" onclick="aqChoix(this)">'+AQ_FORMES[i]+'<span>'+escTexte(r)+'</span><span class="aq-tick" aria-hidden="true">✔</span></button>').join('')+'</div>'
+    + '<div class="aq-expl" id="aq-expl"></div>'
+    + (solo ? '' : '<div class="aq-qui" id="aq-qui"><p>Quelles équipes ont bon ?</p><div class="aq-chips">'+AQ.equipes.map((t,i) => '<button type="button" class="aq-chip" aria-pressed="false" onclick="aqCocher(this,'+i+')">'+escTexte(t)+'</button>').join('')+'</div></div>')
+    + '<div class="aq-actions"><button type="button" class="aq-btn" id="aq-pause" onclick="AQ.pause=!AQ.pause;this.textContent=AQ.pause?\'Reprendre\':\'Pause\'">Pause</button>'
+    + '<button type="button" class="aq-btn aq-main" id="aq-suite" onclick="aqSuite()">Révéler la réponse</button></div></div>';
+  clearInterval(AQ.timer);
+  AQ.timer = setInterval(() => {
+    if (AQ.pause) return;
+    AQ.reste--; aqDessinerTimer();
+    if (AQ.reste <= 5 && AQ.reste > 0) aqBip(AQ.reste <= 3 ? 990 : 780, .07);
+    if (AQ.reste <= 0) aqReveler();
+  }, 1000);
+}
+function aqDessinerTimer() {
+  const r = Math.max(AQ.reste, 0);
+  aqEl('aq-num').textContent = r;
+  const ring = aqEl('aq-ring'); ring.style.strokeDashoffset = 207.3 * (1 - r / AQ.total); ring.style.stroke = r <= 5 ? '#E8B100' : '#cf1419';
+}
+function aqChoix(btn) {
+  if (AQ.phase !== 'ask') return;
+  if (AQ.equipes.length === 1) { AQ.gagne[0] = btn.classList.contains('aq-bonne'); btn.classList.add('aq-choisie'); if (!AQ.gagne[0]) btn.classList.add('aq-fausse'); }
+  aqReveler();
+}
+function aqCocher(btn, i) { AQ.gagne[i] = !AQ.gagne[i]; btn.setAttribute('aria-pressed', AQ.gagne[i]); if (AQ.gagne[i]) aqBip(1040, .06); }
+function aqReveler() {
+  clearInterval(AQ.timer); AQ.timer = null; AQ.phase = 'reveal'; aqDessinerTimer();
+  aqEl('aq-reps').classList.add('aq-revele'); aqBip(523, .12, 'triangle', .07); setTimeout(() => aqBip(784, .2, 'triangle', .07), 130);
+  const it = AQ.ordre[AQ.idx]; const ex = aqEl('aq-expl');
+  if (AQ.equipes.length === 1) {
+    const choisie = document.querySelector('.aq-choisie');
+    ex.innerHTML = '<strong>' + (AQ.gagne[0] ? 'Bonne réponse ! +1000' : (choisie ? 'Raté !' : 'Temps écoulé !')) + '</strong> ' + escTexte(it.expl || '');
+    ex.classList.add('on');
+  } else {
+    if (it.expl) { ex.textContent = it.expl; ex.classList.add('on'); }
+    aqEl('aq-qui').classList.add('on');
+  }
+  aqEl('aq-pause').style.display = 'none';
+  const dernier = AQ.idx >= AQ.ordre.length - 1;
+  aqEl('aq-suite').textContent = dernier ? (AQ.equipes.length > 1 ? 'Voir le podium' : 'Voir le score') : (AQ.equipes.length > 1 ? 'Valider les points' : 'Question suivante');
+}
+function aqSuite() {
+  if (AQ.phase === 'ask') { aqReveler(); return; }
+  AQ.gagne.forEach((g,i) => { if (g) AQ.scores[i] += 1000; });
+  if (AQ.idx >= AQ.ordre.length - 1) { aqFin(); return; }
+  if (AQ.equipes.length === 1) { AQ.idx++; aqQuestion(); return; }
+  AQ.phase = 'board';
+  aqEl('aq-overlay').innerHTML = aqBarre() + '<div class="aq-wrap"><h3 class="aq-h">Classement après '+(AQ.idx+1)+' question'+(AQ.idx?'s':'')+'</h3>'+aqClassement()
+    + '<div class="aq-actions"><button type="button" class="aq-btn aq-main" onclick="AQ.idx++;aqQuestion()">Question suivante</button></div></div>';
+}
+function aqClassement() {
+  const r = AQ.equipes.map((t,i) => ({ t, s: AQ.scores[i] })).sort((a,b) => b.s - a.s);
+  const max = Math.max(1, ...r.map(x => x.s));
+  return '<div class="aq-board">' + r.map((x,i) => '<div class="aq-row"><span class="aq-rk">'+(i+1)+'</span><div class="aq-col"><div class="aq-nm">'+escTexte(x.t)+'</div><div class="aq-fill" style="width:'+Math.round(x.s/max*100)+'%"></div></div><span class="aq-pts">'+x.s+'</span></div>').join('') + '</div>';
+}
+function aqFin() {
+  AQ.phase = 'fin';
+  const r = AQ.equipes.map((t,i) => ({ t, s: AQ.scores[i] })).sort((a,b) => b.s - a.s);
+  const marche = (i, cls) => r[i] ? '<div class="aq-step '+cls+'"><div class="aq-qui2">'+escTexte(r[i].t)+'</div><div class="aq-blk">'+(i+1)+'</div><div class="aq-sc">'+r[i].s+' pts</div></div>' : '';
+  aqEl('aq-overlay').innerHTML = aqBarre() + '<div class="aq-wrap">'
+    + '<h3 class="aq-h aq-centre">'+(AQ.equipes.length === 1 ? 'Score : '+(r[0].s/1000)+' / '+AQ.ordre.length : 'Podium')+'</h3>'
+    + (AQ.equipes.length > 1 ? '<div class="aq-podium">'+marche(1,'aq-p2')+marche(0,'aq-p1')+marche(2,'aq-p3')+'</div>' : '')
+    + aqClassement()
+    + '<div class="aq-actions"><button type="button" class="aq-btn" onclick="aqDemarrer()">Rejouer</button><button type="button" class="aq-btn aq-main" onclick="aqFermer()">Terminer</button></div></div>';
+  if (AQ.son) [0,1,2,3].forEach(i => setTimeout(() => aqBip(i%2?660:880, .28, 'sine', .06), i*300));
 }
 
 
@@ -2256,6 +2862,7 @@ function showSection(sec) {
     case 'planning': c.innerHTML = renderPlanning(window._planningMois||null); break;
     case 'bilans': c.innerHTML = renderBilans(window._bilanJspId||null); break;
     case 'livret': c.innerHTML = renderLivret(window._livretJspId||null, window._livretTab||null); break;
+    case 'animation': c.innerHTML = renderAnimation(); break;
     case 'parent-accueil': c.innerHTML = renderParentAccueil(); break;
     case 'parent-absences': c.innerHTML = renderParentAbsences(); break;
     case 'parent-retards': c.innerHTML = renderParentRetards(); break;
