@@ -12243,7 +12243,7 @@ function printICPTableau() {
 const STOCK_ARTICLES = [
   { id: 'veste',         label: 'Veste TSI',      champ: 'veste',         tailles: ['XS','S','M','L','XL','XXL','3XL'] },
   { id: 'poloTsi',       label: 'Polo TSI',       champ: 'poloTsi',       tailles: ['XS','S','M','L','XL','XXL','3XL'] },
-  { id: 'pantalon',      label: 'Pantalon TSI',   champ: 'pantalon',      tailles: ['32','34','36','38','40','42'] },
+  { id: 'pantalon',      label: 'Pantalon TSI',   champ: 'pantalon',      tailles: ['32','34','36','38','40','42','44','46','48','50'] },
   { id: 'casque',        label: 'Casque',         champ: 'casque',        tailles: ['Taille unique'] },
   { id: 'gants',         label: 'Gants',          champ: 'gants',         tailles: ['6 (XS)','7 (S)','8 (M)','9 (L)','10 (XL)','11 (XXL)'] },
   { id: 'chaussures',    label: 'Chaussures',     champ: 'chaussures',    tailles: ['35','36','37','38','39','40','41','42','43','44','45','46','47'] },
@@ -13063,7 +13063,7 @@ function modalHabillement(jspId) {
         <label>Pantalon TSI</label>
         <select id="hab-pantalon">
           <option value="">--</option>
-          ${['32','34','36','38','40','42'].map(s=>`<option ${v('pantalon')===s?'selected':''}>${s}</option>`).join('')}
+          ${['32','34','36','38','40','42','44','46','48','50'].map(s=>`<option ${v('pantalon')===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
@@ -13207,7 +13207,7 @@ const HAB_ARTICLE_FIELD = {
 const HAB_TAILLES = {
   'Veste TSI':['XS','S','M','L','XL','XXL','3XL'],
   'Polo TSI':['XS','S','M','L','XL','XXL','3XL'],
-  'Pantalon TSI':['32','34','36','38','40','42'],
+  'Pantalon TSI':['32','34','36','38','40','42','44','46','48','50'],
   'Parka':['XS','S','M','L','XL','XXL','3XL'],
   'Ceinture':['Taille unique'],
   'Casque':['Taille unique'],
