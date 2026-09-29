@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inscription JSP — Section de Cruzy-Quarante</title>
+<meta name="theme-color" content="#163a64">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --marine: #163a64;
+    --marine-2: #0f2a4a;
+    --rouge: #cf1419;
+    --fond: #f3f5f8;
+    --texte: #1b2430;
+    --doux: #5b6675;
+    --bord: #d5dbe3;
+    --ok: #166534;
+    box-sizing: border-box;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { margin: 0; }
+  body {
+    font-family: 'Barlow', 'Segoe UI', Arial, sans-serif;
+    font-size: 17px; line-height: 1.5;
+    color: var(--texte); background: var(--fond);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── En-tête ── */
+  .tete {
+    background: var(--marine);
+    color: #fff;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 26px;
+    border-bottom: 5px solid var(--rouge);
+  }
+  .tete-in { max-width: 640px; margin: 0 auto; display: flex; gap: 16px; align-items: center; }
+  .tete img { width: 58px; height: auto; background: #fff; border-radius: 8px; padding: 4px; flex-shrink: 0; }
+  .tete h1 {
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    font-size: 34px; line-height: 1.05; margin: 0; font-weight: 700; letter-spacing: .3px;
+  }
+  .tete p { margin: 4px 0 0; font-size: 15px; opacity: .85; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 18px 16px 40px; }
+
+  /* ── Progression ── */
+  .etapes { display: flex; gap: 6px; margin: 4px 0 18px; }
+  .etape {
+    flex: 1; font-size: 13px; color: var(--doux);
+    border-top: 4px solid var(--bord); padding-top: 6px; line-height: 1.2;
+  }
+  .etape.faite { border-color: var(--marine); color: var(--marine); }
+  .etape.active { border-color: var(--rouge); color: var(--texte); font-weight: 600; }
+
+  /* ── Blocs ── */
+  .bloc { background: #fff; border: 1px solid var(--bord); border-radius: 10px; padding: 18px 16px; margin-bottom: 14px; }
+  .bloc h2 {
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    font-size: 24px; color: var(--marine); margin: 0 0 4px; font-weight: 700;
+  }
+  .bloc .aide { color: var(--doux); font-size: 15px; margin: 0 0 14px; }
+  .bloc h3 { font-size: 17px; margin: 18px 0 8px; color: var(--marine); }
+
+  .grille { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  @media (max-width: 520px) { .grille { grid-template-columns: 1fr; } }
+
+  .champ { margin-bottom: 14px; }
+  .champ label, .legende { display: block; font-weight: 600; font-size: 15px; margin-bottom: 5px; }
+  .champ .facultatif { font-weight: 400; color: var(--doux); }
+  input[type=text], input[type=email], input[type=tel], input[type=date], input[type=number], select, textarea {
+    width: 100%; font: inherit; font-size: 17px;
+    padding: 11px 12px; border: 1.5px solid var(--bord); border-radius: 8px; background: #fff; color: var(--texte);
+  }
+  textarea { min-height: 76px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--marine); box-shadow: 0 0 0 3px rgba(22,58,100,.18); }
+  .champ.erreur input, .champ.erreur select, .champ.erreur textarea { border-color: var(--rouge); }
+  .msg-erreur { color: var(--rouge); font-size: 14px; margin-top: 4px; display: none; }
+  .champ.erreur .msg-erreur { display: block; }
+
+  /* Choix (radio / case) en grandes zones tactiles */
+  .choix { display: flex; flex-wrap: wrap; gap: 8px; }
+  .choix label {
+    display: flex; align-items: center; gap: 8px;
+    border: 1.5px solid var(--bord); border-radius: 8px; padding: 10px 14px;
+    font-weight: 500; cursor: pointer; background: #fff; margin: 0;
+  }
+  .choix input { width: 20px; height: 20px; accent-color: var(--marine); margin: 0; }
+  .choix label:has(input:checked) { border-color: var(--marine); background: #eef3f9; }
+  .coche { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid #edf0f4; cursor: pointer; }
+  .coche:last-child { border-bottom: none; }
+  .coche input { width: 22px; height: 22px; accent-color: var(--marine); flex-shrink: 0; margin-top: 1px; }
+
+  .ligne-image { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #edf0f4; }
+  .ligne-image:last-child { border-bottom: none; }
+  .ligne-image span { flex: 1; font-size: 16px; }
+
+  /* Photo */
+  .photo-zone { display: flex; align-items: center; gap: 14px; }
+  .photo-apercu { width: 72px; height: 72px; border-radius: 50%; background: #e8edf3; object-fit: cover; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--doux); font-size: 13px; text-align: center; }
+  .bouton-fichier { display: inline-block; border: 1.5px dashed var(--marine); color: var(--marine); border-radius: 8px; padding: 10px 14px; font-weight: 600; cursor: pointer; }
+  .bouton-fichier input { display: none; }
+
+  /* Boutons */
+  .actions { display: flex; gap: 10px; margin-top: 8px; }
+  button { font: inherit; cursor: pointer; }
+  .btn { flex: 1; padding: 14px 16px; border-radius: 9px; font-weight: 600; font-size: 17px; border: 1.5px solid var(--marine); }
+  .btn-principal { background: var(--marine); color: #fff; }
+  .btn-principal:hover { background: var(--marine-2); }
+  .btn-secondaire { background: #fff; color: var(--marine); }
+  .btn-lien { background: none; border: none; color: var(--marine); text-decoration: underline; padding: 6px 0; font-weight: 600; }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  button:focus-visible, .bouton-fichier:focus-within, .choix label:focus-within { outline: 3px solid rgba(22,58,100,.35); outline-offset: 2px; }
+
+  .alerte { border-left: 5px solid var(--rouge); background: #fff4f4; padding: 12px 14px; border-radius: 6px; margin-bottom: 14px; display: none; }
+  .alerte.visible { display: block; }
+  .info { border-left: 5px solid var(--marine); background: #eef3f9; padding: 12px 14px; border-radius: 6px; font-size: 15px; }
+
+  .recap dt { font-weight: 600; font-size: 14px; color: var(--doux); margin-top: 8px; }
+  .recap dd { margin: 0; }
+
+  .ecran-fin h2 { font-size: 30px; }
+  .ecran-fin ul { padding-left: 20px; margin: 8px 0; }
+  .ecran-fin li { margin-bottom: 4px; }
+
+  .etat { text-align: center; padding: 40px 10px; color: var(--doux); }
+  .cache { display: none !important; }
+  footer { text-align: center; font-size: 13px; color: var(--doux); padding: 0 16px 24px; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .page-etape { animation: apparait .25s ease-out; }
+    @keyframes apparait { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+
+<header class="tete">
+  <div class="tete-in">
+    <img src="data:image/jpeg;base64,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" alt="Blason JSP Cruzy-Quarante">
+    <div>
+      <h1>Inscription JSP</h1>
+      <p>Section de Cruzy-Quarante — SDIS 34</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="chargement" class="etat">Chargement…</div>
+
+  <div id="fermees" class="bloc cache">
+    <h2>Les inscriptions sont fermées</h2>
+    <p>Les inscriptions ne sont pas ouvertes pour le moment. Pour toute question, contactez le chef de section.</p>
+  </div>
+
+  <div id="horsligne" class="bloc cache">
+    <h2>Connexion impossible</h2>
+    <p>La page n'arrive pas à joindre le serveur. Vérifiez votre connexion internet, puis rechargez la page.</p>
+    <div class="actions"><button class="btn btn-principal" onclick="location.reload()">Recharger la page</button></div>
+  </div>
+
+  <form id="formulaire" class="cache" novalidate onsubmit="return false">
+    <div class="etapes" aria-hidden="true">
+      <div class="etape" data-e="1">Le jeune</div>
+      <div class="etape" data-e="2">Parents</div>
+      <div class="etape" data-e="3">Santé</div>
+      <div class="etape" data-e="4">Envoi</div>
+    </div>
+
+    <div id="alerte" class="alerte" role="alert"></div>
+
+    <!-- ── Étape 1 : le jeune ── -->
+    <section class="page-etape" data-page="1">
+      <div class="bloc">
+        <h2>Le futur JSP</h2>
+        <p class="aide">Les informations du jeune qui s'inscrit.</p>
+        <div class="grille">
+          <div class="champ" data-requis><label for="j_prenom">Prénom</label><input type="text" id="j_prenom" autocomplete="off"><div class="msg-erreur">Indiquez le prénom.</div></div>
+          <div class="champ" data-requis><label for="j_nom">Nom</label><input type="text" id="j_nom" autocomplete="off"><div class="msg-erreur">Indiquez le nom.</div></div>
+        </div>
+        <div class="champ" data-requis data-radio="j_sexe">
+          <span class="legende">Sexe</span>
+          <div class="choix">
+            <label><input type="radio" name="j_sexe" value="F"> Fille</label>
+            <label><input type="radio" name="j_sexe" value="M"> Garçon</label>
+          </div>
+          <div class="msg-erreur">Choisissez fille ou garçon (utile pour les épreuves sportives).</div>
+        </div>
+        <div class="grille">
+          <div class="champ" data-requis><label for="j_naissance">Date de naissance</label><input type="date" id="j_naissance"><div class="msg-erreur">Indiquez la date de naissance.</div></div>
+          <div class="champ" data-requis><label for="j_lieu">Lieu de naissance</label><input type="text" id="j_lieu"><div class="msg-erreur">Indiquez le lieu de naissance.</div></div>
+        </div>
+        <div class="champ" data-requis><label for="j_adresse">Adresse</label><input type="text" id="j_adresse" autocomplete="street-address"><div class="msg-erreur">Indiquez l'adresse.</div></div>
+        <div class="grille">
+          <div class="champ" data-requis><label for="j_cp">Code postal</label><input type="text" id="j_cp" inputmode="numeric" maxlength="5" autocomplete="postal-code"><div class="msg-erreur">Code postal à 5 chiffres.</div></div>
+          <div class="champ" data-requis><label for="j_ville">Ville</label><input type="text" id="j_ville" autocomplete="address-level2"><div class="msg-erreur">Indiquez la ville.</div></div>
+        </div>
+        <div class="grille">
+          <div class="champ"><label for="j_tel">Téléphone du jeune <span class="facultatif">(facultatif)</span></label><input type="tel" id="j_tel" inputmode="tel"><div class="msg-erreur">Numéro incomplet.</div></div>
+          <div class="champ"><label for="j_email">E-mail du jeune <span class="facultatif">(facultatif)</span></label><input type="email" id="j_email"><div class="msg-erreur">Adresse e-mail incorrecte.</div></div>
+        </div>
+
+        <h3>Tailles pour la tenue</h3>
+        <p class="aide">Tailles adultes. En cas de doute, prenez la taille au-dessus : la tenue sera essayée à la section.</p>
+        <div class="grille">
+          <div class="champ" data-requis><label for="t_haut">Haut (veste, polo)</label><select id="t_haut"></select><div class="msg-erreur">Choisissez une taille.</div></div>
+          <div class="champ" data-requis><label for="t_bas">Pantalon (taille française)</label><select id="t_bas"></select><div class="msg-erreur">Choisissez une taille.</div></div>
+        </div>
+        <div class="champ" data-requis style="max-width:220px"><label for="t_pointure">Pointure</label><select id="t_pointure"></select><div class="msg-erreur">Choisissez une pointure.</div></div>
+
+        <h3>Photo <span class="facultatif" style="font-weight:400;color:var(--doux)">(facultatif)</span></h3>
+        <div class="photo-zone">
+          <div id="photo_apercu" class="photo-apercu">Pas de photo</div>
+          <div>
+            <label class="bouton-fichier">Choisir une photo<input type="file" id="j_photo" accept="image/*"></label>
+            <div><button type="button" id="photo_retirer" class="btn-lien cache">Retirer la photo</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="actions"><button type="button" class="btn btn-principal" data-suivant>Continuer</button></div>
+    </section>
+
+    <!-- ── Étape 2 : représentants ── -->
+    <section class="page-etape cache" data-page="2">
+      <div class="bloc">
+        <h2>Représentant légal 1</h2>
+        <p class="aide">La personne que la section contactera en priorité. Ses identifiants pour l'application de la section lui seront envoyés par e-mail.</p>
+        <div class="grille">
+          <div class="champ" data-requis><label for="r1_prenom">Prénom</label><input type="text" id="r1_prenom"><div class="msg-erreur">Indiquez le prénom.</div></div>
+          <div class="champ" data-requis><label for="r1_nom">Nom</label><input type="text" id="r1_nom"><div class="msg-erreur">Indiquez le nom.</div></div>
+        </div>
+        <div class="champ" data-requis data-radio="r1_lien">
+          <span class="legende">Lien avec le jeune</span>
+          <div class="choix">
+            <label><input type="radio" name="r1_lien" value="Père"> Père</label>
+            <label><input type="radio" name="r1_lien" value="Mère"> Mère</label>
+            <label><input type="radio" name="r1_lien" value="Tuteur légal"> Tuteur légal</label>
+          </div>
+          <div class="msg-erreur">Choisissez le lien.</div>
+        </div>
+        <div class="grille">
+          <div class="champ" data-requis data-tel><label for="r1_tel">Téléphone</label><input type="tel" id="r1_tel" inputmode="tel" autocomplete="tel"><div class="msg-erreur">Numéro à 10 chiffres.</div></div>
+          <div class="champ" data-requis data-email><label for="r1_email">E-mail</label><input type="email" id="r1_email" autocomplete="email"><div class="msg-erreur">Adresse e-mail incorrecte.</div></div>
+        </div>
+      </div>
+
+      <div class="bloc">
+        <h2>Représentant légal 2</h2>
+        <p class="aide">Facultatif, mais utile en cas d'urgence.</p>
+        <label class="coche" style="border:none;padding-top:0"><input type="checkbox" id="r2_actif"> Ajouter un deuxième représentant</label>
+        <div id="r2_bloc" class="cache">
+          <div class="grille">
+            <div class="champ" data-requis-si="r2_actif"><label for="r2_prenom">Prénom</label><input type="text" id="r2_prenom"><div class="msg-erreur">Indiquez le prénom.</div></div>
+            <div class="champ" data-requis-si="r2_actif"><label for="r2_nom">Nom</label><input type="text" id="r2_nom"><div class="msg-erreur">Indiquez le nom.</div></div>
+          </div>
+          <div class="champ" data-requis-si="r2_actif" data-radio="r2_lien">
+            <span class="legende">Lien avec le jeune</span>
+            <div class="choix">
+              <label><input type="radio" name="r2_lien" value="Père"> Père</label>
+              <label><input type="radio" name="r2_lien" value="Mère"> Mère</label>
+              <label><input type="radio" name="r2_lien" value="Tuteur légal"> Tuteur légal</label>
+            </div>
+            <div class="msg-erreur">Choisissez le lien.</div>
+          </div>
+          <div class="grille">
+            <div class="champ" data-requis-si="r2_actif" data-tel><label for="r2_tel">Téléphone</label><input type="tel" id="r2_tel" inputmode="tel"><div class="msg-erreur">Numéro à 10 chiffres.</div></div>
+            <div class="champ" data-email><label for="r2_email">E-mail <span class="facultatif">(facultatif)</span></label><input type="email" id="r2_email"><div class="msg-erreur">Adresse e-mail incorrecte.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-secondaire" data-precedent>Retour</button>
+        <button type="button" class="btn btn-principal" data-suivant>Continuer</button>
+      </div>
+    </section>
+
+    <!-- ── Étape 3 : santé & autorisations ── -->
+    <section class="page-etape cache" data-page="3">
+      <div class="bloc">
+        <h2>Informations médicales utiles</h2>
+        <p class="aide">Ces informations restent confidentielles et servent uniquement à la sécurité du jeune pendant les activités. Laissez vide s'il n'y a rien à signaler.</p>
+        <div class="champ"><label for="s_allergies">Allergies (médicaments, aliments, piqûres…)</label><textarea id="s_allergies"></textarea></div>
+        <div class="champ"><label for="s_traitement">Traitement en cours</label><textarea id="s_traitement"></textarea></div>
+        <div class="champ"><label for="s_autres">Autres informations utiles (asthme, lunettes…)</label><textarea id="s_autres"></textarea></div>
+        <div class="champ" style="max-width:260px"><label for="s_tetanos">Dernier rappel antitétanique <span class="facultatif">(si connu)</span></label><input type="date" id="s_tetanos"></div>
+        <div class="grille">
+          <div class="champ"><label for="s_medecin">Médecin traitant</label><input type="text" id="s_medecin"></div>
+          <div class="champ"><label for="s_medecin_tel">Téléphone du médecin</label><input type="tel" id="s_medecin_tel" inputmode="tel"></div>
+        </div>
+      </div>
+
+      <div class="bloc">
+        <h2>Autorisations</h2>
+        <p class="aide">J'autorise le chef de section ou les accompagnateurs de la section JSP de Cruzy-Quarante :</p>
+        <label class="coche"><input type="checkbox" id="a_soins"> À faire soigner mon enfant et à faire pratiquer les interventions d'urgence suivant les prescriptions du médecin.</label>
+        <label class="coche"><input type="checkbox" id="a_hospit"> À faire hospitaliser mon enfant en cas de nécessité.</label>
+        <label class="coche"><input type="checkbox" id="a_sortie_soins"> À récupérer mon enfant à sa sortie de la structure de soins.</label>
+        <label class="coche"><input type="checkbox" id="a_transport"> À transporter mon enfant dans les véhicules du SDIS ou de l'encadrement pour les activités, compétitions et sorties.</label>
+
+        <h3>À la fin des séances</h3>
+        <div class="champ" data-requis data-radio="a_retour">
+          <div class="choix">
+            <label><input type="radio" name="a_retour" value="seul"> Il peut repartir seul</label>
+            <label><input type="radio" name="a_retour" value="accompagne"> Uniquement accompagné</label>
+          </div>
+          <div class="msg-erreur">Choisissez une option.</div>
+        </div>
+        <div id="a_personnes_bloc" class="champ cache" data-requis-si-radio="a_retour=accompagne">
+          <label for="a_personnes">Personnes autorisées à le récupérer (nom, lien, téléphone)</label>
+          <textarea id="a_personnes"></textarea>
+          <div class="msg-erreur">Indiquez au moins une personne.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-secondaire" data-precedent>Retour</button>
+        <button type="button" class="btn btn-principal" data-suivant>Continuer</button>
+      </div>
+    </section>
+
+    <!-- ── Étape 4 : image, données, envoi ── -->
+    <section class="page-etape cache" data-page="4">
+      <div class="bloc">
+        <h2>Photos et vidéos</h2>
+        <p class="aide">Des photos et vidéos peuvent être prises pendant les séances et les compétitions. Indiquez votre choix pour chaque usage.</p>
+        <div class="ligne-image"><span>Usage interne à la section (trombinoscope, application)</span><div class="choix"><label><input type="radio" name="img_interne" value="oui"> Oui</label><label><input type="radio" name="img_interne" value="non"> Non</label></div></div>
+        <div class="ligne-image"><span>Site et réseaux sociaux de la section, du CIS et du SDIS 34</span><div class="choix"><label><input type="radio" name="img_web" value="oui"> Oui</label><label><input type="radio" name="img_web" value="non"> Non</label></div></div>
+        <div class="ligne-image"><span>Presse locale et supports de communication</span><div class="choix"><label><input type="radio" name="img_presse" value="oui"> Oui</label><label><input type="radio" name="img_presse" value="non"> Non</label></div></div>
+        <div id="img_erreur" class="msg-erreur" style="margin-top:8px">Répondez oui ou non pour chaque ligne.</div>
+      </div>
+
+      <div class="bloc">
+        <h2>Vérification</h2>
+        <dl id="recap" class="recap"></dl>
+      </div>
+
+      <div class="bloc">
+        <h2>Données personnelles</h2>
+        <p class="aide" style="margin-bottom:8px">Les informations de ce formulaire servent uniquement à la gestion de la section JSP de Cruzy-Quarante (suivi administratif, sécurité, communication avec les familles). Elles sont accessibles au seul encadrement de la section, conservées pendant la durée d'inscription du jeune, puis supprimées. Vous pouvez à tout moment demander à les consulter, les corriger ou les supprimer auprès du chef de section.</p>
+        <label class="coche" style="border:none"><input type="checkbox" id="rgpd"> J'ai lu ces informations et j'accepte que la section utilise ces données.</label>
+        <div id="rgpd_erreur" class="msg-erreur">Cochez cette case pour envoyer la demande.</div>
+
+        <div id="code_bloc" class="champ cache" style="margin-top:12px">
+          <label for="code_section">Code de la section</label>
+          <input type="text" id="code_section" autocomplete="off" autocapitalize="off">
+          <div class="msg-erreur">Code incorrect. Il vous a été donné par la section.</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-secondaire" data-precedent>Retour</button>
+        <button type="button" class="btn btn-principal" id="btn_envoyer">Envoyer la demande</button>
+      </div>
+    </section>
+  </form>
+
+  <div id="fin" class="bloc ecran-fin cache">
+    <h2>Demande envoyée</h2>
+    <p>Merci ! La section a bien reçu la demande d'inscription de <strong id="fin_prenom"></strong>. Le chef de section vous recontactera.</p>
+    <div class="info">
+      <strong>Pour finaliser l'inscription, à remettre à la section :</strong>
+      <ul>
+        <li>le dossier papier signé (contrat d'engagement, autorisations) ;</li>
+        <li>le certificat médical rempli par le médecin ;</li>
+        <li>un chèque de 100 € libellé au nom de la section ;</li>
+        <li>2 photos d'identité ;</li>
+        <li>la photocopie de l'attestation de responsabilité civile ;</li>
+        <li>la photocopie du carnet de vaccination (antitétanique).</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer>Section JSP de Cruzy-Quarante — CIS Cruzy-Quarante, SDIS 34</footer>
+
+<script>
+const SUPABASE_URL = 'https://efowmupcstdccmfxniot.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Mb2oAqSqdnaxLV7mzQl5Yw_QEhjRbIa';
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const BROUILLON = 'inscription_jsp_brouillon';
+
+const $ = id => document.getElementById(id);
+const val = id => ($(id) ? $(id).value.trim() : '');
+const radio = name => { const r = document.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : ''; };
+const chiffres = s => (s || '').replace(/\D/g, '');
+const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
+let etapeCourante = 1;
+let codeRequis = false;
+let photoData = '';
+
+// Tailles
+// Mêmes tailles que le stock Habillement du Carnet
+const TAILLES = {
+  t_haut: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+  t_bas: ['32', '34', '36', '38', '40', '42', '44', '46', '48', '50'],
+  t_pointure: ['33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47']
+};
+Object.entries(TAILLES).forEach(([id, liste]) => {
+  $(id).innerHTML = '<option value="">Choisir…</option>' + liste.map(t => '<option value="' + t + '">' + t + '</option>').join('');
+});
+
+// ── Navigation ──
+function afficherEtape(n) {
+  etapeCourante = n;
+  document.querySelectorAll('[data-page]').forEach(p => p.classList.toggle('cache', +p.dataset.page !== n));
+  document.querySelectorAll('.etape').forEach(e => {
+    const k = +e.dataset.e;
+    e.classList.toggle('active', k === n);
+    e.classList.toggle('faite', k < n);
+  });
+  masquerAlerte();
+  if (n === 4) remplirRecap();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  sauverBrouillon();
+}
+document.querySelectorAll('[data-suivant]').forEach(b => b.addEventListener('click', () => {
+  if (verifierEtape(etapeCourante)) afficherEtape(etapeCourante + 1);
+  else montrerAlerte('Certains champs sont à compléter ou à corriger (en rouge).');
+}));
+document.querySelectorAll('[data-precedent]').forEach(b => b.addEventListener('click', () => afficherEtape(etapeCourante - 1)));
+
+function montrerAlerte(msg) { const a = $('alerte'); a.textContent = msg; a.classList.add('visible'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function masquerAlerte() { $('alerte').classList.remove('visible'); }
+
+// ── Vérification ──
+function champVide(ch) {
+  if (ch.dataset.radio) return !radio(ch.dataset.radio);
+  const el = ch.querySelector('input, select, textarea');
+  return !el || !el.value.trim();
+}
+function verifierEtape(n) {
+  const page = document.querySelector('[data-page="' + n + '"]');
+  let ok = true;
+  page.querySelectorAll('.champ').forEach(ch => {
+    let erreur = false;
+    const el = ch.querySelector('input:not([type=radio]), select, textarea');
+    const actif = ch.dataset.requisSi ? $(ch.dataset.requisSi).checked : true;
+    let requis = ch.hasAttribute('data-requis') || (ch.dataset.requisSi && actif);
+    if (ch.dataset.requisSiRadio) {
+      const [nom, v] = ch.dataset.requisSiRadio.split('=');
+      requis = radio(nom) === v;
+    }
+    if (ch.closest('.cache')) requis = false;
+    if (requis && champVide(ch)) erreur = true;
+    if (!erreur && el && el.value.trim()) {
+      if (el.id === 'j_cp' && chiffres(el.value).length !== 5) erreur = true;
+      if ((ch.hasAttribute('data-tel') || el.id === 'j_tel') && chiffres(el.value).length < 10) erreur = true;
+      if ((ch.hasAttribute('data-email') || el.id === 'j_email') && !emailOk(el.value.trim())) erreur = true;
+    }
+    if (ch.dataset.requisSi && !actif) erreur = false;
+    ch.classList.toggle('erreur', erreur);
+    if (erreur) ok = false;
+  });
+  if (n === 4) {
+    const imgOk = radio('img_interne') && radio('img_web') && radio('img_presse');
+    $('img_erreur').style.display = imgOk ? 'none' : 'block';
+    $('rgpd_erreur').style.display = $('rgpd').checked ? 'none' : 'block';
+    if (!imgOk || !$('rgpd').checked) ok = false;
+    if (codeRequis && !val('code_section')) { $('code_bloc').classList.add('erreur'); ok = false; }
+  }
+  return ok;
+}
+// Efface l'erreur dès que la personne corrige
+document.addEventListener('input', e => { const ch = e.target.closest('.champ'); if (ch) ch.classList.remove('erreur'); sauverBrouillon(); });
+document.addEventListener('change', e => { const ch = e.target.closest('.champ'); if (ch) ch.classList.remove('erreur'); sauverBrouillon(); });
+
+// Blocs conditionnels
+$('r2_actif').addEventListener('change', () => $('r2_bloc').classList.toggle('cache', !$('r2_actif').checked));
+document.querySelectorAll('input[name="a_retour"]').forEach(r => r.addEventListener('change', () => {
+  $('a_personnes_bloc').classList.toggle('cache', radio('a_retour') !== 'accompagne');
+}));
+
+// ── Photo (réduite avant envoi) ──
+$('j_photo').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const lecteur = new FileReader();
+  lecteur.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 320;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } } else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      photoData = c.toDataURL('image/jpeg', 0.8);
+      majPhoto();
+      sauverBrouillon();
+    };
+    img.onerror = () => montrerAlerte("Cette image n'a pas pu être lue. Essayez une autre photo.");
+    img.src = ev.target.result;
+  };
+  lecteur.readAsDataURL(f);
+});
+$('photo_retirer').addEventListener('click', () => { photoData = ''; $('j_photo').value = ''; majPhoto(); sauverBrouillon(); });
+function majPhoto() {
+  const zone = $('photo_apercu');
+  if (photoData) zone.outerHTML = '<img id="photo_apercu" class="photo-apercu" src="' + photoData + '" alt="Photo du jeune">';
+  else if (zone.tagName === 'IMG') zone.outerHTML = '<div id="photo_apercu" class="photo-apercu">Pas de photo</div>';
+  $('photo_retirer').classList.toggle('cache', !photoData);
+}
+
+// ── Données ──
+function rep(p) {
+  return { prenom: val(p + '_prenom'), nom: val(p + '_nom'), lien: radio(p + '_lien'), tel: val(p + '_tel'), email: val(p + '_email') };
+}
+function collecter() {
+  const reps = [rep('r1')];
+  if ($('r2_actif').checked) reps.push(rep('r2'));
+  return {
+    version: 1,
+    jsp: {
+      prenom: val('j_prenom'), nom: val('j_nom'), sexe: radio('j_sexe'),
+      dateNaissance: val('j_naissance'), lieuNaissance: val('j_lieu'),
+      adresse: val('j_adresse'), codePostal: val('j_cp'), ville: val('j_ville'),
+      tel: val('j_tel'), email: val('j_email'),
+      tailles: { haut: val('t_haut'), bas: val('t_bas'), pointure: val('t_pointure') },
+      photo: photoData
+    },
+    representants: reps,
+    sante: {
+      allergies: val('s_allergies'), traitement: val('s_traitement'), autres: val('s_autres'),
+      rappelTetanos: val('s_tetanos'), medecin: val('s_medecin'), medecinTel: val('s_medecin_tel')
+    },
+    autorisations: {
+      soins: $('a_soins').checked, hospitalisation: $('a_hospit').checked,
+      sortieSoins: $('a_sortie_soins').checked, transport: $('a_transport').checked,
+      repartSeul: radio('a_retour') === 'seul',
+      personnesAutorisees: radio('a_retour') === 'accompagne' ? val('a_personnes') : ''
+    },
+    droitImage: { interne: radio('img_interne') === 'oui', web: radio('img_web') === 'oui', presse: radio('img_presse') === 'oui' },
+    consentement: $('rgpd').checked,
+    envoyeLe: new Date().toISOString()
+  };
+}
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function dateFr(iso) { if (!iso) return '—'; const [a, m, j] = iso.split('-'); return j + '/' + m + '/' + a; }
+function remplirRecap() {
+  const d = collecter();
+  const j = d.jsp;
+  const lignes = [
+    ['Jeune', j.prenom + ' ' + j.nom + ' — ' + (j.sexe === 'F' ? 'fille' : 'garçon') + ', né(e) le ' + dateFr(j.dateNaissance)],
+    ['Adresse', j.adresse + ', ' + j.codePostal + ' ' + j.ville],
+    ['Tailles', 'Haut ' + j.tailles.haut + ' · Pantalon ' + j.tailles.bas + ' · Pointure ' + j.tailles.pointure]
+  ];
+  d.representants.forEach((r, i) => lignes.push(['Représentant ' + (i + 1), r.prenom + ' ' + r.nom + ' (' + r.lien + ') — ' + r.tel + (r.email ? ' — ' + r.email : '')]));
+  lignes.push(['Fin de séance', d.autorisations.repartSeul ? 'Peut repartir seul' : 'Uniquement accompagné']);
+  $('recap').innerHTML = lignes.map(l => '<dt>' + esc(l[0]) + '</dt><dd>' + esc(l[1]) + '</dd>').join('') +
+    '<dd style="margin-top:10px"><button type="button" class="btn-lien" onclick="afficherEtape(1)">Modifier les informations</button></dd>';
+}
+
+// ── Brouillon local (si la page se recharge sur le téléphone) ──
+function sauverBrouillon() {
+  try {
+    const champs = {};
+    document.querySelectorAll('#formulaire input, #formulaire select, #formulaire textarea').forEach(el => {
+      if (el.type === 'file' || el.id === 'code_section') return;
+      if (el.type === 'radio') { if (el.checked) champs['radio:' + el.name] = el.value; }
+      else if (el.type === 'checkbox') champs[el.id] = el.checked;
+      else if (el.id) champs[el.id] = el.value;
+    });
+    localStorage.setItem(BROUILLON, JSON.stringify({ champs, photoData, etape: etapeCourante }));
+  } catch (e) { /* stockage indisponible : pas grave */ }
+}
+function restaurerBrouillon() {
+  try {
+    const b = JSON.parse(localStorage.getItem(BROUILLON) || 'null');
+    if (!b) return;
+    Object.entries(b.champs || {}).forEach(([k, v]) => {
+      if (k.startsWith('radio:')) { const r = document.querySelector('input[name="' + k.slice(6) + '"][value="' + v + '"]'); if (r) r.checked = true; }
+      else if ($(k)) { if ($(k).type === 'checkbox') $(k).checked = !!v; else $(k).value = v; }
+    });
+    photoData = b.photoData || '';
+    majPhoto();
+    $('r2_bloc').classList.toggle('cache', !$('r2_actif').checked);
+    $('a_personnes_bloc').classList.toggle('cache', radio('a_retour') !== 'accompagne');
+  } catch (e) { /* brouillon illisible : on repart de zéro */ }
+}
+
+// ── Envoi ──
+$('btn_envoyer').addEventListener('click', async () => {
+  if (!verifierEtape(4)) { montrerAlerte('Il manque une réponse avant l\'envoi (en rouge).'); return; }
+  const btn = $('btn_envoyer');
+  btn.disabled = true; btn.textContent = 'Envoi en cours…';
+  try {
+    const { data, error } = await sb.rpc('inscription_deposer', { p_code: val('code_section'), p_donnees: collecter() });
+    if (error) throw error;
+    if (!data || !data.ok) {
+      const e = data ? data.erreur : '';
+      if (e === 'code') { $('code_bloc').classList.add('erreur'); montrerAlerte('Le code de la section est incorrect.'); }
+      else if (e === 'fermees') montrerAlerte('Les inscriptions viennent d\'être fermées. Contactez le chef de section.');
+      else if (e === 'taille') montrerAlerte('La photo est trop lourde. Retirez-la ou choisissez-en une autre, puis renvoyez.');
+      else if (e === 'trop') montrerAlerte('Beaucoup de demandes en ce moment. Réessayez dans une heure.');
+      else montrerAlerte('La demande n\'a pas pu être enregistrée. Vérifiez les informations et réessayez.');
+      return;
+    }
+    $('fin_prenom').textContent = val('j_prenom');
+    try { localStorage.removeItem(BROUILLON); } catch (e) {}
+    $('formulaire').classList.add('cache');
+    $('fin').classList.remove('cache');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) {
+    montrerAlerte('Envoi impossible : vérifiez votre connexion internet puis appuyez à nouveau sur « Envoyer la demande ». Vos réponses sont conservées.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Envoyer la demande';
+  }
+});
+
+// ── Démarrage ──
+(async function demarrer() {
+  if (!sb) { $('chargement').classList.add('cache'); $('horsligne').classList.remove('cache'); return; }
+  try {
+    const { data, error } = await sb.rpc('inscription_etat');
+    if (error) throw error;
+    $('chargement').classList.add('cache');
+    if (!data || !data.ouvertes) { $('fermees').classList.remove('cache'); return; }
+    codeRequis = !!data.code_requis;
+    $('code_bloc').classList.toggle('cache', !codeRequis);
+    const params = new URLSearchParams(location.search);
+    if (params.get('code')) $('code_section').value = params.get('code');
+    restaurerBrouillon();
+    $('formulaire').classList.remove('cache');
+    afficherEtape(1);
+  } catch (e) {
+    $('chargement').classList.add('cache');
+    $('horsligne').classList.remove('cache');
+  }
+})();
+</script>
+</body>
+</html>
