@@ -2216,6 +2216,32 @@ function _normNomAppel(s) { return (s || '').toLowerCase().normalize('NFD').repl
 function _majBoutonsSync(texte, desactive) {
   document.querySelectorAll('.btn-sync-appel').forEach(b => { b.innerHTML = texte; b.disabled = !!desactive; });
 }
+// JSP de l'appli d'appel sans correspondance : on demande à qui ils correspondent dans le Carnet
+function modalAssocierJSPAppel(nonTrouves) {
+  const options = '<option value="">— Choisir —</option>'
+    + [...DB.jsps].sort((a, b) => (a.nom || '').localeCompare(b.nom || '')).map(j => `<option value="${j.id}">${escTexte(j.nom)} ${escTexte(j.prenom)}${j.promotion ? ' (' + escTexte(j.promotion) + ')' : ''}</option>`).join('')
+    + '<option value="ignorer">Pas un JSP du Carnet (ignorer)</option>';
+  openModal(`<h3><i class="ti ti-link"></i> JSP à associer</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:12px">Ces JSP de l'appli d'appel ne portent pas le même nom dans le Carnet. Choisis à qui ils correspondent : ce sera retenu pour les prochaines synchros. S'il manque dans la liste, crée d'abord sa fiche dans « JSP ».</p>
+    ${[...nonTrouves].map(([cle, nom]) => `<div class="form-group"><label>${escTexte(nom)}</label><select class="assoc-appel" data-cle="${escAttr(cle)}">${options}</select></div>`).join('')}
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Plus tard</button>
+      <button class="btn-save" onclick="enregistrerAssociationsAppel()">Associer et synchroniser</button>
+    </div>`);
+}
+function enregistrerAssociationsAppel() {
+  if (!DB.correspondancesAppel) DB.correspondancesAppel = {};
+  let n = 0;
+  document.querySelectorAll('.assoc-appel').forEach(sel => {
+    if (!sel.value) return;
+    DB.correspondancesAppel[sel.dataset.cle] = sel.value === 'ignorer' ? 'ignorer' : parseInt(sel.value, 10);
+    n++;
+  });
+  closeModal();
+  if (!n) return;
+  saveData();
+  syncAbsencesFromAppel();
+}
 const TEXTE_BTN_SYNC = '<i class="ti ti-refresh"></i> Synchroniser avec l\'appli d\'appel';
 
 async function syncAbsencesFromAppel() {
@@ -2235,7 +2261,14 @@ async function syncAbsencesFromAppel() {
     DB.jsps.forEach(j => { indexCJ[_normNomAppel(j.prenom) + '_' + _normNomAppel(j.nom)] = j; });
     const mapStatut = { A: 'absent', R: 'retard', E: 'excuse', ER: 'excuse_retard' };
 
-    const aCreer = [], supprimees = [], nonTrouves = new Set();
+    // Retrouve le JSP du Carnet : association mémorisée, puis prénom+nom, puis nom+prénom (inversés dans l'appli d'appel)
+    const corresp = DB.correspondancesAppel || {};
+    const trouverJSP = ja => {
+      const cle = _normNomAppel(ja.p) + '_' + _normNomAppel(ja.n);
+      if (corresp[cle] != null) return DB.jsps.find(j => j.id == corresp[cle]) || null;
+      return indexCJ[cle] || indexCJ[_normNomAppel(ja.n) + '_' + _normNomAppel(ja.p)] || null;
+    };
+    const aCreer = [], supprimees = [], nonTrouves = new Map();
     let deja = 0;
     seances.forEach(seq => {
       const date = dateAbsenceNormalisee(seq.date);
@@ -2245,8 +2278,10 @@ async function syncAbsencesFromAppel() {
         if (!mapStatut[statut]) return; // P = présent
         const ja = appelJsps.find(j => String(j.id) === String(idAppel));
         if (!ja) return;
-        const jCJ = indexCJ[_normNomAppel(ja.p) + '_' + _normNomAppel(ja.n)];
-        if (!jCJ) { nonTrouves.add(ja.p + ' ' + ja.n); return; }
+        const cleAppel = _normNomAppel(ja.p) + '_' + _normNomAppel(ja.n);
+        if (corresp[cleAppel] === 'ignorer') return;
+        const jCJ = trouverJSP(ja);
+        if (!jCJ) { nonTrouves.set(cleAppel, ja.p + ' ' + ja.n); return; }
         if (DB.absences.find(a => a.jspId === jCJ.id && dateAbsenceNormalisee(a.date) === date)) { deja++; return; }
         const item = { jspId: jCJ.id, date, statut, theme: seq.theme, heure: seq.heure };
         if (estSupprimeSync('absences', jCJ.id, date)) supprimees.push(item); else aCreer.push(item);
@@ -2283,13 +2318,12 @@ async function syncAbsencesFromAppel() {
       aCreer.length ? aCreer.length + ' absence' + (aCreer.length > 1 ? 's ajoutées' : ' ajoutée') : 'Aucune nouvelle absence',
       deja ? deja + ' déjà dans le Carnet' : '',
       nbRetards ? nbRetards + ' retard' + (nbRetards > 1 ? 's ajoutés' : ' ajouté') : '',
-      nonTrouves.size ? 'JSP introuvables dans le Carnet (nom différent ?) : ' + [...nonTrouves].join(', ') : ''
     ].filter(Boolean);
     _majBoutonsSync('✅ ' + lignes[0], false);
     setTimeout(() => _majBoutonsSync(TEXTE_BTN_SYNC, false), 4000);
-    if (nonTrouves.size) alert(lignes.join('\n'));
-    else showToast(lignes.join(' · '));
+    showToast(lignes.join(' · '));
     showSection(currentSection);
+    if (nonTrouves.size) modalAssocierJSPAppel(nonTrouves);
   } catch (e) {
     _majBoutonsSync('❌ Connexion impossible', false);
     setTimeout(() => _majBoutonsSync(TEXTE_BTN_SYNC, false), 3000);
