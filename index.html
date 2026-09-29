@@ -623,6 +623,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 </head>
 <body>
@@ -714,6 +715,10 @@
         <div class="sidebar-section">Gestion</div>
         <div class="nav-item" onclick="showSection('jsps')">
           <i class="ti ti-users"></i><span>JSP</span>
+        </div>
+        <div class="nav-item" onclick="showSection('inscriptions')">
+          <i class="ti ti-user-plus"></i><span>Inscriptions</span>
+          <span id="badge-inscriptions" class="badge-nav" style="display:none;background:var(--orange)">0</span>
         </div>
         <div class="nav-item" onclick="showSection('trombinoscope')">
           <i class="ti ti-photo"></i><span>Trombinoscope</span>
@@ -1917,9 +1922,31 @@ function dateISOLocale(d) {
 
 // Complète les champs manquants des absences (sans rien supprimer ni écraser) :
 // l'appli d'appel écrivait "excuse" (sans "e") et pas de saison.
+// Anciennes absences importées d'un tableur : date au format « 2026-06-13T22:00:00.000Z »
+// (= 14/06 en heure française) et heure d'appel « 1899-12-30T08:50:39.000Z » (= 09:00).
+function normaliserDateAbsence(a) {
+  // (liste locale : cette fonction tourne avant l'initialisation du reste du script)
+  const LIBELLES_STATUT_APPEL = { A: 'absent', R: 'retard', E: 'excusé', ER: 'excusé + retard' };
+  if (typeof a.date === 'string' && a.date.indexOf('T') > 0) {
+    const d = new Date(a.date);
+    if (!isNaN(d)) a.date = dateISOLocale(d);
+  }
+  if (typeof a.remarque === 'string' && /1899-12-30T/.test(a.remarque)) {
+    a.remarque = a.remarque.replace(/^Statut\s*:\s*(ER|A|R|E)\s*[—-]\s*(1899-12-30T[\d:.]+Z)$/, (m, st, h) => {
+      const d = new Date(h);
+      const heure = isNaN(d) ? '' : ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return 'Appel' + heure + ' : ' + (LIBELLES_STATUT_APPEL[st] || st);
+    }).replace(/1899-12-30T[\d:.]+Z/g, h => {
+      const d = new Date(h);
+      return isNaN(d) ? h : d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    });
+  }
+}
+
 function normaliserAbsences(db) {
   if (!db || !Array.isArray(db.absences)) return;
   db.absences.forEach(a => {
+    normaliserDateAbsence(a);
     if (a.excusee === undefined && a.excuse !== undefined) a.excusee = !!a.excuse;
     if (a.excuse === undefined && a.excusee !== undefined) a.excuse = !!a.excusee;
     if (!a.saison && a.date) {
@@ -2358,6 +2385,7 @@ const MODULES_ACCES = [
   { key:'animation', label:"Guide d'animation", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'animation-edit', label:"Guide d'animation : modifier les fiches", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'jsps', label:'JSP (fiches)', icon:'ti-users', section:'jsps', groupe:'Administration' },
+  { key:'inscriptions', label:'Inscriptions en ligne', icon:'ti-user-plus', section:'inscriptions', groupe:'Administration' },
   { key:'trombinoscope', label:'Trombinoscope', icon:'ti-photo', section:'trombinoscope', groupe:'Administration' },
   { key:'historique', label:'Historique', icon:'ti-history', section:'historique', groupe:'Administration' },
   { key:'connexions', label:'Connexions', icon:'ti-user-check', section:'connexions', groupe:'Administration' },
@@ -3168,6 +3196,7 @@ function showSection(sec) {
   switch(sec) {
     case 'dashboard': c.innerHTML = renderDashboard(); break;
     case 'jsps': c.innerHTML = renderJSPs(); break;
+    case 'inscriptions': c.innerHTML = renderInscriptions(); break;
     case 'trombinoscope': c.innerHTML = renderTrombinoscope(); break;
     case 'absences': c.innerHTML = renderAbsences(); break;
     case 'retards': c.innerHTML = renderRetards(); break;
@@ -4073,6 +4102,7 @@ function getAbsenceStats(jspId, saison) {
 }
 
 function renderAbsences(jspFilt, toutesSaisons) {
+  window._absParams = [jspFilt || null, !!toutesSaisons];
   const saisonActive = DB.saison;
   let list = toutesSaisons ? DB.absences : DB.absences.filter(a => a.saison === saisonActive);
   if (jspFilt) list = list.filter(a=>a.jspId==jspFilt);
@@ -4116,11 +4146,12 @@ function renderAbsences(jspFilt, toutesSaisons) {
       </label>
     </div>
     <div class="table-card"><table>
-      <thead><tr><th>JSP</th><th>Saison</th><th>Date</th><th>Motif</th><th>Excusée</th><th>Remarque</th><th></th></tr></thead>
+      <thead><tr><th style="width:36px"><input type="checkbox" id="abs_tout" title="Tout sélectionner" onchange="absToutSelectionner(this.checked)" style="width:18px;height:18px;cursor:pointer"></th><th>JSP</th><th>Saison</th><th>Date</th><th>Motif</th><th>Excusée</th><th>Remarque</th><th></th></tr></thead>
       <tbody>
         ${sorted.length ? sorted.map(a => {
           const stats = getAbsenceStats(a.jspId, a.saison);
           return `<tr ${stats.alerte && a.saison===saisonActive ? 'style="background:#fef2f2"' : ''}>
+          <td><input type="checkbox" class="abs-sel" value="${a.id}" onchange="absMajSelection()" style="width:18px;height:18px;cursor:pointer"></td>
           <td><strong>${jspNom(a.jspId)}</strong> ${stats.alerte && a.saison===saisonActive ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:14px" title="Seuil alerte atteint"></i>' : ''}</td>
           <td style="color:var(--gris-txt);font-size:12px">${a.saison||'—'}</td>
           <td>${fmtDate(a.date)}</td>
@@ -4129,9 +4160,39 @@ function renderAbsences(jspFilt, toutesSaisons) {
           <td style="color:var(--gris-txt);font-size:13px">${a.remarque||'—'}</td>
           <td><button onclick="deleteItem('absences',${a.id},'absences')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
         </tr>`;
-        }).join('') : `<tr class="empty-row"><td colspan="7">Aucune absence enregistrée</td></tr>`}
+        }).join('') : `<tr class="empty-row"><td colspan="8">Aucune absence enregistrée</td></tr>`}
       </tbody>
-    </table></div>`;
+    </table></div>
+    <div id="abs_barre_sel" style="display:none;position:sticky;bottom:12px;margin-top:12px;background:var(--bleu);color:#fff;border-radius:10px;padding:10px 14px;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,.2)">
+      <span id="abs_nb_sel" style="flex:1;font-weight:600"></span>
+      <button class="btn-cancel" onclick="absToutSelectionner(false)" style="padding:6px 12px">Annuler</button>
+      <button class="btn-add" onclick="absSupprimerSelection()" style="background:var(--rouge);padding:6px 14px"><i class="ti ti-trash"></i> Supprimer</button>
+    </div>`;
+}
+
+function absToutSelectionner(coche) {
+  document.querySelectorAll('.abs-sel').forEach(cb => { cb.checked = coche; });
+  const t = document.getElementById('abs_tout'); if (t) t.checked = coche;
+  absMajSelection();
+}
+function absMajSelection() {
+  const tous = document.querySelectorAll('.abs-sel');
+  const nb = document.querySelectorAll('.abs-sel:checked').length;
+  const barre = document.getElementById('abs_barre_sel');
+  if (barre) barre.style.display = nb ? 'flex' : 'none';
+  const lbl = document.getElementById('abs_nb_sel');
+  if (lbl) lbl.textContent = nb + ' ligne' + (nb > 1 ? 's' : '') + ' sélectionnée' + (nb > 1 ? 's' : '');
+  const t = document.getElementById('abs_tout');
+  if (t) { t.checked = nb > 0 && nb === tous.length; t.indeterminate = nb > 0 && nb < tous.length; }
+}
+function absSupprimerSelection() {
+  const ids = [...document.querySelectorAll('.abs-sel:checked')].map(cb => String(cb.value));
+  if (!ids.length) return;
+  if (!confirm('Supprimer définitivement ' + ids.length + ' absence' + (ids.length > 1 ? 's' : '') + ' ?')) return;
+  DB.absences = DB.absences.filter(a => !ids.includes(String(a.id)));
+  saveData();
+  showToast(ids.length + ' absence' + (ids.length > 1 ? 's supprimées' : ' supprimée'));
+  document.getElementById('content').innerHTML = renderAbsences(...(window._absParams || [null, false]));
 }
 
 function filterAbsence(jspId) {
@@ -13850,6 +13911,430 @@ function closeModal(e) {
 // de connexion), pour que les comptes créés depuis un autre appareil ou navigateur
 // soient immédiatement reconnus, même si aucune connexion n'a encore eu lieu ici.
 loadFromCloud();
+
+</script>
+<script>
+// ══════════════════════════════════════════
+//  INSCRIPTIONS EN LIGNE (page publique inscription.html)
+//  Les demandes sont dans la table Supabase « inscriptions », séparée de
+//  carnet_jsp_data. Lecture/gestion uniquement via la fonction
+//  inscriptions_admin() protégée par la clé admin (saisie une fois par appareil).
+//  Les infos médicales restent dans cette table : elles ne sont PAS copiées
+//  dans la fiche JSP.
+// ══════════════════════════════════════════
+const INSC_CLE_STOCKAGE = 'carnet_jsp_cle_inscriptions';
+const INSC_PIECES = [
+  { key: 'dossier',     label: 'Dossier papier signé' },
+  { key: 'certificat',  label: 'Certificat médical' },
+  { key: 'cheque',      label: 'Chèque de 100 €' },
+  { key: 'photos',      label: "2 photos d'identité" },
+  { key: 'rc',          label: 'Attestation responsabilité civile' },
+  { key: 'vaccin',      label: 'Copie carnet de vaccination' }
+];
+const INSC = { liste: [], config: { ouvertes: false, code_section: '' }, chargeLe: 0, enCours: false, erreur: '', filtre: 'en_attente' };
+
+function inscCle() { try { return localStorage.getItem(INSC_CLE_STOCKAGE) || ''; } catch (e) { return ''; } }
+function inscPeutVoir() {
+  return !!currentUser && (currentUser.role === 'admin' || (currentUser.role === 'special' && currentUser.acces && currentUser.acces.inscriptions));
+}
+async function inscAppel(action, id, data) {
+  if (!supabaseClient) throw new Error('hors-ligne');
+  const { data: res, error } = await supabaseClient.rpc('inscriptions_admin', {
+    p_cle: inscCle(), p_action: action, p_id: id || null, p_data: data || null
+  });
+  if (error) throw error;
+  if (!res || !res.ok) {
+    if (res && res.erreur === 'cle') {
+      try { localStorage.removeItem(INSC_CLE_STOCKAGE); } catch (e) {}
+      INSC.erreur = 'La clé des inscriptions est incorrecte. Saisis-la à nouveau.';
+    }
+    throw new Error(res ? res.erreur : 'erreur');
+  }
+  return res;
+}
+function inscRafraichirEcran() {
+  if (currentSection !== 'inscriptions') return;
+  document.getElementById('content').innerHTML = renderInscriptions();
+}
+async function inscCharger(force) {
+  if (INSC.enCours || !inscCle()) return;
+  if (!force && Date.now() - INSC.chargeLe < 30000) return;
+  INSC.enCours = true;
+  try {
+    const res = await inscAppel('lister');
+    INSC.liste = res.inscriptions || [];
+    INSC.config = res.config || INSC.config;
+    INSC.erreur = '';
+    INSC.chargeLe = Date.now();
+    inscMajBadgeLocal();
+  } catch (e) {
+    if (!INSC.erreur) INSC.erreur = "Impossible de charger les inscriptions. Vérifie la connexion internet, puis appuie sur « Actualiser ».";
+    INSC.chargeLe = Date.now();
+  } finally {
+    INSC.enCours = false;
+    inscRafraichirEcran();
+  }
+}
+function inscMajBadgeLocal(nb) {
+  const b = document.getElementById('badge-inscriptions');
+  if (!b) return;
+  if (nb === undefined) nb = INSC.liste.filter(i => i.statut === 'en_attente').length;
+  b.textContent = nb;
+  b.style.display = nb > 0 ? 'inline' : 'none';
+}
+async function inscMajBadge() {
+  if (!inscPeutVoir() || !inscCle()) return;
+  try { const r = await inscAppel('compter'); inscMajBadgeLocal(r.en_attente || 0); } catch (e) { /* silencieux */ }
+}
+setInterval(inscMajBadge, 120000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) inscMajBadge(); });
+// Badge dès la connexion
+const _doLoginAvantInscriptions = doLogin;
+doLogin = function () { _doLoginAvantInscriptions.apply(this, arguments); setTimeout(inscMajBadge, 1500); };
+
+function inscEnregistrerCle() {
+  const v = (document.getElementById('insc_cle').value || '').trim();
+  if (!v) return;
+  try { localStorage.setItem(INSC_CLE_STOCKAGE, v); } catch (e) { alert("Ce navigateur ne permet pas d'enregistrer la clé."); return; }
+  INSC.erreur = '';
+  INSC.chargeLe = 0;
+  inscRafraichirEcran();
+  inscCharger(true);
+}
+
+function inscLienPublic() {
+  const base = location.origin + location.pathname.replace(/[^/]*$/, '') + 'inscription.html';
+  const code = (INSC.config && INSC.config.code_section) || '';
+  return code ? base + '?code=' + encodeURIComponent(code) : base;
+}
+function inscAge(iso) {
+  if (!iso) return '';
+  const n = new Date(iso), a = new Date();
+  let age = a.getFullYear() - n.getFullYear();
+  if (a.getMonth() < n.getMonth() || (a.getMonth() === n.getMonth() && a.getDate() < n.getDate())) age--;
+  return isNaN(age) ? '' : age + ' ans';
+}
+function inscNbPieces(i) { const p = i.pieces || {}; return INSC_PIECES.filter(x => p[x.key]).length; }
+function inscDateHeure(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function renderInscriptions() {
+  if (!inscPeutVoir()) return '<p>Accès non autorisé.</p>';
+  const carte = 'background:var(--blanc);border-radius:12px;border:.5px solid var(--gris-bord);padding:18px;margin-bottom:16px';
+
+  if (!inscCle()) {
+    return `
+    <div class="section-header"><h2><i class="ti ti-user-plus"></i> Inscriptions en ligne</h2></div>
+    <div style="${carte};max-width:520px">
+      <h3 style="font-size:15px;color:var(--bleu);margin-bottom:8px"><i class="ti ti-key"></i> Clé des inscriptions</h3>
+      <p style="font-size:13px;color:var(--gris-txt);margin-bottom:12px">Saisis la clé définie dans Supabase. Elle reste enregistrée sur cet appareil uniquement.</p>
+      ${INSC.erreur ? `<p style="color:var(--rouge);font-size:13px;margin-bottom:10px">${escTexte(INSC.erreur)}</p>` : ''}
+      <div style="display:flex;gap:8px">
+        <input type="password" id="insc_cle" placeholder="Clé" style="flex:1;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px" onkeydown="if(event.key==='Enter')inscEnregistrerCle()">
+        <button class="btn-add" onclick="inscEnregistrerCle()"><i class="ti ti-check"></i> Valider</button>
+      </div>
+    </div>`;
+  }
+
+  if (!INSC.chargeLe && !INSC.enCours) setTimeout(() => inscCharger(true), 0);
+  else setTimeout(() => inscCharger(false), 0);
+
+  const liste = INSC.liste.filter(i => i.statut === INSC.filtre);
+  const nb = s => INSC.liste.filter(i => i.statut === s).length;
+  const onglet = (s, label) => `<button class="btn-add" style="padding:6px 12px;font-size:13px;${INSC.filtre === s ? '' : 'background:var(--gris-bg);color:var(--bleu);border:1px solid var(--gris-bord)'}" onclick="INSC.filtre='${s}';inscRafraichirEcran()">${label} (${nb(s)})</button>`;
+  const lien = inscLienPublic();
+  const ouvertes = !!INSC.config.ouvertes;
+
+  setTimeout(inscDessinerQR, 0);
+
+  return `
+  <div class="section-header">
+    <h2><i class="ti ti-user-plus"></i> Inscriptions en ligne</h2>
+    <button class="btn-add" onclick="inscCharger(true)"><i class="ti ti-refresh"></i> Actualiser</button>
+  </div>
+  ${INSC.erreur ? `<div style="${carte};border-color:var(--rouge);color:var(--rouge);font-size:14px">${escTexte(INSC.erreur)}</div>` : ''}
+
+  <div style="${carte};display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start">
+    <div style="flex:1;min-width:240px">
+      <h3 style="font-size:15px;color:var(--bleu);margin-bottom:10px"><i class="ti ti-settings"></i> Réglages</h3>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;margin-bottom:12px;cursor:pointer">
+        <input type="checkbox" ${ouvertes ? 'checked' : ''} onchange="inscChangerConfig({ouvertes:this.checked})" style="width:20px;height:20px">
+        Inscriptions ${ouvertes ? '<span class="badge badge-vert">ouvertes</span>' : '<span class="badge badge-gris">fermées</span>'}
+      </label>
+      <div class="form-group" style="margin-bottom:10px">
+        <label style="font-size:13px">Code de la section <span style="color:var(--gris-txt);font-weight:400">(facultatif, demandé aux familles)</span></label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="insc_code" value="${escAttr(INSC.config.code_section || '')}" placeholder="Aucun code" style="flex:1;padding:8px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px">
+          <button class="btn-add" style="padding:6px 12px;font-size:13px" onclick="inscChangerConfig({code_section:document.getElementById('insc_code').value})">Enregistrer</button>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--gris-txt);margin-bottom:6px">Lien à partager avec les familles :</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" readonly value="${escAttr(lien)}" style="flex:1;padding:8px;border:1px solid var(--gris-bord);border-radius:8px;font-size:13px;background:var(--gris-bg)" onclick="this.select()">
+        <button class="btn-add" style="padding:6px 12px;font-size:13px" onclick="inscCopierLien()"><i class="ti ti-copy"></i> Copier</button>
+      </div>
+    </div>
+    <div style="text-align:center">
+      <div id="insc_qr" style="background:#fff;padding:8px;border-radius:8px;display:inline-block;min-width:150px;min-height:150px"></div>
+      <div><button class="btn-add" style="padding:6px 12px;font-size:13px;margin-top:6px" onclick="inscImprimerAffiche()"><i class="ti ti-printer"></i> Imprimer l'affiche</button></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    ${onglet('en_attente', 'En attente')} ${onglet('validee', 'Validées')} ${onglet('refusee', 'Refusées')}
+  </div>
+
+  <div class="table-card">
+    <table>
+      <thead><tr><th>Reçue le</th><th>Jeune</th><th>Contact</th><th>Pièces</th><th style="width:110px"></th></tr></thead>
+      <tbody>
+      ${INSC.enCours && !INSC.liste.length ? '<tr><td colspan="5" style="text-align:center;color:var(--gris-txt);padding:16px">Chargement…</td></tr>' : ''}
+      ${liste.map(i => {
+        const d = i.donnees || {}, j = d.jsp || {}, r = (d.representants || [])[0] || {};
+        const np = inscNbPieces(i);
+        return `<tr>
+          <td style="white-space:nowrap;font-size:13px">${escTexte(inscDateHeure(i.created_at))}</td>
+          <td><strong>${escTexte(j.prenom)} ${escTexte(j.nom)}</strong><br><span style="font-size:12px;color:var(--gris-txt)">${j.sexe === 'F' ? 'Fille' : 'Garçon'} · ${escTexte(inscAge(j.dateNaissance))} · ${escTexte(j.ville)}</span></td>
+          <td style="font-size:13px">${escTexte(r.prenom)} ${escTexte(r.nom)}<br><a href="tel:${escAttr((r.tel || '').replace(/\s/g, ''))}">${escTexte(r.tel)}</a></td>
+          <td><span class="badge ${np === INSC_PIECES.length ? 'badge-vert' : 'badge-orange'}">${np}/${INSC_PIECES.length}</span></td>
+          <td style="text-align:center"><button class="btn-add" style="padding:6px 12px;font-size:13px" onclick="inscOuvrir('${i.id}')"><i class="ti ti-folder-open"></i> Ouvrir</button></td>
+        </tr>`;
+      }).join('')}
+      ${!INSC.enCours && !liste.length ? `<tr><td colspan="5" style="text-align:center;color:var(--gris-txt);padding:16px">${INSC.filtre === 'en_attente' ? (ouvertes ? 'Aucune demande en attente. Partage le lien ou le QR code aux familles.' : 'Aucune demande en attente. Coche « Inscriptions » pour les ouvrir.') : 'Aucune demande ici.'}</td></tr>` : ''}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function inscDessinerQR() {
+  const el = document.getElementById('insc_qr');
+  if (!el) return;
+  el.innerHTML = '';
+  if (typeof QRCode === 'undefined') { el.innerHTML = '<div style="font-size:12px;color:#6b7280;padding:40px 6px">QR code indisponible</div>'; return; }
+  new QRCode(el, { text: inscLienPublic(), width: 150, height: 150, correctLevel: QRCode.CorrectLevel.M });
+}
+function inscCopierLien() {
+  const lien = inscLienPublic();
+  if (navigator.clipboard) navigator.clipboard.writeText(lien).then(() => showToast('Lien copié'), () => prompt('Copie ce lien :', lien));
+  else prompt('Copie ce lien :', lien);
+}
+function inscImprimerAffiche() {
+  const tmp = document.createElement('div');
+  if (typeof QRCode === 'undefined') { alert('QR code indisponible (pas de connexion ?)'); return; }
+  new QRCode(tmp, { text: inscLienPublic(), width: 480, height: 480, correctLevel: QRCode.CorrectLevel.M });
+  const canvas = tmp.querySelector('canvas');
+  const src = canvas ? canvas.toDataURL('image/png') : (tmp.querySelector('img') || {}).src;
+  const w = window.open('', '_blank');
+  if (!w) { alert("Autorise l'ouverture des fenêtres pour imprimer l'affiche."); return; }
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Inscriptions JSP</title>
+    <style>body{font-family:Arial,sans-serif;text-align:center;color:#163a64;padding:40px}h1{font-size:40px;margin:0 0 6px}p{font-size:20px;color:#333}img{width:9cm;height:9cm;margin:24px 0}.lien{font-size:14px;color:#555;word-break:break-all}</style>
+    </head><body><h1>Inscriptions JSP</h1><p>Section de Cruzy-Quarante</p><img src="${src}" alt="QR code"><p>Scannez ce code avec l'appareil photo de votre téléphone<br>pour remplir la demande d'inscription.</p><div class="lien">${escTexte(inscLienPublic())}</div>
+    <scr` + `ipt>window.onload=function(){window.print()}</scr` + `ipt></body></html>`);
+  w.document.close();
+}
+
+async function inscChangerConfig(modif) {
+  try {
+    await inscAppel('config', null, modif);
+    Object.assign(INSC.config, modif);
+    if ('code_section' in modif) INSC.config.code_section = (modif.code_section || '').trim();
+    showToast('Réglage enregistré');
+  } catch (e) { showToast("Le réglage n'a pas pu être enregistré", true); }
+  inscRafraichirEcran();
+}
+
+// ── Dossier d'une demande ──
+function inscOuvrir(id) {
+  const i = INSC.liste.find(x => x.id === id);
+  if (!i) return;
+  const d = i.donnees || {}, j = d.jsp || {}, s = d.sante || {}, a = d.autorisations || {}, im = d.droitImage || {};
+  const t = j.tailles || {};
+  const ouiNon = v => v ? '<span class="badge badge-vert">Oui</span>' : '<span class="badge badge-rouge">Non</span>';
+  const ligne = (l, v) => `<div style="display:flex;gap:10px;padding:5px 0;border-bottom:.5px solid var(--gris-bord);font-size:14px"><div style="width:170px;color:var(--gris-txt);flex-shrink:0">${l}</div><div style="flex:1">${v}</div></div>`;
+  const titre = (ic, t) => `<h4 style="font-size:14px;color:var(--bleu);margin:16px 0 6px"><i class="ti ${ic}"></i> ${t}</h4>`;
+  const vide = v => v ? escTexte(v) : '<span style="color:var(--gris-txt)">—</span>';
+  const pieces = i.pieces || {};
+  const dejaJSP = DB.jsps.find(x => (x.nom || '').toLowerCase() === (j.nom || '').toLowerCase() && (x.prenom || '').toLowerCase() === (j.prenom || '').toLowerCase());
+
+  const photo = j.photo
+    ? `<img src="${escAttr(j.photo)}" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid var(--bleu)">`
+    : `<div style="width:72px;height:72px;border-radius:50%;background:var(--bleu);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700">${escTexte((j.prenom || '?')[0])}${escTexte((j.nom || '?')[0])}</div>`;
+
+  let html = `
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:6px">${photo}
+      <div><h3 style="margin:0">${escTexte(j.prenom)} ${escTexte(j.nom)}</h3>
+      <div style="font-size:13px;color:var(--gris-txt)">Demande reçue le ${escTexte(inscDateHeure(i.created_at))}${i.statut === 'validee' ? ' · <span class="badge badge-vert">validée</span>' : i.statut === 'refusee' ? ' · <span class="badge badge-rouge">refusée</span>' : ''}</div></div>
+    </div>
+    ${dejaJSP && i.statut === 'en_attente' ? `<div style="background:var(--orange-pale);color:var(--orange);padding:8px 12px;border-radius:8px;font-size:13px;margin:8px 0"><i class="ti ti-alert-triangle"></i> Un JSP ${escTexte(dejaJSP.prenom)} ${escTexte(dejaJSP.nom)} existe déjà dans le carnet : vérifie qu'il ne s'agit pas d'un doublon (réinscription).</div>` : ''}
+    <div style="max-height:58vh;overflow:auto;padding-right:4px">
+    ${titre('ti-user', 'Le jeune')}
+    ${ligne('Sexe', j.sexe === 'F' ? 'Fille' : 'Garçon')}
+    ${ligne('Naissance', escTexte(fmtDate(j.dateNaissance)) + ' à ' + vide(j.lieuNaissance) + ' (' + escTexte(inscAge(j.dateNaissance)) + ')')}
+    ${ligne('Adresse', escTexte(j.adresse) + ', ' + escTexte(j.codePostal) + ' ' + escTexte(j.ville))}
+    ${ligne('Téléphone / e-mail', vide(j.tel) + ' · ' + vide(j.email))}
+    ${ligne('Tailles', 'Haut ' + vide(t.haut) + ' · Pantalon ' + vide(t.bas) + ' · Pointure ' + vide(t.pointure))}
+    ${titre('ti-users', 'Représentants légaux')}
+    ${(d.representants || []).map((r, k) => ligne('Représentant ' + (k + 1), `<strong>${escTexte(r.prenom)} ${escTexte(r.nom)}</strong> (${escTexte(r.lien)})<br><a href="tel:${escAttr((r.tel || '').replace(/\s/g, ''))}">${escTexte(r.tel)}</a>${r.email ? ' · ' + escTexte(r.email) : ''}`)).join('')}
+    ${titre('ti-first-aid-kit', 'Fiche sanitaire (confidentielle)')}
+    ${ligne('Allergies', vide(s.allergies))}
+    ${ligne('Traitement', vide(s.traitement))}
+    ${ligne('Autres infos', vide(s.autres))}
+    ${ligne('Rappel antitétanique', s.rappelTetanos ? escTexte(fmtDate(s.rappelTetanos)) : vide(''))}
+    ${ligne('Médecin traitant', vide(s.medecin) + (s.medecinTel ? ' · ' + escTexte(s.medecinTel) : ''))}
+    ${titre('ti-shield-check', 'Autorisations')}
+    ${ligne('Soins d\'urgence', ouiNon(a.soins))}
+    ${ligne('Hospitalisation', ouiNon(a.hospitalisation))}
+    ${ligne('Sortie de soins', ouiNon(a.sortieSoins))}
+    ${ligne('Transport', ouiNon(a.transport))}
+    ${ligne('Fin de séance', a.repartSeul ? 'Peut repartir seul' : 'Uniquement accompagné : ' + vide(a.personnesAutorisees))}
+    ${titre('ti-camera', 'Droit à l\'image')}
+    ${ligne('Usage interne', ouiNon(im.interne))}
+    ${ligne('Site / réseaux sociaux', ouiNon(im.web))}
+    ${ligne('Presse', ouiNon(im.presse))}
+    ${titre('ti-checklist', 'Pièces reçues')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px">
+      ${INSC_PIECES.map(p => `<label style="display:flex;gap:8px;align-items:center;font-size:14px;padding:4px 0;cursor:pointer"><input type="checkbox" class="insc-piece" data-key="${p.key}" ${pieces[p.key] ? 'checked' : ''} onchange="inscMajPieces('${i.id}')" style="width:18px;height:18px"> ${p.label}</label>`).join('')}
+    </div>
+    ${titre('ti-note', 'Note interne')}
+    <textarea id="insc_note" rows="2" style="width:100%;padding:8px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px" placeholder="Visible uniquement par l'encadrement" onblur="inscEnregistrerNote('${i.id}')">${escTexte(i.note || '')}</textarea>
+    </div>`;
+
+  if (i.statut === 'en_attente') {
+    html += `
+    <div style="background:var(--bleu-pale);border-radius:10px;padding:12px;margin-top:12px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin:0"><label style="font-size:13px">Niveau</label>
+          <select id="insc_promo"><option>JSP 1</option><option>JSP 2</option><option>JSP 3</option><option>JSP 4</option></select></div>
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="insc_compte" checked> Préparer le compte parent</label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="insc_hab" checked> Préremplir l'habillement avec les tailles</label>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Fermer</button>
+      <button class="btn-cancel" style="color:var(--rouge)" onclick="inscRefuser('${i.id}')">Refuser</button>
+      <button class="btn-save" onclick="inscValider('${i.id}')"><i class="ti ti-check"></i> Valider et créer la fiche JSP</button>
+    </div>`;
+  } else {
+    html += `
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Fermer</button>
+      ${i.statut === 'refusee' ? `<button class="btn-cancel" onclick="inscRemettre('${i.id}')">Remettre en attente</button>` : ''}
+      <button class="btn-cancel" style="color:var(--rouge)" onclick="inscSupprimer('${i.id}')"><i class="ti ti-trash"></i> Supprimer la demande</button>
+    </div>`;
+  }
+  openModalWide(html);
+}
+
+async function inscMajPieces(id) {
+  const i = INSC.liste.find(x => x.id === id);
+  if (!i) return;
+  const pieces = {};
+  document.querySelectorAll('.insc-piece').forEach(cb => { if (cb.checked) pieces[cb.dataset.key] = new Date().toISOString().slice(0, 10); });
+  const avant = i.pieces;
+  i.pieces = pieces;
+  try { await inscAppel('pieces', id, pieces); }
+  catch (e) { i.pieces = avant; showToast("La case n'a pas pu être enregistrée (connexion ?)", true); }
+}
+async function inscEnregistrerNote(id) {
+  const i = INSC.liste.find(x => x.id === id);
+  const el = document.getElementById('insc_note');
+  if (!i || !el || (i.note || '') === el.value) return;
+  try { await inscAppel('note', id, { note: el.value }); i.note = el.value; }
+  catch (e) { showToast("La note n'a pas pu être enregistrée", true); }
+}
+
+function inscLoginFamille(nom) { return (nom || '').toLowerCase().replace(/[^a-z]/g, ''); }
+function inscSansAccent(s) { return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, ''); }
+
+async function inscValider(id) {
+  const i = INSC.liste.find(x => x.id === id);
+  if (!i) return;
+  const d = i.donnees || {}, j = d.jsp || {}, reps = d.representants || [], t = j.tailles || {};
+  const promo = document.getElementById('insc_promo').value;
+  const creerCompte = document.getElementById('insc_compte').checked;
+  const preremplirHab = document.getElementById('insc_hab').checked;
+  if (!confirm('Créer la fiche JSP de ' + j.prenom + ' ' + j.nom + ' (' + promo + ') ?')) return;
+
+  const telDe = lien => { const r = reps.find(x => x.lien === lien); return r ? r.tel : ''; };
+  const contact = r => r ? { nom: r.nom || '', prenom: r.prenom || '', lien: r.lien || '', tel1: r.tel || '', tel2: '' } : { nom: '', prenom: '', lien: '', tel1: '', tel2: '' };
+  const nouveauId = nextId(DB.jsps);
+  const fiche = {
+    id: nouveauId, prenom: j.prenom, nom: j.nom, promotion: promo,
+    ville: j.ville || '', dateNaissance: j.dateNaissance || '', sexe: j.sexe === 'F' ? 'F' : 'M',
+    telPere: telDe('Père') || (reps[0] && reps[0].lien !== 'Mère' ? reps[0].tel : ''),
+    telMere: telDe('Mère'),
+    telJSP: j.tel || '',
+    email: (reps[0] && reps[0].email) || j.email || '',
+    adresse: j.adresse || '', codePostal: j.codePostal || '', lieuNaissance: j.lieuNaissance || '',
+    numSecu: '', dateEngagement: dateISOLocale(new Date()),
+    contact1: contact(reps[0]), contact2: contact(reps[1]),
+    droitImage: Object.assign({ interne: false, web: false, presse: false }, d.droitImage || {}),
+    tailles: { haut: t.haut || '', bas: t.bas || '', pointure: t.pointure || '' },
+    inscriptionId: i.id
+  };
+  if (j.photo) fiche.photo = j.photo;
+  DB.jsps.push(fiche);
+
+  // Habillement : tailles déclarées, statut « En attente » (rien n'est distribué)
+  if (preremplirHab && !DB.habillement.find(h => h.jspId === nouveauId)) {
+    DB.habillement.push({
+      jspId: nouveauId, statut: 'En attente',
+      veste: t.haut || '', poloTsi: t.haut || '', parka: t.haut || '', tshirtSport: t.haut || '', vesteSport: t.haut || '',
+      pantalon: t.bas || '', chaussures: t.pointure || '',
+      remarques: "Tailles déclarées à l'inscription en ligne, à confirmer à l'essayage.",
+      maj: new Date().toISOString()
+    });
+  }
+
+  // Compte parent (identifiants envoyés ensuite par toi via « Envoi identifiants »)
+  let messageCompte = '';
+  if (creerCompte) {
+    const login = inscLoginFamille(j.nom);
+    const existant = DB.users.find(u => u.login === login);
+    if (!login) {
+      messageCompte = "Compte parent non créé : nom de famille sans lettre simple, à créer à la main.";
+    } else if (existant) {
+      messageCompte = 'Un compte « ' + login + ' » existe déjà (frère ou sœur ?) : compte parent à gérer dans « Mots de passe ».';
+    } else {
+      const pass = 'jsp' + (inscSansAccent(j.prenom) || 'cruzy') + String(Math.floor(10 + Math.random() * 90));
+      DB.users.push({ login, pass, role: 'parent', nom: 'Famille ' + j.nom, jspId: nouveauId });
+      messageCompte = 'Compte parent « ' + login + ' » préparé : envoie les identifiants depuis « Envoi identifiants ».';
+    }
+  }
+
+  saveData();
+  try {
+    await inscAppel('valider', id, { jsp_id: String(nouveauId) });
+    i.statut = 'validee'; i.jsp_id = nouveauId;
+  } catch (e) {
+    showToast('Fiche JSP créée, mais la demande n\'a pas pu être marquée « validée ». Actualise plus tard.', true);
+  }
+  closeModal();
+  inscMajBadgeLocal();
+  inscRafraichirEcran();
+  alert('Fiche JSP créée pour ' + j.prenom + ' ' + j.nom + '.' + (messageCompte ? '\n\n' + messageCompte : ''));
+}
+
+async function inscRefuser(id) {
+  if (!confirm('Refuser cette demande ? Elle restera visible dans « Refusées ».')) return;
+  try { await inscAppel('refuser', id); const i = INSC.liste.find(x => x.id === id); if (i) i.statut = 'refusee'; }
+  catch (e) { showToast("La demande n'a pas pu être refusée (connexion ?)", true); return; }
+  closeModal(); inscMajBadgeLocal(); inscRafraichirEcran();
+}
+async function inscRemettre(id) {
+  try { await inscAppel('remettre', id); const i = INSC.liste.find(x => x.id === id); if (i) i.statut = 'en_attente'; }
+  catch (e) { showToast("Action impossible (connexion ?)", true); return; }
+  closeModal(); inscMajBadgeLocal(); inscRafraichirEcran();
+}
+async function inscSupprimer(id) {
+  if (!confirm('Supprimer définitivement cette demande et sa fiche sanitaire ? La fiche JSP éventuellement créée n\'est pas touchée.')) return;
+  try { await inscAppel('supprimer', id); INSC.liste = INSC.liste.filter(x => x.id !== id); }
+  catch (e) { showToast("La demande n'a pas pu être supprimée (connexion ?)", true); return; }
+  closeModal(); inscMajBadgeLocal(); inscRafraichirEcran();
+}
 
 </script>
 </body>
