@@ -14174,25 +14174,51 @@ function renderInscriptions() {
   </div>`;
 }
 
+// QR code avec le blason de la section au centre (correction d'erreur maximale pour rester lisible)
+function inscQRAvecLogo(texte, taille) {
+  return new Promise((resolve, reject) => {
+    if (typeof QRCode === 'undefined') { reject(new Error('qr')); return; }
+    const tmp = document.createElement('div');
+    new QRCode(tmp, { text: texte, width: taille, height: taille, correctLevel: QRCode.CorrectLevel.H });
+    const qrCanvas = tmp.querySelector('canvas');
+    if (!qrCanvas) { reject(new Error('qr')); return; }
+    const c = document.createElement('canvas');
+    c.width = taille; c.height = taille;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(qrCanvas, 0, 0, taille, taille);
+    const logo = new Image();
+    logo.onload = () => {
+      const h = taille * 0.26, w = h * logo.width / logo.height;      // blason ~26 % de la hauteur
+      const pad = taille * 0.025, bw = w + 2 * pad, bh = h + 2 * pad;
+      const x = (taille - bw) / 2, y = (taille - bh) / 2, r = taille * 0.03;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(x + r, y); ctx.arcTo(x + bw, y, x + bw, y + bh, r); ctx.arcTo(x + bw, y + bh, x, y + bh, r);
+      ctx.arcTo(x, y + bh, x, y, r); ctx.arcTo(x, y, x + bw, y, r); ctx.closePath(); ctx.fill();
+      ctx.drawImage(logo, x + pad, y + pad, w, h);
+      resolve(c.toDataURL('image/png'));
+    };
+    logo.onerror = () => resolve(qrCanvas.toDataURL('image/png')); // sans logo si l'image pose problème
+    logo.src = LOGO_JSP_BASE64;
+  });
+}
 function inscDessinerQR() {
   const el = document.getElementById('insc_qr');
   if (!el) return;
-  el.innerHTML = '';
-  if (typeof QRCode === 'undefined') { el.innerHTML = '<div style="font-size:12px;color:#6b7280;padding:40px 6px">QR code indisponible</div>'; return; }
-  new QRCode(el, { text: inscLienPublic(), width: 150, height: 150, correctLevel: QRCode.CorrectLevel.M });
+  inscQRAvecLogo(inscLienPublic(), 300)
+    .then(src => { el.innerHTML = '<img src="' + src + '" alt="QR code du formulaire d\'inscription" style="width:150px;height:150px;display:block">'; })
+    .catch(() => { el.innerHTML = '<div style="font-size:12px;color:#6b7280;padding:40px 6px">QR code indisponible</div>'; });
 }
 function inscCopierLien() {
   const lien = inscLienPublic();
   if (navigator.clipboard) navigator.clipboard.writeText(lien).then(() => showToast('Lien copié'), () => prompt('Copie ce lien :', lien));
   else prompt('Copie ce lien :', lien);
 }
-function inscImprimerAffiche() {
-  const tmp = document.createElement('div');
-  if (typeof QRCode === 'undefined') { alert('QR code indisponible (pas de connexion ?)'); return; }
-  new QRCode(tmp, { text: inscLienPublic(), width: 480, height: 480, correctLevel: QRCode.CorrectLevel.M });
-  const canvas = tmp.querySelector('canvas');
-  const src = canvas ? canvas.toDataURL('image/png') : (tmp.querySelector('img') || {}).src;
+async function inscImprimerAffiche() {
   const w = window.open('', '_blank');
+  let src;
+  try { src = await inscQRAvecLogo(inscLienPublic(), 900); }
+  catch (e) { if (w) w.close(); alert('QR code indisponible (pas de connexion ?)'); return; }
   if (!w) { alert("Autorise l'ouverture des fenêtres pour imprimer l'affiche."); return; }
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Inscriptions JSP</title>
     <style>body{font-family:Arial,sans-serif;text-align:center;color:#163a64;padding:40px}h1{font-size:40px;margin:0 0 6px}p{font-size:20px;color:#333}img{width:9cm;height:9cm;margin:24px 0}.lien{font-size:14px;color:#555;word-break:break-all}</style>
