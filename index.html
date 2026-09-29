@@ -2209,86 +2209,90 @@ const APPEL_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzj-b3hQl0y9FK
 // Mapping ID appel → ID carnet JSP
 const APPEL_TO_CARNET = {101: 4, 102: 4, 103: 5, 104: 3, 105: 7, 106: 6, 107: 2, 108: 1, 201: 9, 202: 10, 203: 8, 204: 11, 205: null, 301: 15, 302: 12, 303: 14, 304: 13, 401: 19, 402: null, 403: 18, 404: 16, 405: 17};
 
+// Relit les séances de l'appli d'appel (jsp-cruzy) directement dans Supabase
+// (table jsp_cruzy_data) et crée les absences manquantes dans le Carnet.
+// Correspondance des JSP par prénom + nom, comme le fait l'appli d'appel.
+function _normNomAppel(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+function _majBoutonsSync(texte, desactive) {
+  document.querySelectorAll('.btn-sync-appel').forEach(b => { b.innerHTML = texte; b.disabled = !!desactive; });
+}
+const TEXTE_BTN_SYNC = '<i class="ti ti-refresh"></i> Synchroniser avec l\'appli d\'appel';
+
 async function syncAbsencesFromAppel() {
-  const btn = document.getElementById('btnSyncAppel');
-  if (btn) { btn.textContent = '⏳ Synchronisation...'; btn.disabled = true; }
+  if (!supabaseClient) { alert('Pas de connexion au cloud : synchronisation impossible.'); return; }
+  _majBoutonsSync('⏳ Synchronisation…', true);
   try {
-    const resp = await fetch(APPEL_SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({action: 'getSeances'})
-    });
-    const seances = await resp.json();
+    // 1. Absences les plus récentes du Carnet (celles déjà envoyées par l'appli d'appel)
+    try { await rafraichirDemandesAbsence(); } catch (e) {}
 
-    let imported = 0;
-    const today = new Date().toISOString().slice(0, 10);
+    // 2. Séances de l'appli d'appel
+    const { data: row, error } = await supabaseClient.from('jsp_cruzy_data').select('data').eq('id', 'main').single();
+    if (error || !row || !row.data) throw new Error('lecture');
+    const appelJsps = row.data.jsps || [];
+    const seances = row.data.seances || [];
 
-    seances.forEach(row => {
-      try {
-        const id = row[0];
-        const date = dateAbsenceNormalisee(row[1]);
-        const heure = row[2];
-        const theme = row[3];
-        const st = JSON.parse(row[4]);
+    const indexCJ = {};
+    DB.jsps.forEach(j => { indexCJ[_normNomAppel(j.prenom) + '_' + _normNomAppel(j.nom)] = j; });
+    const mapStatut = { A: 'absent', R: 'retard', E: 'excuse', ER: 'excuse_retard' };
 
-        // Pour chaque JSP absent (A), on crée une absence dans le carnet
-        Object.entries(st).forEach(([appelId, statut]) => {
-          const carnetId = APPEL_TO_CARNET[parseInt(appelId)];
-          if (!carnetId) return; // JSP pas dans le carnet
-
-          // Vérifier si cette absence existe déjà (même date + même jspId)
-          // (quelle que soit l'origine : appli d'appel, saisie manuelle… et pas si supprimée à la main)
-          const exists = DB.absences.find(a =>
-            dateAbsenceNormalisee(a.date) === date && a.jspId === carnetId
-          );
-          const dejaSupprimee = estSupprimeSync('absences', carnetId, date);
-
-          if (!exists && !dejaSupprimee && (statut === 'A' || statut === 'R' || statut === 'E' || statut === 'ER')) {
-            DB.absences.push({
-              id: Date.now() + Math.random(),
-              jspId: carnetId,
-              saison: getSaisonFromDate(date),
-              date: date,
-              motif: theme || 'Séance JSP',
-              excusee: statut === 'E' || statut === 'ER',
-              remarque: 'Statut : ' + statut + (heure ? ' — ' + heure : ''),
-              source: 'appel'
-            });
-            normaliserDateAbsence(DB.absences[DB.absences.length - 1]);
-            imported++;
-          }
-
-          // Retards
-          if (statut === 'R' || statut === 'ER') {
-            const existsR = DB.retards.find(r =>
-              dateAbsenceNormalisee(r.date) === date && r.jspId === carnetId
-            );
-            if (!existsR && !estSupprimeSync('retards', carnetId, date)) {
-              DB.retards.push({
-                id: Date.now() + Math.random(),
-                jspId: carnetId,
-                date: date,
-                duree: '—',
-                motif: theme || 'Séance JSP',
-                remarque: statut,
-                source: 'appel'
-              });
-            }
-          }
-        });
-      } catch(e) {}
+    const aCreer = [], supprimees = [], nonTrouves = new Set();
+    let deja = 0;
+    seances.forEach(seq => {
+      const date = dateAbsenceNormalisee(seq.date);
+      if (!date || !seq.st) return;
+      Object.keys(seq.st).forEach(idAppel => {
+        const statut = seq.st[idAppel];
+        if (!mapStatut[statut]) return; // P = présent
+        const ja = appelJsps.find(j => String(j.id) === String(idAppel));
+        if (!ja) return;
+        const jCJ = indexCJ[_normNomAppel(ja.p) + '_' + _normNomAppel(ja.n)];
+        if (!jCJ) { nonTrouves.add(ja.p + ' ' + ja.n); return; }
+        if (DB.absences.find(a => a.jspId === jCJ.id && dateAbsenceNormalisee(a.date) === date)) { deja++; return; }
+        const item = { jspId: jCJ.id, date, statut, theme: seq.theme, heure: seq.heure };
+        if (estSupprimeSync('absences', jCJ.id, date)) supprimees.push(item); else aCreer.push(item);
+      });
     });
 
-    saveData();
-    if (btn) { btn.textContent = '✅ Synchronisé (' + imported + ' nouvelles entrées)'; btn.disabled = false; }
-    setTimeout(() => {
-      if (btn) btn.textContent = '🔄 Sync depuis appli d\'appel';
-    }, 4000);
+    // 3. Absences supprimées à la main : on demande avant de les remettre
+    if (supprimees.length && confirm(supprimees.length + ' absence' + (supprimees.length > 1 ? 's' : '') + " de l'appli d'appel " + (supprimees.length > 1 ? 'avaient été supprimées' : 'avait été supprimée') + ' à la main dans le Carnet.\n\nLes réimporter aussi ?')) {
+      const cles = supprimees.map(x => x.jspId + '|' + x.date);
+      DB.suppressionsSync.absences = (DB.suppressionsSync.absences || []).filter(k => !cles.includes(k));
+      aCreer.push(...supprimees);
+    }
+
+    let nbRetards = 0;
+    aCreer.forEach(x => {
+      const excuse = x.statut === 'E' || x.statut === 'ER';
+      const maxId = DB.absences.reduce((m, a) => Math.max(m, Math.floor(Number(a.id)) || 0), 0);
+      DB.absences.push({
+        id: maxId + 1, jspId: x.jspId, saison: getSaisonFromDate(x.date), date: x.date,
+        statut: mapStatut[x.statut], motif: x.theme ? 'Séance : ' + x.theme : 'Séance JSP',
+        remarque: 'Appel' + (x.heure ? ' à ' + x.heure : '') + ' : ' + ({ A: 'absent', R: 'retard', E: 'excusé', ER: 'excusé + retard' })[x.statut],
+        excusee: excuse, excuse: excuse, source: 'appel'
+      });
+      if ((x.statut === 'R' || x.statut === 'ER') && !estSupprimeSync('retards', x.jspId, x.date)
+          && !DB.retards.find(r => r.jspId === x.jspId && dateAbsenceNormalisee(r.date) === x.date)) {
+        const maxR = DB.retards.reduce((m, r) => Math.max(m, Math.floor(Number(r.id)) || 0), 0);
+        DB.retards.push({ id: maxR + 1, jspId: x.jspId, date: x.date, duree: '—', motif: x.theme || 'Séance JSP', remarque: x.statut, source: 'appel' });
+        nbRetards++;
+      }
+    });
+
+    if (aCreer.length) saveData();
+    const lignes = [
+      aCreer.length ? aCreer.length + ' absence' + (aCreer.length > 1 ? 's ajoutées' : ' ajoutée') : 'Aucune nouvelle absence',
+      deja ? deja + ' déjà dans le Carnet' : '',
+      nbRetards ? nbRetards + ' retard' + (nbRetards > 1 ? 's ajoutés' : ' ajouté') : '',
+      nonTrouves.size ? 'JSP introuvables dans le Carnet (nom différent ?) : ' + [...nonTrouves].join(', ') : ''
+    ].filter(Boolean);
+    _majBoutonsSync('✅ ' + lignes[0], false);
+    setTimeout(() => _majBoutonsSync(TEXTE_BTN_SYNC, false), 4000);
+    if (nonTrouves.size) alert(lignes.join('\n'));
+    else showToast(lignes.join(' · '));
     showSection(currentSection);
-  } catch(e) {
-    if (btn) { btn.textContent = '❌ Erreur de connexion'; btn.disabled = false; }
-    setTimeout(() => {
-      if (btn) btn.textContent = '🔄 Sync depuis appli d\'appel';
-    }, 3000);
+  } catch (e) {
+    _majBoutonsSync('❌ Connexion impossible', false);
+    setTimeout(() => _majBoutonsSync(TEXTE_BTN_SYNC, false), 3000);
   }
 }
 
@@ -3309,7 +3313,7 @@ function renderDashboard() {
     <div class="section-header"><h2><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Tableau de bord</h2>
     <div style="display:flex;gap:8px">
       <button class="btn-add" style="background:#b91c1c;font-size:13px" onclick="genererBilanAnnuelPDF()"><i class="ti ti-file-type-pdf"></i> Bilan annuel PDF</button>
-      <button id="btnSyncAppel" class="btn-add" style="background:#16a34a;font-size:13px" onclick="syncAbsencesFromAppel()"><i class="ti ti-refresh"></i> Sync depuis appli d\'appel</button>
+      <button id="btnSyncAppel" class="btn-add btn-sync-appel" style="background:#16a34a;font-size:13px" onclick="syncAbsencesFromAppel()"><i class="ti ti-refresh"></i> Synchroniser avec l\'appli d\'appel</button>
     </div></div>
     <div class="stats-grid">
       <div class="stat-card bleu"><div class="stat-val">${totalJSP}</div><div class="stat-lbl">JSP inscrits</div></div>
@@ -4153,7 +4157,10 @@ function renderAbsences(jspFilt, toutesSaisons) {
   return `
     <div class="section-header">
       <h2><i class="ti ti-calendar-x" aria-hidden="true"></i> Absences ${toutesSaisons ? '— Historique complet' : '— Saison ' + saisonActive}</h2>
-      <button class="btn-add" onclick="modalAddAbsence()"><i class="ti ti-plus"></i> Ajouter</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-add btn-sync-appel" style="background:#16a34a" onclick="syncAbsencesFromAppel()"><i class="ti ti-refresh"></i> Synchroniser avec l'appli d'appel</button>
+        <button class="btn-add" onclick="modalAddAbsence()"><i class="ti ti-plus"></i> Ajouter</button>
+      </div>
     </div>
     ${blocDemandesAbsence()}
     ${bandeauAlerte}
