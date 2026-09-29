@@ -176,6 +176,7 @@
       <div class="bloc">
         <h2>Le futur JSP</h2>
         <p class="aide">Les informations du jeune qui s'inscrit.</p>
+        <div class="info" id="regle_age" style="margin-bottom:14px"></div>
         <div class="grille">
           <div class="champ" data-requis><label for="j_prenom">Prénom</label><input type="text" id="j_prenom" autocomplete="off"><div class="msg-erreur">Indiquez le prénom.</div></div>
           <div class="champ" data-requis><label for="j_nom">Nom</label><input type="text" id="j_nom" autocomplete="off"><div class="msg-erreur">Indiquez le nom.</div></div>
@@ -189,7 +190,7 @@
           <div class="msg-erreur">Choisissez fille ou garçon (utile pour les épreuves sportives).</div>
         </div>
         <div class="grille">
-          <div class="champ" data-requis><label for="j_naissance">Date de naissance</label><input type="date" id="j_naissance"><div class="msg-erreur">Indiquez la date de naissance.</div></div>
+          <div class="champ" data-requis><label for="j_naissance">Date de naissance</label><input type="date" id="j_naissance"><div class="msg-erreur" id="msg_naissance">Indiquez la date de naissance.</div></div>
           <div class="champ" data-requis><label for="j_lieu">Lieu de naissance</label><input type="text" id="j_lieu"><div class="msg-erreur">Indiquez le lieu de naissance.</div></div>
         </div>
         <div class="champ" data-requis><label for="j_adresse">Adresse</label><input type="text" id="j_adresse" autocomplete="street-address"><div class="msg-erreur">Indiquez l'adresse.</div></div>
@@ -337,7 +338,7 @@
 
       <div class="bloc">
         <h2>Données personnelles</h2>
-        <p class="aide" style="margin-bottom:8px">Les informations de ce formulaire servent uniquement à la gestion de la section JSP de Cruzy-Quarante (suivi administratif, sécurité, communication avec les familles). Elles sont accessibles au seul encadrement de la section, conservées pendant la durée d'inscription du jeune, puis supprimées. Vous pouvez à tout moment demander à les consulter, les corriger ou les supprimer auprès du chef de section.</p>
+        <p class="aide" style="margin-bottom:8px">Les informations de ce formulaire servent uniquement à la gestion de la section JSP de Cruzy-Quarante (suivi administratif, sécurité, communication avec les familles). Elles sont accessibles au seul encadrement de la section, conservées pendant la durée d'inscription du jeune, puis supprimées. Si la candidature n'est pas retenue, elles sont supprimées. Vous pouvez à tout moment demander à les consulter, les corriger ou les supprimer auprès du chef de section.</p>
         <label class="coche" style="border:none"><input type="checkbox" id="rgpd"> J'ai lu ces informations et j'accepte que la section utilise ces données.</label>
         <div id="rgpd_erreur" class="msg-erreur">Cochez cette case pour envoyer la demande.</div>
 
@@ -350,24 +351,17 @@
 
       <div class="actions">
         <button type="button" class="btn btn-secondaire" data-precedent>Retour</button>
-        <button type="button" class="btn btn-principal" id="btn_envoyer">Envoyer la demande</button>
+        <button type="button" class="btn btn-principal" id="btn_envoyer">Envoyer la candidature</button>
       </div>
     </section>
   </form>
 
   <div id="fin" class="bloc ecran-fin cache">
-    <h2>Demande envoyée</h2>
-    <p>Merci ! La section a bien reçu la demande d'inscription de <strong id="fin_prenom"></strong>. Le chef de section vous recontactera.</p>
+    <h2>Candidature envoyée</h2>
+    <p>Merci ! La section a bien reçu la candidature de <strong id="fin_prenom"></strong>.</p>
     <div class="info">
-      <strong>Pour finaliser l'inscription, à remettre à la section :</strong>
-      <ul>
-        <li>le dossier papier signé (contrat d'engagement, autorisations) ;</li>
-        <li>le certificat médical rempli par le médecin ;</li>
-        <li>un chèque de 100 € libellé au nom de la section ;</li>
-        <li>2 photos d'identité ;</li>
-        <li>la photocopie de l'attestation de responsabilité civile ;</li>
-        <li>la photocopie du carnet de vaccination (antitétanique).</li>
-      </ul>
+      <p style="margin:0 0 8px">Le chef de section va étudier la demande et vous recontactera.</p>
+      <p style="margin:0">Si la candidature est retenue, il vous indiquera les documents à fournir pour finaliser l'inscription. <strong>Vous n'avez rien à envoyer pour le moment.</strong></p>
     </div>
   </div>
 </main>
@@ -388,6 +382,16 @@ const emailOk = s => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
 let etapeCourante = 1;
 let codeRequis = false;
 let photoData = '';
+
+// ── Âge minimum : 13 ans au plus tard le 31 janvier de l'année de rentrée (rentrée en janvier) ──
+const AGE_MINI = 13;
+function anneeRentree() { const d = new Date(); return d.getMonth() === 0 ? d.getFullYear() : d.getFullYear() + 1; }
+function dateLimiteNaissance() { return (anneeRentree() - AGE_MINI) + '-01-31'; } // né au plus tard ce jour-là
+function ageOk(iso) { return !!iso && iso <= dateLimiteNaissance(); }
+(function afficherRegleAge() {
+  const [a, m, j] = dateLimiteNaissance().split('-');
+  $('regle_age').innerHTML = 'Pour la rentrée de <strong>janvier ' + anneeRentree() + '</strong>, le jeune doit avoir <strong>' + AGE_MINI + ' ans au plus tard le 31 janvier ' + anneeRentree() + '</strong>, c\'est-à-dire être né(e) le ' + j + '/' + m + '/' + a + ' ou avant.';
+})();
 
 // Tailles
 // Mêmes tailles que le stock Habillement du Carnet
@@ -442,9 +446,14 @@ function verifierEtape(n) {
       requis = radio(nom) === v;
     }
     if (ch.closest('.cache')) requis = false;
-    if (requis && champVide(ch)) erreur = true;
+    if (requis && champVide(ch)) { erreur = true; if (ch.querySelector('#msg_naissance')) $('msg_naissance').textContent = 'Indiquez la date de naissance.'; }
     if (!erreur && el && el.value.trim()) {
       if (el.id === 'j_cp' && chiffres(el.value).length !== 5) erreur = true;
+      if (el.id === 'j_naissance') {
+        const tropJeune = !ageOk(el.value);
+        $('msg_naissance').textContent = tropJeune ? 'Trop jeune pour cette rentrée : il faut avoir ' + AGE_MINI + ' ans au plus tard le 31 janvier ' + anneeRentree() + '.' : 'Indiquez la date de naissance.';
+        if (tropJeune) erreur = true;
+      }
       if ((ch.hasAttribute('data-tel') || el.id === 'j_tel') && chiffres(el.value).length < 10) erreur = true;
       if ((ch.hasAttribute('data-email') || el.id === 'j_email') && !emailOk(el.value.trim())) erreur = true;
     }
@@ -602,9 +611,9 @@ $('btn_envoyer').addEventListener('click', async () => {
     $('fin').classList.remove('cache');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (e) {
-    montrerAlerte('Envoi impossible : vérifiez votre connexion internet puis appuyez à nouveau sur « Envoyer la demande ». Vos réponses sont conservées.');
+    montrerAlerte('Envoi impossible : vérifiez votre connexion internet puis appuyez à nouveau sur « Envoyer la candidature ». Vos réponses sont conservées.');
   } finally {
-    btn.disabled = false; btn.textContent = 'Envoyer la demande';
+    btn.disabled = false; btn.textContent = 'Envoyer la candidature';
   }
 });
 
