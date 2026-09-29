@@ -195,8 +195,8 @@
         </div>
         <div class="champ" data-requis><label for="j_adresse">Adresse</label><input type="text" id="j_adresse" autocomplete="street-address"><div class="msg-erreur">Indiquez l'adresse.</div></div>
         <div class="grille">
-          <div class="champ" data-requis><label for="j_cp">Code postal</label><input type="text" id="j_cp" inputmode="numeric" maxlength="5" autocomplete="postal-code"><div class="msg-erreur">Code postal à 5 chiffres.</div></div>
-          <div class="champ" data-requis><label for="j_ville">Ville</label><input type="text" id="j_ville" autocomplete="address-level2"><div class="msg-erreur">Indiquez la ville.</div></div>
+          <div class="champ" data-requis><label for="j_ville">Commune</label><select id="j_ville"></select><div class="msg-erreur" id="msg_ville">Choisissez la commune.</div></div>
+          <div class="champ" data-requis><label for="j_cp">Code postal</label><input type="text" id="j_cp" inputmode="numeric" maxlength="5" readonly style="background:#f3f5f8"><div class="msg-erreur">Code postal à 5 chiffres.</div></div>
         </div>
         <div class="grille">
           <div class="champ"><label for="j_tel">Téléphone du jeune <span class="facultatif">(facultatif)</span></label><input type="tel" id="j_tel" inputmode="tel"><div class="msg-erreur">Numéro incomplet.</div></div>
@@ -383,6 +383,13 @@ let etapeCourante = 1;
 let codeRequis = false;
 let photoData = '';
 
+// ── Communes du secteur de la section ──
+const COMMUNES = { 'Cruzy': '34310', 'Quarante': '34310', 'Montouliers': '34310', 'Villespassans': '34360' };
+$('j_ville').innerHTML = '<option value="">Choisir…</option>'
+  + Object.keys(COMMUNES).map(v => '<option value="' + v + '">' + v + '</option>').join('')
+  + '<option value="__autre">Autre commune</option>';
+$('j_ville').addEventListener('change', () => { $('j_cp').value = COMMUNES[$('j_ville').value] || ''; });
+
 // ── Âge minimum : 13 ans au plus tard le 31 janvier de l'année de rentrée (rentrée en janvier) ──
 const AGE_MINI = 13;
 function anneeRentree() { const d = new Date(); return d.getMonth() === 0 ? d.getFullYear() : d.getFullYear() + 1; }
@@ -390,7 +397,7 @@ function dateLimiteNaissance() { return (anneeRentree() - AGE_MINI) + '-01-31'; 
 function ageOk(iso) { return !!iso && iso <= dateLimiteNaissance(); }
 (function afficherRegleAge() {
   const [a, m, j] = dateLimiteNaissance().split('-');
-  $('regle_age').innerHTML = 'Pour la rentrée de <strong>janvier ' + anneeRentree() + '</strong>, le jeune doit avoir <strong>' + AGE_MINI + ' ans au plus tard le 31 janvier ' + anneeRentree() + '</strong>, c\'est-à-dire être né(e) le ' + j + '/' + m + '/' + a + ' ou avant.';
+  $('regle_age').innerHTML = 'Pour la rentrée de <strong>janvier ' + anneeRentree() + '</strong>, le jeune doit avoir <strong>' + AGE_MINI + ' ans au plus tard le 31 janvier ' + anneeRentree() + '</strong>, c\'est-à-dire être né(e) le ' + j + '/' + m + '/' + a + ' ou avant.<br>La section accueille les jeunes habitant <strong>Cruzy, Quarante, Montouliers ou Villespassans</strong>.';
 })();
 
 // Tailles
@@ -449,6 +456,11 @@ function verifierEtape(n) {
     if (requis && champVide(ch)) { erreur = true; if (ch.querySelector('#msg_naissance')) $('msg_naissance').textContent = 'Indiquez la date de naissance.'; }
     if (!erreur && el && el.value.trim()) {
       if (el.id === 'j_cp' && chiffres(el.value).length !== 5) erreur = true;
+      if (el.id === 'j_ville') {
+        const horsSecteur = el.value === '__autre';
+        $('msg_ville').textContent = horsSecteur ? 'La section accueille uniquement les jeunes habitant Cruzy, Quarante, Montouliers ou Villespassans.' : 'Choisissez la commune.';
+        if (horsSecteur) erreur = true;
+      }
       if (el.id === 'j_naissance') {
         const tropJeune = !ageOk(el.value);
         $('msg_naissance').textContent = tropJeune ? 'Trop jeune pour cette rentrée : il faut avoir ' + AGE_MINI + ' ans au plus tard le 31 janvier ' + anneeRentree() + '.' : 'Indiquez la date de naissance.';
@@ -458,6 +470,7 @@ function verifierEtape(n) {
       if ((ch.hasAttribute('data-email') || el.id === 'j_email') && !emailOk(el.value.trim())) erreur = true;
     }
     if (ch.dataset.requisSi && !actif) erreur = false;
+    if (el && el.id === 'j_cp' && (!val('j_ville') || val('j_ville') === '__autre')) erreur = false;
     ch.classList.toggle('erreur', erreur);
     if (erreur) ok = false;
   });
@@ -583,6 +596,7 @@ function restaurerBrouillon() {
     });
     photoData = b.photoData || '';
     majPhoto();
+    $('j_cp').value = COMMUNES[$('j_ville').value] || '';
     $('r2_bloc').classList.toggle('cache', !$('r2_actif').checked);
     $('a_personnes_bloc').classList.toggle('cache', radio('a_retour') !== 'accompagne');
   } catch (e) { /* brouillon illisible : on repart de zéro */ }
