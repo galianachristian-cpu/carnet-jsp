@@ -14286,7 +14286,9 @@ function inscOuvrir(id) {
     html += `
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Fermer</button>
-      ${i.statut === 'refusee' ? `<button class="btn-cancel" onclick="inscRemettre('${i.id}')">Remettre en attente</button>` : ''}
+      ${i.statut === 'refusee' ? `<button class="btn-cancel" onclick="inscRemettre('${i.id}')">Remettre en attente</button>
+      <button class="btn-save" onclick="inscModalEmailRefus('${i.id}')"><i class="ti ti-mail"></i> E-mail « non retenue »</button>` : ''}
+      ${i.statut === 'validee' ? `<button class="btn-save" onclick="inscModalEmailRetenue('${i.id}')"><i class="ti ti-mail"></i> E-mail « candidature retenue »</button>` : ''}
       <button class="btn-cancel" style="color:var(--rouge)" onclick="inscSupprimer('${i.id}')"><i class="ti ti-trash"></i> Supprimer la demande</button>
     </div>`;
   }
@@ -14297,6 +14299,7 @@ async function inscMajPieces(id) {
   const i = INSC.liste.find(x => x.id === id);
   if (!i) return;
   const pieces = {};
+  Object.keys(i.pieces || {}).forEach(k => { if (k.charAt(0) === '_') pieces[k] = i.pieces[k]; });
   document.querySelectorAll('.insc-piece').forEach(cb => { if (cb.checked) pieces[cb.dataset.key] = new Date().toISOString().slice(0, 10); });
   const avant = i.pieces;
   i.pieces = pieces;
@@ -14380,7 +14383,114 @@ async function inscValider(id) {
   closeModal();
   inscMajBadgeLocal();
   inscRafraichirEcran();
-  alert('Fiche JSP créée pour ' + j.prenom + ' ' + j.nom + '.' + (messageCompte ? '\n\n' + messageCompte : ''));
+  inscModalEmailRetenue(id, 'Fiche JSP créée pour ' + j.prenom + ' ' + j.nom + '.' + (messageCompte ? ' ' + messageCompte : ''));
+}
+
+// ── E-mail « candidature retenue » : préparé, relu et envoyé à la main (jamais automatique) ──
+function inscModalEmailRetenue(id, bandeau) { inscModalEmail(id, 'retenue', bandeau); }
+function inscModalEmailRefus(id, bandeau) { inscModalEmail(id, 'refus', bandeau); }
+function inscModalEmail(id, type, bandeau) {
+  const i = INSC.liste.find(x => x.id === id);
+  if (!i) return;
+  const refus = type === 'refus';
+  const d = i.donnees || {}, j = d.jsp || {};
+  const fiche = DB.jsps.find(x => x.id == i.jsp_id);
+  const promo = fiche && fiche.promotion ? ' en ' + fiche.promotion : '';
+  const now = new Date();
+  const rentree = now.getMonth() === 0 ? now.getFullYear() : now.getFullYear() + 1;
+  const reps = (d.representants || []).filter(r => r.email);
+  const dejaEnvoye = refus ? (i.pieces && i.pieces._emailRefus) : (fiche && fiche.emailCandidatureRetenue);
+  const sujet = refus
+    ? 'JSP Cruzy-Quarante — candidature de ' + j.prenom
+    : 'JSP Cruzy-Quarante — la candidature de ' + j.prenom + ' est retenue';
+  const message = refus ? `Bonjour,
+
+Nous vous remercions pour l'intérêt que vous portez à la section des Jeunes Sapeurs-Pompiers de Cruzy-Quarante et pour la candidature de ${j.prenom}.
+
+Nous sommes au regret de vous informer qu'elle n'a pas pu être retenue pour la rentrée de janvier ${rentree}. Le nombre de places dans la section est limité et nous ne pouvons pas accueillir tous les jeunes qui en font la demande.
+
+Cette décision ne remet pas en cause la motivation de ${j.prenom}. N'hésitez pas à renouveler sa candidature l'année prochaine.
+
+Conformément à ce qui était indiqué dans le formulaire, les informations transmises seront supprimées.
+
+Pour toute question, vous pouvez répondre directement à ce message.
+
+Cordialement,
+Christian Galiana
+Chef de section JSP — CIS Cruzy-Quarante` : `Bonjour,
+
+Bonne nouvelle : la candidature de ${j.prenom} ${j.nom} à la section des Jeunes Sapeurs-Pompiers de Cruzy-Quarante est retenue${promo} pour la rentrée de janvier ${rentree}.
+
+Pour finaliser l'inscription, merci de remettre à la section :
+- le dossier d'inscription papier complété et signé (contrat d'engagement, autorisations, droit à l'image) ;
+- le certificat médical rempli par le médecin ;
+- un chèque de 100 € libellé au nom de la section ;
+- 2 photos d'identité ;
+- la photocopie de l'attestation de responsabilité civile ;
+- la photocopie du carnet de vaccination (antitétanique).
+
+Le dossier papier vous sera remis lors de notre prochain échange. Vous pouvez aussi le demander en répondant à cet e-mail.
+
+Pour toute question, répondez directement à ce message.
+
+Cordialement,
+Christian Galiana
+Chef de section JSP — CIS Cruzy-Quarante`;
+
+  openModalWide(`
+    ${bandeau ? `<div style="background:var(--vert-pale);color:var(--vert);padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:12px"><i class="ti ti-circle-check"></i> ${escTexte(bandeau)}</div>` : ''}
+    <h3><i class="ti ti-mail"></i> Prévenir la famille ${refus ? '— candidature non retenue' : '— candidature retenue'}</h3>
+    ${dejaEnvoye ? `<div style="background:var(--orange-pale);color:var(--orange);padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:10px">Un e-mail a déjà été envoyé le ${escTexte(fmtDate(dejaEnvoye))}.</div>` : ''}
+    ${reps.length ? `
+      <div class="form-group"><label>Destinataires</label>
+        ${reps.map((r, k) => `<div style="display:flex;gap:8px;align-items:center;justify-content:flex-start;font-size:14px;padding:3px 0"><input type="checkbox" id="insc_dest_${k}" class="insc-dest" value="${escAttr(r.email)}" checked style="width:18px;height:18px;flex:0 0 auto;margin:0"><span onclick="document.getElementById('insc_dest_${k}').click()" style="cursor:pointer">${escTexte(r.prenom)} ${escTexte(r.nom)} (${escTexte(r.lien)}) — ${escTexte(r.email)}</span></div>`).join('')}
+      </div>
+      <div class="form-group"><label>Objet</label><input type="text" id="insc_mail_sujet" value="${escAttr(sujet)}"></div>
+      <div class="form-group"><label>Message <span style="font-weight:400;color:var(--gris-txt)">(modifiable)</span></label><textarea id="insc_mail_msg" rows="14" style="width:100%;font-size:13px">${escTexte(message)}</textarea></div>
+      <div id="insc_mail_etat" style="font-size:13px;color:var(--gris-txt)"></div>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">Plus tard</button>
+        <button class="btn-save" id="insc_mail_btn" onclick="inscEnvoyerEmail('${i.id}','${type}')"><i class="ti ti-send"></i> Envoyer l'e-mail</button>
+      </div>` : `
+      <p style="font-size:14px">Aucune adresse e-mail n'a été indiquée par la famille : préviens-la par téléphone.</p>
+      <div class="modal-btns"><button class="btn-save" onclick="closeModal()">OK</button></div>`}
+  `);
+}
+
+async function inscEnvoyerEmail(id, type) {
+  const i = INSC.liste.find(x => x.id === id);
+  const dests = [...document.querySelectorAll('.insc-dest:checked')].map(c => c.value);
+  const sujet = document.getElementById('insc_mail_sujet').value.trim();
+  const message = document.getElementById('insc_mail_msg').value;
+  const etat = document.getElementById('insc_mail_etat');
+  if (!dests.length) { etat.textContent = 'Coche au moins un destinataire.'; etat.style.color = 'var(--rouge)'; return; }
+  if (!window.emailjs) { etat.textContent = "L'envoi d'e-mails n'est pas disponible (connexion ?)."; etat.style.color = 'var(--rouge)'; return; }
+  if (!confirm('Envoyer cet e-mail à : ' + dests.join(', ') + ' ?')) return;
+  const btn = document.getElementById('insc_mail_btn');
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  const echecs = [];
+  for (const email of dests) {
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        email_destinataire: email, sujet, message,
+        name: 'Chef Galiana — JSP Cruzy-Quarante', email: 'galiana.christian@gmail.com'
+      });
+    } catch (e) { echecs.push(email); }
+  }
+  if (echecs.length === dests.length) {
+    btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i> Envoyer l\'e-mail';
+    etat.textContent = "L'e-mail n'a pas pu partir. Vérifie la connexion et réessaie."; etat.style.color = 'var(--rouge)';
+    return;
+  }
+  if (type === 'refus') {
+    if (i) { i.pieces = Object.assign({}, i.pieces || {}, { _emailRefus: dateISOLocale(new Date()) }); try { await inscAppel('pieces', id, i.pieces); } catch (e) {} }
+  } else {
+    const fiche = i && DB.jsps.find(x => x.id == i.jsp_id);
+    if (fiche) { fiche.emailCandidatureRetenue = dateISOLocale(new Date()); saveData(); }
+  }
+  closeModal();
+  if (echecs.length) alert('E-mail envoyé, sauf à : ' + echecs.join(', '));
+  else showToast('E-mail envoyé à la famille');
 }
 
 async function inscRefuser(id) {
@@ -14388,6 +14498,7 @@ async function inscRefuser(id) {
   try { await inscAppel('refuser', id); const i = INSC.liste.find(x => x.id === id); if (i) i.statut = 'refusee'; }
   catch (e) { showToast("La demande n'a pas pu être refusée (connexion ?)", true); return; }
   closeModal(); inscMajBadgeLocal(); inscRafraichirEcran();
+  inscModalEmailRefus(id, 'Candidature refusée. Elle reste visible dans « Refusées » : pense à la supprimer après avoir prévenu la famille.');
 }
 async function inscRemettre(id) {
   try { await inscAppel('remettre', id); const i = INSC.liste.find(x => x.id === id); if (i) i.statut = 'en_attente'; }
