@@ -1943,8 +1943,28 @@ function normaliserDateAbsence(a) {
   }
 }
 
+// Date au format AAAA-MM-JJ (les anciennes données du tableur arrivent en « ...T22:00:00.000Z »)
+function dateAbsenceNormalisee(d) {
+  if (typeof d === 'string' && d.indexOf('T') > 0) { const x = new Date(d); if (!isNaN(x)) return dateISOLocale(x); }
+  return d;
+}
+// Absences / retards supprimés à la main : mémorisés pour que la synchro ne les recrée pas
+function cleSuppressionSync(x) { return x.jspId + '|' + dateAbsenceNormalisee(x.date); }
+function memoriserSuppressions(collection, items) {
+  if (collection !== 'absences' && collection !== 'retards') return;
+  if (!DB.suppressionsSync) DB.suppressionsSync = { absences: [], retards: [] };
+  if (!DB.suppressionsSync[collection]) DB.suppressionsSync[collection] = [];
+  const liste = DB.suppressionsSync[collection];
+  items.forEach(x => { if (x && x.jspId != null && x.date) { const k = cleSuppressionSync(x); if (!liste.includes(k)) liste.push(k); } });
+}
+function estSupprimeSync(collection, jspId, date) {
+  const l = DB.suppressionsSync && DB.suppressionsSync[collection];
+  return !!(l && l.includes(jspId + '|' + dateAbsenceNormalisee(date)));
+}
+
 function normaliserAbsences(db) {
   if (!db || !Array.isArray(db.absences)) return;
+  if (Array.isArray(db.retards)) db.retards.forEach(r => { r.date = dateAbsenceNormalisee(r.date); });
   db.absences.forEach(a => {
     normaliserDateAbsence(a);
     if (a.excusee === undefined && a.excuse !== undefined) a.excusee = !!a.excuse;
@@ -2205,7 +2225,7 @@ async function syncAbsencesFromAppel() {
     seances.forEach(row => {
       try {
         const id = row[0];
-        const date = row[1];
+        const date = dateAbsenceNormalisee(row[1]);
         const heure = row[2];
         const theme = row[3];
         const st = JSON.parse(row[4]);
@@ -2216,12 +2236,13 @@ async function syncAbsencesFromAppel() {
           if (!carnetId) return; // JSP pas dans le carnet
 
           // Vérifier si cette absence existe déjà (même date + même jspId)
+          // (quelle que soit l'origine : appli d'appel, saisie manuelle… et pas si supprimée à la main)
           const exists = DB.absences.find(a =>
-            a.date === date && a.jspId === carnetId && a.source === 'appel'
+            dateAbsenceNormalisee(a.date) === date && a.jspId === carnetId
           );
-          if (exists) return;
+          const dejaSupprimee = estSupprimeSync('absences', carnetId, date);
 
-          if (statut === 'A' || statut === 'R' || statut === 'E' || statut === 'ER') {
+          if (!exists && !dejaSupprimee && (statut === 'A' || statut === 'R' || statut === 'E' || statut === 'ER')) {
             DB.absences.push({
               id: Date.now() + Math.random(),
               jspId: carnetId,
@@ -2232,15 +2253,16 @@ async function syncAbsencesFromAppel() {
               remarque: 'Statut : ' + statut + (heure ? ' — ' + heure : ''),
               source: 'appel'
             });
+            normaliserDateAbsence(DB.absences[DB.absences.length - 1]);
             imported++;
           }
 
           // Retards
           if (statut === 'R' || statut === 'ER') {
             const existsR = DB.retards.find(r =>
-              r.date === date && r.jspId === carnetId && r.source === 'appel'
+              dateAbsenceNormalisee(r.date) === date && r.jspId === carnetId
             );
-            if (!existsR) {
+            if (!existsR && !estSupprimeSync('retards', carnetId, date)) {
               DB.retards.push({
                 id: Date.now() + Math.random(),
                 jspId: carnetId,
@@ -4189,6 +4211,7 @@ function absSupprimerSelection() {
   const ids = [...document.querySelectorAll('.abs-sel:checked')].map(cb => String(cb.value));
   if (!ids.length) return;
   if (!confirm('Supprimer définitivement ' + ids.length + ' absence' + (ids.length > 1 ? 's' : '') + ' ?')) return;
+  memoriserSuppressions('absences', DB.absences.filter(a => ids.includes(String(a.id))));
   DB.absences = DB.absences.filter(a => !ids.includes(String(a.id)));
   saveData();
   showToast(ids.length + ' absence' + (ids.length > 1 ? 's supprimées' : ' supprimée'));
@@ -11717,6 +11740,7 @@ function showEvtDetail(id) {
 
 function deleteItem(collection, id, section) {
   if (!confirm('Supprimer cet élément ?')) return;
+  memoriserSuppressions(collection, DB[collection].filter(x=>x.id==id));
   DB[collection] = DB[collection].filter(x=>x.id!=id);
   saveData(); showSection(section);
 }
