@@ -6287,7 +6287,7 @@ function renderPlanning(moisActif) {
     calHtml += `<div onclick="${caseOnclick}" style="min-width:0;min-height:64px;border-radius:8px;padding:4px;cursor:pointer;border:1px solid ${isVacances?'#fecaca':'var(--gris-bord)'};background:${bgCase}">`;
     calHtml += '<div style="font-size:12px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'var(--bleu)':isVacances?'#b91c1c':isPast?'var(--gris-txt)':'#1f2937')+';margin-bottom:3px">'+d+(isVacances?' <i class="ti ti-beach" style="font-size:10px"></i>':'')+'</div>';
     dayEvts.forEach(e => {
-      calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="event.stopPropagation();showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+e.titre+'</div>';
+      calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="event.stopPropagation();showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+(e.images&&e.images.length?'<i class="ti ti-photo"></i> ':'')+e.titre+'</div>';
     });
     ['JSP1','JSP2','JSP3','JSP4'].forEach(function(c) {
       const items = (progByCycle[c] && progByCycle[c][dateStr]) || [];
@@ -7252,7 +7252,7 @@ function modalJourParent(dateStr) {
   if (evts.length) {
     evtsHtml = '<div style="margin-bottom:16px">' + evts.map(function(e){
       return '<div style="font-size:13px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:8px;padding:10px 14px;margin-bottom:6px;font-weight:600">'
-        + '<i class="ti ti-calendar-event"></i> '+escAttr(e.titre)+((e.lieu && e.lieu.trim())?' — '+escAttr(e.lieu):'')+'</div>';
+        + '<i class="ti ti-calendar-event"></i> '+escAttr(e.titre)+((e.lieu && e.lieu.trim())?' — '+escAttr(e.lieu):'')+'</div>' + htmlGalerieEvt(e, false);
     }).join('') + '</div>';
   }
   var lienHtml = progHtml ? '<p style="font-size:13px;margin-top:6px;margin-bottom:16px"><a href="'+LIEN_COURS_JSP_DRIVE+'" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ouvrir tous les supports de cours (Google Drive)</a></p>' : '';
@@ -11810,6 +11810,133 @@ function renderHistorique() {
   return html2;
 }
 
+// ══════════════════════════════════════════
+//  PLANNING — images jointes aux événements (ex. feuille Hyrox)
+//  Les images sont stockées dans Supabase Storage (bucket « planning-images »).
+//  Dans DB.planning on ne garde que de petites références : e.images = [{path, nom, prive}]
+// ══════════════════════════════════════════
+const PLANNING_BUCKET = 'planning-images';
+
+function urlImagePlanning(path) {
+  if (!supabaseClient) return '';
+  const r = supabaseClient.storage.from(PLANNING_BUCKET).getPublicUrl(path);
+  return (r && r.data && r.data.publicUrl) || '';
+}
+
+// Réduit l'image (1600 px max, JPEG) pour qu'elle reste lisible sans alourdir
+function compresserImagePlanning(file) {
+  return new Promise(function(resolve, reject) {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function() {
+      const MAX = 1600;
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > MAX || h > MAX) { const k = MAX / Math.max(w, h); w = Math.round(w * k); h = Math.round(h * k); }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      c.toBlob(function(b) { b ? resolve(b) : reject(new Error('compression')); }, 'image/jpeg', 0.82);
+    };
+    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('lecture')); };
+    img.src = url;
+  });
+}
+
+async function ajouterImagesPlanning(evtId, input) {
+  const e = DB.planning.find(x => x.id == evtId);
+  const files = Array.from(input.files || []);
+  if (!e || !files.length) return;
+  if (!supabaseClient || !navigator.onLine) { alert('Pas de connexion : impossible d\'ajouter une image pour le moment. Réessaie quand le réseau est revenu.'); input.value = ''; return; }
+  const btn = document.getElementById('btnAddImgPlanning');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Envoi en cours…'; }
+  if (!Array.isArray(e.images)) e.images = [];
+  let ok = 0, erreur = '';
+  for (const f of files) {
+    try {
+      const blob = await compresserImagePlanning(f);
+      const path = e.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
+      const { error } = await supabaseClient.storage.from(PLANNING_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+      if (error) throw error;
+      e.images.push({ path: path, nom: (f.name || 'image').replace(/\.[^.]+$/, ''), prive: false });
+      ok++;
+    } catch (err) {
+      erreur = (err && err.message) || 'erreur';
+    }
+  }
+  input.value = '';
+  if (ok) saveData();
+  if (erreur) {
+    alert(/bucket|not found/i.test(erreur)
+      ? 'Le dossier d\'images n\'est pas encore créé côté Supabase. Il faut d\'abord faire l\'étape de configuration.'
+      : 'Une image n\'a pas pu être envoyée (' + erreur + '). Vérifie la connexion et réessaie.');
+  }
+  showEvtDetail(e.id);
+}
+
+async function supprimerImagePlanning(evtId, idx) {
+  const e = DB.planning.find(x => x.id == evtId);
+  if (!e || !e.images || !e.images[idx]) return;
+  if (!confirm('Supprimer cette image ?')) return;
+  const img = e.images[idx];
+  e.images.splice(idx, 1);
+  saveData();
+  try { if (supabaseClient) await supabaseClient.storage.from(PLANNING_BUCKET).remove([img.path]); } catch (err) { /* le fichier restera orphelin, sans gravité */ }
+  showEvtDetail(e.id);
+}
+
+function basculerPrivePlanning(evtId, idx) {
+  const e = DB.planning.find(x => x.id == evtId);
+  if (!e || !e.images || !e.images[idx]) return;
+  e.images[idx].prive = !e.images[idx].prive;
+  saveData();
+  showEvtDetail(e.id);
+}
+
+// Plein écran : on touche l'image pour zoomer / dézoomer, on fait défiler pour se déplacer
+function ouvrirImagePlanning(url) {
+  const old = document.getElementById('lightboxPlanning');
+  if (old) old.remove();
+  const d = document.createElement('div');
+  d.id = 'lightboxPlanning';
+  d.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.93);overflow:auto;-webkit-overflow-scrolling:touch';
+  d.innerHTML = '<button type="button" aria-label="Fermer" onclick="document.getElementById(\'lightboxPlanning\').remove()" style="position:fixed;top:12px;right:12px;z-index:2;width:52px;height:52px;border-radius:50%;border:none;background:#fff;color:#111;font-size:26px;cursor:pointer">✕</button>'
+    + '<img src="' + url + '" alt="Image du planning" onclick="this.style.width=(this.style.width===\'250%\'?\'100%\':\'250%\')" style="display:block;width:100%;max-width:none;margin:auto;cursor:zoom-in">';
+  document.body.appendChild(d);
+}
+
+// Galerie d'un événement. admin=true : boutons d'ajout / suppression / visibilité.
+// Pour les familles (admin=false) on masque les images marquées « équipe seulement ».
+function htmlGalerieEvt(e, admin) {
+  const imgs = (e.images || []).map(function(im, i) { return { im: im, i: i }; })
+    .filter(function(x) { return admin || !x.im.prive; });
+  if (!imgs.length && !admin) return '';
+  let h = '<div style="margin:0 0 16px">';
+  if (imgs.length) {
+    h += '<div style="font-size:12px;font-weight:700;color:var(--gris-txt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px"><i class="ti ti-photo"></i> Images</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">';
+    imgs.forEach(function(x) {
+      const u = urlImagePlanning(x.im.path);
+      h += '<div style="border:1px solid var(--gris-bord);border-radius:10px;overflow:hidden;background:#fff">'
+        + '<img src="' + u + '" alt="' + escAttr(x.im.nom || 'Image') + '" loading="lazy" onclick="ouvrirImagePlanning(this.src)" style="display:block;width:100%;height:110px;object-fit:cover;cursor:zoom-in">';
+      if (admin) {
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;gap:4px">'
+          + '<button type="button" onclick="basculerPrivePlanning(' + e.id + ',' + x.i + ')" title="' + (x.im.prive ? 'Visible par l\'équipe seulement' : 'Visible aussi par les familles') + '" style="min-height:40px;padding:0 8px;border-radius:8px;border:1px solid var(--gris-bord);background:' + (x.im.prive ? '#fef3c7' : '#dcfce7') + ';font-size:12px;font-weight:600;cursor:pointer">'
+          + '<i class="ti ' + (x.im.prive ? 'ti-lock' : 'ti-eye') + '"></i> ' + (x.im.prive ? 'Équipe' : 'Familles') + '</button>'
+          + '<button type="button" onclick="supprimerImagePlanning(' + e.id + ',' + x.i + ')" aria-label="Supprimer l\'image" style="min-height:40px;min-width:40px;border-radius:8px;border:none;background:none;color:var(--rouge);cursor:pointer"><i class="ti ti-trash"></i></button>'
+          + '</div>';
+      }
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  if (admin) {
+    h += '<input type="file" id="inputImgPlanning" accept="image/*" multiple style="display:none" onchange="ajouterImagesPlanning(' + e.id + ',this)">'
+      + '<button type="button" id="btnAddImgPlanning" class="btn-add" style="margin-top:' + (imgs.length ? '12' : '0') + 'px;min-height:48px" onclick="document.getElementById(\'inputImgPlanning\').click()"><i class="ti ti-photo-plus"></i> Ajouter une image</button>';
+  }
+  return h + '</div>';
+}
+
 function showEvtDetail(id) {
   const e = DB.planning.find(x=>x.id==id);
   if (!e) return;
@@ -11826,6 +11953,7 @@ function showEvtDetail(id) {
       <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:20px;background:white;color:${col}">${libelleTypePlanning(e.type)}</span>
       ${enVacances ? `<div style="margin-top:10px;font-size:12px;color:#b91c1c"><i class="ti ti-beach"></i> Cet événement tombe pendant les vacances scolaires (${getNomVacances(e.date)})</div>` : ''}
     </div>
+    ${htmlGalerieEvt(e, true)}
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Fermer</button>
       <button class="btn-danger" onclick="deleteItem('planning',${e.id},'planning');closeModal()"><i class="ti ti-trash"></i> Supprimer</button>
@@ -11834,6 +11962,11 @@ function showEvtDetail(id) {
 
 function deleteItem(collection, id, section) {
   if (!confirm('Supprimer cet élément ?')) return;
+  if (collection === 'planning' && supabaseClient) {
+    const ev = DB.planning.find(x => x.id == id);
+    const chemins = ev && ev.images ? ev.images.map(i => i.path) : [];
+    if (chemins.length) supabaseClient.storage.from(PLANNING_BUCKET).remove(chemins).catch(function(){});
+  }
   memoriserSuppressions(collection, DB[collection].filter(x=>x.id==id));
   DB[collection] = DB[collection].filter(x=>x.id!=id);
   saveData(); showSection(section);
