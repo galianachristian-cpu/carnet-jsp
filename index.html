@@ -6287,7 +6287,7 @@ function renderPlanning(moisActif) {
     calHtml += `<div onclick="${caseOnclick}" style="min-width:0;min-height:64px;border-radius:8px;padding:4px;cursor:pointer;border:1px solid ${isVacances?'#fecaca':'var(--gris-bord)'};background:${bgCase}">`;
     calHtml += '<div style="font-size:12px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'var(--bleu)':isVacances?'#b91c1c':isPast?'var(--gris-txt)':'#1f2937')+';margin-bottom:3px">'+d+(isVacances?' <i class="ti ti-beach" style="font-size:10px"></i>':'')+'</div>';
     dayEvts.forEach(e => {
-      calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="event.stopPropagation();showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+(e.images&&e.images.length?'<i class="ti ti-photo"></i> ':'')+e.titre+'</div>';
+      calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="event.stopPropagation();showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+(e.images&&e.images.length?'<i class="ti ti-paperclip"></i> ':'')+e.titre+'</div>';
     });
     ['JSP1','JSP2','JSP3','JSP4'].forEach(function(c) {
       const items = (progByCycle[c] && progByCycle[c][dateStr]) || [];
@@ -11847,29 +11847,39 @@ async function ajouterImagesPlanning(evtId, input) {
   const e = DB.planning.find(x => x.id == evtId);
   const files = Array.from(input.files || []);
   if (!e || !files.length) return;
-  if (!supabaseClient || !navigator.onLine) { alert('Pas de connexion : impossible d\'ajouter une image pour le moment. Réessaie quand le réseau est revenu.'); input.value = ''; return; }
+  if (!supabaseClient || !navigator.onLine) { alert('Pas de connexion : impossible d\'ajouter un fichier pour le moment. Réessaie quand le réseau est revenu.'); input.value = ''; return; }
   const btn = document.getElementById('btnAddImgPlanning');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Envoi en cours…'; }
   if (!Array.isArray(e.images)) e.images = [];
-  let ok = 0, erreur = '';
+  let ok = 0, erreur = '', tropGros = '';
   for (const f of files) {
     try {
-      const blob = await compresserImagePlanning(f);
-      const path = e.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.jpg';
-      const { error } = await supabaseClient.storage.from(PLANNING_BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+      const estPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
+      let blob, ext, mime;
+      if (estPdf) {
+        if (f.size > 10 * 1024 * 1024) { tropGros = f.name || 'PDF'; continue; }
+        blob = f; ext = 'pdf'; mime = 'application/pdf';
+      } else {
+        blob = await compresserImagePlanning(f); ext = 'jpg'; mime = 'image/jpeg';
+      }
+      const path = e.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      const { error } = await supabaseClient.storage.from(PLANNING_BUCKET).upload(path, blob, { contentType: mime, upsert: false });
       if (error) throw error;
-      e.images.push({ path: path, nom: (f.name || 'image').replace(/\.[^.]+$/, ''), prive: false });
+      const entree = { path: path, nom: (f.name || (estPdf ? 'document' : 'image')).replace(/\.[^.]+$/, ''), prive: false };
+      if (estPdf) entree.type = 'pdf';
+      e.images.push(entree);
       ok++;
     } catch (err) {
       erreur = (err && err.message) || 'erreur';
     }
   }
+  if (tropGros) alert('Le PDF « ' + tropGros + ' » dépasse 10 Mo : il n\'a pas été ajouté. Réduis-le (ou exporte-le en plus léger) et réessaie.');
   input.value = '';
   if (ok) saveData();
   if (erreur) {
     alert(/bucket|not found/i.test(erreur)
-      ? 'Le dossier d\'images n\'est pas encore créé côté Supabase. Il faut d\'abord faire l\'étape de configuration.'
-      : 'Une image n\'a pas pu être envoyée (' + erreur + '). Vérifie la connexion et réessaie.');
+      ? 'Le dossier de fichiers n\'est pas encore créé côté Supabase. Il faut d\'abord faire l\'étape de configuration.'
+      : 'Un fichier n\'a pas pu être envoyé (' + erreur + '). Vérifie la connexion et réessaie.');
   }
   showEvtDetail(e.id);
 }
@@ -11877,7 +11887,7 @@ async function ajouterImagesPlanning(evtId, input) {
 async function supprimerImagePlanning(evtId, idx) {
   const e = DB.planning.find(x => x.id == evtId);
   if (!e || !e.images || !e.images[idx]) return;
-  if (!confirm('Supprimer cette image ?')) return;
+  if (!confirm('Supprimer ce fichier ?')) return;
   const img = e.images[idx];
   e.images.splice(idx, 1);
   saveData();
@@ -11913,17 +11923,24 @@ function htmlGalerieEvt(e, admin) {
   if (!imgs.length && !admin) return '';
   let h = '<div style="margin:0 0 16px">';
   if (imgs.length) {
-    h += '<div style="font-size:12px;font-weight:700;color:var(--gris-txt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px"><i class="ti ti-photo"></i> Images</div>'
+    h += '<div style="font-size:12px;font-weight:700;color:var(--gris-txt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px"><i class="ti ti-paperclip"></i> Pièces jointes</div>'
       + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">';
     imgs.forEach(function(x) {
       const u = urlImagePlanning(x.im.path);
-      h += '<div style="border:1px solid var(--gris-bord);border-radius:10px;overflow:hidden;background:#fff">'
-        + '<img src="' + u + '" alt="' + escAttr(x.im.nom || 'Image') + '" loading="lazy" onclick="ouvrirImagePlanning(this.src)" style="display:block;width:100%;height:110px;object-fit:cover;cursor:zoom-in">';
+      const estPdf = x.im.type === 'pdf';
+      h += '<div style="border:1px solid var(--gris-bord);border-radius:10px;overflow:hidden;background:#fff">';
+      if (estPdf) {
+        h += '<a href="' + u + '" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:110px;padding:6px;text-decoration:none;background:#fef2f2;color:#b91c1c">'
+          + '<i class="ti ti-file-type-pdf" style="font-size:38px"></i>'
+          + '<span style="font-size:12px;font-weight:600;text-align:center;line-height:1.2;max-height:30px;overflow:hidden;word-break:break-word">' + escAttr(x.im.nom || 'Document') + '</span></a>';
+      } else {
+        h += '<img src="' + u + '" alt="' + escAttr(x.im.nom || 'Image') + '" loading="lazy" onclick="ouvrirImagePlanning(this.src)" style="display:block;width:100%;height:110px;object-fit:cover;cursor:zoom-in">';
+      }
       if (admin) {
         h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;gap:4px">'
           + '<button type="button" onclick="basculerPrivePlanning(' + e.id + ',' + x.i + ')" title="' + (x.im.prive ? 'Visible par l\'équipe seulement' : 'Visible aussi par les familles') + '" style="min-height:40px;padding:0 8px;border-radius:8px;border:1px solid var(--gris-bord);background:' + (x.im.prive ? '#fef3c7' : '#dcfce7') + ';font-size:12px;font-weight:600;cursor:pointer">'
           + '<i class="ti ' + (x.im.prive ? 'ti-lock' : 'ti-eye') + '"></i> ' + (x.im.prive ? 'Équipe' : 'Familles') + '</button>'
-          + '<button type="button" onclick="supprimerImagePlanning(' + e.id + ',' + x.i + ')" aria-label="Supprimer l\'image" style="min-height:40px;min-width:40px;border-radius:8px;border:none;background:none;color:var(--rouge);cursor:pointer"><i class="ti ti-trash"></i></button>'
+          + '<button type="button" onclick="supprimerImagePlanning(' + e.id + ',' + x.i + ')" aria-label="Supprimer le fichier" style="min-height:40px;min-width:40px;border-radius:8px;border:none;background:none;color:var(--rouge);cursor:pointer"><i class="ti ti-trash"></i></button>'
           + '</div>';
       }
       h += '</div>';
@@ -11931,8 +11948,8 @@ function htmlGalerieEvt(e, admin) {
     h += '</div>';
   }
   if (admin) {
-    h += '<input type="file" id="inputImgPlanning" accept="image/*" multiple style="display:none" onchange="ajouterImagesPlanning(' + e.id + ',this)">'
-      + '<button type="button" id="btnAddImgPlanning" class="btn-add" style="margin-top:' + (imgs.length ? '12' : '0') + 'px;min-height:48px" onclick="document.getElementById(\'inputImgPlanning\').click()"><i class="ti ti-photo-plus"></i> Ajouter une image</button>';
+    h += '<input type="file" id="inputImgPlanning" accept="image/*,application/pdf" multiple style="display:none" onchange="ajouterImagesPlanning(' + e.id + ',this)">'
+      + '<button type="button" id="btnAddImgPlanning" class="btn-add" style="margin-top:' + (imgs.length ? '12' : '0') + 'px;min-height:48px" onclick="document.getElementById(\'inputImgPlanning\').click()"><i class="ti ti-paperclip"></i> Ajouter une image ou un PDF</button>';
   }
   return h + '</div>';
 }
