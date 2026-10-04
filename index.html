@@ -6680,6 +6680,7 @@ function renderCarteProchaineSeance(j) {
     html += '<div class="prochaine-evt"><span class="prochaine-titre">'+escTexte(e.titre)+'</span>'
       + '<span class="prochaine-type type-'+e.type+'">'+libelleTypePlanning(e.type)+'</span></div>';
     if (e.lieu && e.lieu.trim()) html += '<div class="prochaine-lieu"><i class="ti ti-map-pin"></i> '+escTexte(e.lieu)+'</div>';
+    html += '<div style="margin:12px 0 4px">'+htmlGalerieEvt(e, false)+'</div>';
   });
   // Programme du groupe de l'enfant
   var cycle = getCycleJSP(j);
@@ -7208,7 +7209,9 @@ function renderAgendaParent(saison) {
     html += '<div class="agenda-infos">';
     if (estProchaine) html += '<span class="agenda-rebours">'+texteCompteARebours(it.date)+'</span>';
     parDate[it.date].forEach(e => {
-      html += '<div class="agenda-evt"><span class="agenda-titre">'+escTexte(e.titre)+'</span><span class="prochaine-type type-'+e.type+'">'+libelleTypePlanning(e.type)+'</span></div>';
+      html += '<div class="agenda-evt"><span class="agenda-titre">'+escTexte(e.titre)+'</span><span class="prochaine-type type-'+e.type+'">'+libelleTypePlanning(e.type)+'</span>'
+        + ((e.images||[]).some(function(im){ return !im.prive; }) ? '<span title="Pièces jointes" style="color:var(--bleu);font-size:14px"><i class="ti ti-paperclip"></i> Pièce jointe</span>' : '')
+        + '</div>';
       if (e.lieu && e.lieu.trim()) html += '<div class="agenda-lieu"><i class="ti ti-map-pin"></i> '+escTexte(e.lieu)+'</div>';
     });
     if (items2.length) {
