@@ -1962,8 +1962,26 @@ function estSupprimeSync(collection, jspId, date) {
   return !!(l && l.includes(jspId + '|' + dateAbsenceNormalisee(date)));
 }
 
+function reparerAbsencesDemandes(db) {
+  if (!db || !Array.isArray(db.demandesAbsence) || !Array.isArray(db.absences)) return;
+  const supp = (db.suppressionsSync && db.suppressionsSync.absences) || [];
+  db.demandesAbsence.forEach(d => {
+    if (d.statut !== 'validee' || d.jspId == null || !d.date) return;
+    const k = d.jspId + '|' + dateAbsenceNormalisee(d.date);
+    if (supp.includes(k)) return;
+    if (db.absences.some(a => a.jspId === d.jspId && dateAbsenceNormalisee(a.date) === dateAbsenceNormalisee(d.date))) return;
+    db.absences.push({
+      id: nextId(db.absences), jspId: d.jspId, saison: getSaisonFromDate(d.date), date: d.date,
+      motif: d.motif, excusee: true, excuse: true, statut: 'excuse',
+      remarque: 'Signalée par la famille' + (d.commentaire ? ' : ' + d.commentaire : ''),
+      origine: 'demande', demandeId: d.id
+    });
+  });
+}
+
 function normaliserAbsences(db) {
   if (!db || !Array.isArray(db.absences)) return;
+  reparerAbsencesDemandes(db);
   if (Array.isArray(db.retards)) db.retards.forEach(r => { r.date = dateAbsenceNormalisee(r.date); });
   db.absences.forEach(a => {
     normaliserDateAbsence(a);
@@ -2025,9 +2043,24 @@ async function majCloudAtomique(mutation) {
 async function fusionnerDemandesDepuisCloud() {
   try {
     const { data: row, error } = await supabaseClient
-      .from('carnet_jsp_data').select('demandes:data->demandesAbsence').eq('id', 'main').single();
+      .from('carnet_jsp_data').select('demandes:data->demandesAbsence, absences:data->absences').eq('id', 'main').single();
     if (error || !row) return;
     DB.demandesAbsence = fusionnerDemandes(DB.demandesAbsence, row.demandes);
+    // Absences ajoutées dans le cloud depuis un autre écran (appli d'appel, demande validée ailleurs) :
+    // on les garde, sauf celles supprimées à la main ici.
+    if (Array.isArray(row.absences)) {
+      if (!Array.isArray(DB.absences)) DB.absences = [];
+      const cles = new Set(DB.absences.map(a => a.jspId + '|' + dateAbsenceNormalisee(a.date)));
+      const supp = (DB.suppressionsSync && DB.suppressionsSync.absences) || [];
+      row.absences.forEach(a => {
+        const k = a.jspId + '|' + dateAbsenceNormalisee(a.date);
+        if (cles.has(k) || supp.includes(k)) return;
+        const copie = Object.assign({}, a);
+        if (DB.absences.some(x => String(x.id) === String(copie.id))) copie.id = nextId(DB.absences);
+        DB.absences.push(copie); cles.add(k);
+      });
+      normaliserAbsences(DB);
+    }
   } catch (e) { /* on sauvegarde quand même */ }
 }
 
@@ -3025,10 +3058,10 @@ function renderAnimHyrox() {
   let promoCourante = null;
   h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th>'
     + HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.replace(' ', '<br>')+'</th>').join('')
-    + '<th class="hy-c">Tours</th><th class="hy-c">Chrono</th><th class="hy-c">Temps</th><th class="hy-c">RPE</th><th class="hy-c">Étoiles</th><th class="hy-c" title="Geste validé par l\'encadrant">Validé</th><th class="hy-c" title="A aidé un camarade">Aide</th><th>Remarques</th></tr></thead><tbody>';
+    + '<th class="hy-c">Tours</th><th class="hy-c">Chrono</th><th class="hy-c">Temps</th><th class="hy-c">Étoiles</th><th>Remarques</th></tr></thead><tbody>';
   jsps.forEach(j => {
     const p = hyPromo(j);
-    if (p !== promoCourante) { promoCourante = p; h += '<tr class="hy-promo"><td colspan="14" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
+    if (p !== promoCourante) { promoCourante = p;  h += '<tr class="hy-promo"><td colspan="11" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
     const r = d[j.id] || { niv:{}, tours:'', temps:'', rpe:'', rem:'' };
     const enCours = HY_CHRONO[j.id];
     h += '<tr data-jsp="'+j.id+'"><td><button class="hy-nom" onclick="hyProgression('+j.id+')" title="Voir la progression">'+escTexte(j.prenom+' '+j.nom)+'</button></td>'
@@ -3038,11 +3071,7 @@ function renderAnimHyrox() {
           ? '<button class="an-btn hy-arrivee" onclick="hyArrivee(\''+date+'\','+j.id+')"><span class="hy-run" data-dep="'+enCours+'">'+hyFormat((Date.now()-enCours)/1000)+'</span> Arrivée</button>'
           : '<button class="an-btn" onclick="hyDepart('+j.id+')">Départ</button>')+'</td>'
       + '<td class="hy-c"><input class="hy-in hy-temps" inputmode="numeric" placeholder="mm:ss" value="'+escTexte(r.temps)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'temps\',this.value)" aria-label="Temps total"></td>'
-      + '<td class="hy-c"><select class="hy-in" onchange="hyMaj(\''+date+'\','+j.id+',\'rpe\',this.value)" aria-label="Ressenti RPE"><option value=""></option>'
-      + [0,1,2,3,4,5,6,7,8,9,10].map(n => '<option '+(String(r.rpe)===String(n)?'selected':'')+'>'+n+'</option>').join('')+'</select></td>'
       + '<td class="hy-c an-nowrap"><button class="hy-mini" onclick="hyEtoile(\''+date+'\','+j.id+',-1)" aria-label="Retirer une étoile">−</button> <strong>'+(+r.etoiles||0)+'★</strong> <button class="hy-mini" onclick="hyEtoile(\''+date+'\','+j.id+',1)" aria-label="Ajouter une étoile">+</button></td>'
-      + '<td class="hy-c"><input type="checkbox" class="hy-check" '+(r.valide?'checked':'')+' onchange="hyCoche(\''+date+'\','+j.id+',\'valide\',this.checked)" aria-label="Geste validé"></td>'
-      + '<td class="hy-c"><input type="checkbox" class="hy-check" '+(r.aide?'checked':'')+' onchange="hyCoche(\''+date+'\','+j.id+',\'aide\',this.checked)" aria-label="A aidé un camarade"></td>'
       + '<td><input class="hy-in hy-rem" value="'+escTexte(r.rem)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'rem\',this.value)" aria-label="Remarques"></td></tr>';
   });
   h += '</tbody></table></div></div>';
@@ -3105,10 +3134,10 @@ function hyProgression(id) {
   let h = '<div class="an-modal"><h3>Hyrox — '+escTexte(j.prenom+' '+j.nom)+'</h3>';
   if (!hist.length) h += '<p class="an-muted">Aucun résultat pour l\'instant.</p>';
   else {
-    h += '<div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Tours</th><th>Temps</th><th>RPE</th></tr></thead><tbody>'
+    h += '<div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Tours</th><th>Temps</th></tr></thead><tbody>'
       + hist.map(([d, v]) => { const r = v[id]; return '<tr><td class="an-nowrap">'+fmtDate(d)+'</td>'
         + HY_STATIONS.map(s => { const n = (r.niv||{})[s.k]; return '<td class="hy-c">'+(n?'<span class="hy-pastille" style="background:'+HY_NIV_COL[n]+'">'+n+'</span>':'·')+'</td>'; }).join('')
-        + '<td>'+escTexte(r.tours||'')+'</td><td><strong>'+escTexte(r.temps||'—')+'</strong></td><td>'+escTexte(r.rpe||'')+'</td></tr>'; }).join('')
+        + '<td>'+escTexte(r.tours||'')+'</td><td><strong>'+escTexte(r.temps||'—')+'</strong></td></tr>'; }).join('')
       + '</tbody></table></div>';
     const avecTemps = hist.filter(([d, v]) => hyEnSecondes(v[id].temps) !== null);
     if (avecTemps.length >= 2) {
@@ -3185,16 +3214,15 @@ function renderHyroxSection() {
   h += '<div class="hy-kpis">'
     + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+actifs.length+'</div><div class="an-muted an-small">JSP suivis</div></div>'
     + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+Object.keys(getAnim().hyrox || {}).length+'</div><div class="an-muted an-small">séances Hyrox</div></div>'
-    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+actifs.filter(l => l.g >= 2).length+'</div><div class="an-muted an-small">Caporal ou plus</div></div>'
+    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+(actifs.filter(l => l.gain !== null && l.gain > 0).length)+'</div><div class="an-muted an-small">ont amélioré leur temps</div></div>'
     + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">'+lignes.reduce((n,l)=>n+l.etoiles,0)+' ★</div><div class="an-muted an-small">étoiles gagnées</div></div></div>';
-  h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th><th>Grade</th><th class="hy-c">Missions</th><th class="hy-c">Meilleur temps</th><th class="hy-c">Dernier temps</th><th class="hy-c">Progrès</th><th>Niveau (dernière)</th><th class="hy-c">Étoiles</th></tr></thead><tbody>';
+  h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th><th class="hy-c">Missions</th><th class="hy-c">Meilleur temps</th><th class="hy-c">Dernier temps</th><th class="hy-c">Progrès</th><th>Niveau (dernière)</th><th class="hy-c">Étoiles</th></tr></thead><tbody>';
   let promo = null;
   lignes.forEach(l => {
     const p = hyPromo(l.j);
-    if (p !== promo) { promo = p; h += '<tr class="hy-promo"><td colspan="8" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
+    if (p !== promo) { promo = p; h += '<tr class="hy-promo"><td colspan="7" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
     const pct = Math.round(l.niv / 3 * 100);
     h += '<tr><td><button class="hy-nom" onclick="hyFicheJsp('+l.j.id+')">'+escTexte(l.j.prenom+' '+l.j.nom)+'</button></td>'
-      + '<td class="an-nowrap">'+(l.g ? hyGalons(l.g)+' <strong>'+HY_GRADES[l.g-1].nom+'</strong>' : '<span class="an-muted">—</span>')+'</td>'
       + '<td class="hy-c">'+(l.nb || '—')+'</td>'
       + '<td class="hy-c"><strong>'+(l.meilleur !== null ? hyFormat(l.meilleur) : '—')+'</strong></td>'
       + '<td class="hy-c">'+(l.dernier ? escTexte(l.dernier.temps) : '—')+'</td>'
@@ -3212,9 +3240,8 @@ function hyFicheJsp(id) {
   const g = hyGrade(hist);
   const etoiles = hist.reduce((n, r) => n + (+r.etoiles || 0), 0);
   let h = '<div class="an-modal"><h3>'+escTexte(j.prenom+' '+j.nom)+' <span class="an-muted an-small">'+escTexte(hyPromo(j).replace('JSP','JSP '))+'</span></h3>';
-  h += '<div class="hy-fiche-tete">'+(g ? hyGalons(g, 22)+' <strong class="hy-grade">'+HY_GRADES[g-1].nom+'</strong>' : '<strong class="hy-grade">Pas encore de galon</strong>')
+  h += '<div class="hy-fiche-tete"><strong class="hy-grade">'+fini.length+' mission'+(fini.length > 1 ? 's' : '')+'</strong>'
     + '<span class="hy-etoiles">'+etoiles+' ★</span></div>';
-  if (g < HY_GRADES.length) h += '<p class="an-p"><strong>Prochain galon — '+HY_GRADES[g].nom+' :</strong> '+HY_GRADES[g].cond+'</p>';
   if (etoiles >= 10) h += '<p class="an-p hy-up"><strong>10 étoiles atteintes : récompense de la section !</strong></p>';
   // graphique des temps
   if (fini.length >= 2) {
@@ -3229,12 +3256,11 @@ function hyFicheJsp(id) {
       + '</svg></div><p class="an-small an-muted">Plus la courbe descend, plus le temps s\'améliore.</p>';
   }
   if (hist.length) {
-    h += '<h4 class="an-h4">Historique</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Temps</th><th>RPE</th><th>★</th></tr></thead><tbody>'
+    h += '<h4 class="an-h4">Historique</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Temps</th><th>★</th></tr></thead><tbody>'
       + hist.map(r => '<tr><td class="an-nowrap">'+fmtDate(r.date)+'</td>'+HY_STATIONS.map(s => { const n = (r.niv||{})[s.k]; return '<td class="hy-c">'+(n ? '<span class="hy-pastille" style="background:'+HY_NIV_COL[n]+'">'+n+'</span>' : '·')+'</td>'; }).join('')
-        + '<td><strong>'+escTexte(r.temps || '—')+'</strong></td><td>'+escTexte(r.rpe || '')+'</td><td>'+(+r.etoiles || '')+'</td></tr>').join('')
+        + '<td><strong>'+escTexte(r.temps || '—')+'</strong></td><td>'+(+r.etoiles || '')+'</td></tr>').join('')
       + '</tbody></table></div>';
   } else h += '<p class="an-muted">Aucune mission Hyrox enregistrée pour l\'instant.</p>';
-  h += '<h4 class="an-h4">Les galons</h4><ul class="an-ul">'+HY_GRADES.map((x, k) => '<li>'+(k < g ? '✅ ' : '⬜ ')+'<strong>'+x.nom+'</strong> — '+x.cond+'</li>').join('')+'</ul>';
   h += '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Fermer</button></div></div>';
   openModalWide(h);
 }
