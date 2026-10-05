@@ -3026,7 +3026,14 @@ function hyPastille(r, s) {
   const niv = hyNivDe(s, n), perso = r.reps && r.reps[s.k] != null;
   return '<span class="hy-pastille" style="background:'+(HY_NIV_COL[niv] || '#6b7280')+';min-width:26px;'+(perso ? 'outline:2px dashed rgba(255,255,255,.7);outline-offset:-4px' : '')+'" title="'+s.nom+' : '+n+(perso ? ' (défi perso)' : '')+'">'+n+'</span>';
 }
-function hyNomJsp(id) { const j = (DB.jsps || []).find(x => x.id == id); return j ? j.prenom + ' ' + j.nom : '?'; }
+function hyIdNorm(v) { return /^\d+$/.test(String(v)) ? +v : String(v); }
+function hyEstInvite(id) { return typeof id === 'string' && id.charAt(0) === 'i'; }
+function hyInvites(date) { const d = hyData(date, false); return Array.isArray(d._invites) ? d._invites : []; }
+// Nom d'un participant : JSP, ou invité de la séance (ex. « Papa de Charly »)
+function hyNomJsp(id, date) {
+  if (hyEstInvite(id)) { const inv = date ? hyInvites(date).find(x => x.id === id) : null; return inv ? inv.nom + ' (invité)' : 'Invité'; }
+  const j = (DB.jsps || []).find(x => x.id == id); return j ? j.prenom + ' ' + j.nom : '?';
+}
 let hyTicker = null, hySaveTimer = null;
 
 function hyData(date, creer) {
@@ -3065,7 +3072,7 @@ function renderAnimHyrox() {
     + '<button class="an-btn an-btn-icone" '+(i>=0&&i<dates.length-1?'':'disabled')+' onclick="window._animDate=\''+(dates[i+1]||'')+'\';showSection(\''+(window._hySec||'animation')+'\')" aria-label="Séance suivante"><i class="ti ti-chevron-right"></i></button>'
     + '</div>';
   h += '<div class="card an-card"><p class="an-p an-small an-muted">Touche une case de station pour choisir le défi : vide → R → S → C → <strong>nombre libre</strong> (défi perso, case en pointillés). '
-    + '<strong>Binôme</strong> : choisis le partenaire, le chrono et le temps final sont communs aux deux. '
+    + '<strong>Binôme</strong> : choisis le partenaire, le chrono et le temps final sont communs aux deux. Un parent qui participe s\'ajoute en <strong>invité</strong>, tout en bas. '
     + '« Départ » puis « Arrivée » calcule le temps tout seul ; tu peux aussi le taper (ex. 14:32). Tout est enregistré automatiquement.</p>'
     + '<div class="hy-legende">' + HY_STATIONS.map(s => '<span><strong>'+s.nom+'</strong> R '+s.R+' · S '+s.S+' · C '+s.C+'</span>').join('') + '</div></div>';
 
@@ -3078,36 +3085,53 @@ function renderAnimHyrox() {
   h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th><th>Binôme</th>'
     + HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.replace(' ', '<br>')+'</th>').join('')
     + '<th class="hy-c">Tours</th><th class="hy-c">Chrono</th><th class="hy-c">Temps</th><th class="hy-c">Étoiles</th><th>Remarques</th></tr></thead><tbody>';
-  jsps.forEach(j => {
-    const p = hyPromo(j);
-    if (p !== promoCourante) { promoCourante = p;  h += '<tr class="hy-promo"><td colspan="12" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
-    const r = d[j.id] || { niv:{}, tours:'', temps:'', rpe:'', rem:'' };
-    const enCours = HY_CHRONO[j.id];
-    const col = binCol[j.id];
-    const pris = new Set(); Object.keys(d).forEach(k => { if (d[k] && d[k].binome) pris.add(String(k)); });
-    const optBin = '<option value="">—</option>' + jsps.filter(x => x.id !== j.id && (!pris.has(String(x.id)) || String(r.binome) === String(x.id)))
-      .map(x => '<option value="'+x.id+'" '+(String(r.binome) === String(x.id) ? 'selected' : '')+'>'+escTexte(x.prenom+' '+x.nom)+'</option>').join('');
-    h += '<tr data-jsp="'+j.id+'"'+(col ? ' style="box-shadow:inset 5px 0 0 '+col+'"' : '')+'><td><button class="hy-nom" onclick="hyProgression('+j.id+')" title="Voir la progression">'+escTexte(j.prenom+' '+j.nom)+'</button></td>'
-      + '<td><select class="hy-in" style="min-width:130px;'+(col ? 'border-color:'+col+';border-width:2px' : '')+'" onchange="hyChoisirBinome(\''+date+'\','+j.id+',this.value)" aria-label="Binôme">'+optBin+'</select></td>'
+  const invites = hyInvites(date);
+  const participants = jsps.map(j => ({ id: j.id, nom: j.prenom + ' ' + j.nom, promo: hyPromo(j) }))
+    .concat(invites.map(v => ({ id: v.id, nom: v.nom, invite: true })));
+  invites.forEach(v => { const r = d[v.id]; if (r && r.binome && binCol[v.id] == null) { binCol[v.id] = binCol[r.binome] = HY_BIN_COL[nbBin++ % HY_BIN_COL.length]; } });
+  const pris = new Set(); Object.keys(d).forEach(k => { if (d[k] && d[k].binome) pris.add(String(k)); });
+  const ligne = (pt) => {
+    const id = pt.id, idJs = pt.invite ? "'" + id + "'" : String(id);
+    const r = d[id] || { niv:{}, tours:'', temps:'', rpe:'', rem:'' };
+    const enCours = HY_CHRONO[id];
+    const col = binCol[id];
+    const optBin = '<option value="">—</option>' + participants.filter(x => String(x.id) !== String(id) && (!pris.has(String(x.id)) || String(r.binome) === String(x.id)))
+      .map(x => '<option value="'+x.id+'" '+(String(r.binome) === String(x.id) ? 'selected' : '')+'>'+escTexte(x.nom)+(x.invite ? ' (invité)' : '')+'</option>').join('');
+    return '<tr data-jsp="'+id+'"'+(col ? ' style="box-shadow:inset 5px 0 0 '+col+'"' : '')+'><td>'
+      + (pt.invite
+          ? '<span class="hy-nom" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">'+escTexte(pt.nom)+' <span class="an-small an-muted">invité</span>'
+            + ' <button class="hy-mini" onclick="hySupprimerInvite(\''+date+'\','+idJs+')" aria-label="Retirer cet invité" title="Retirer cet invité">✕</button></span>'
+          : '<button class="hy-nom" onclick="hyProgression('+id+')" title="Voir la progression">'+escTexte(pt.nom)+'</button>')
+      + '</td>'
+      + '<td><select class="hy-in" style="min-width:130px;'+(col ? 'border-color:'+col+';border-width:2px' : '')+'" onchange="hyChoisirBinome(\''+date+'\','+idJs+',this.value)" aria-label="Binôme">'+optBin+'</select></td>'
       + HY_STATIONS.map(s => { const n = hyRep(r, s), niv = hyNivDe(s, n), perso = r.reps && r.reps[s.k] != null, c = n == null ? '' : (HY_NIV_COL[niv] || '#6b7280');
-          return '<td class="hy-c"><button class="hy-niv" style="'+(c ? 'background:'+c+';color:#fff;border-color:'+c+';' : '')+(perso ? 'border-style:dashed;border-color:#fff;outline:2px solid '+c+';' : '')+'" onclick="hyCycleNiv(\''+date+'\','+j.id+',\''+s.k+'\')" aria-label="'+s.nom+' : '+(n == null ? 'aucun' : n+' répétitions')+'">'+(n == null ? '·' : n)+'</button></td>'; }).join('')
-      + '<td class="hy-c"><input class="hy-in hy-tours" type="number" min="0" max="9" value="'+escTexte(r.tours)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'tours\',this.value)" aria-label="Nombre de tours"></td>'
+          return '<td class="hy-c"><button class="hy-niv" style="'+(c ? 'background:'+c+';color:#fff;border-color:'+c+';' : '')+(perso ? 'border-style:dashed;border-color:#fff;outline:2px solid '+c+';' : '')+'" onclick="hyCycleNiv(\''+date+'\','+idJs+',\''+s.k+'\')" aria-label="'+s.nom+' : '+(n == null ? 'aucun' : n+' répétitions')+'">'+(n == null ? '·' : n)+'</button></td>'; }).join('')
+      + '<td class="hy-c"><input class="hy-in hy-tours" type="number" min="0" max="9" value="'+escTexte(r.tours)+'" onchange="hyMaj(\''+date+'\','+idJs+',\'tours\',this.value)" aria-label="Nombre de tours"></td>'
       + '<td class="hy-c">'+(enCours
-          ? '<button class="an-btn hy-arrivee" onclick="hyArrivee(\''+date+'\','+j.id+')"><span class="hy-run" data-dep="'+enCours+'">'+hyFormat((Date.now()-enCours)/1000)+'</span> Arrivée</button>'
-          : '<button class="an-btn" onclick="hyDepart(\''+date+'\','+j.id+')">Départ</button>')+'</td>'
-      + '<td class="hy-c"><input class="hy-in hy-temps" inputmode="numeric" placeholder="mm:ss" value="'+escTexte(r.temps)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'temps\',this.value)" aria-label="Temps total"></td>'
-      + '<td class="hy-c an-nowrap"><button class="hy-mini" onclick="hyEtoile(\''+date+'\','+j.id+',-1)" aria-label="Retirer une étoile">−</button> <strong>'+(+r.etoiles||0)+'★</strong> <button class="hy-mini" onclick="hyEtoile(\''+date+'\','+j.id+',1)" aria-label="Ajouter une étoile">+</button></td>'
-      + '<td><input class="hy-in hy-rem" value="'+escTexte(r.rem)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'rem\',this.value)" aria-label="Remarques"></td></tr>';
+          ? '<button class="an-btn hy-arrivee" onclick="hyArrivee(\''+date+'\','+idJs+')"><span class="hy-run" data-dep="'+enCours+'">'+hyFormat((Date.now()-enCours)/1000)+'</span> Arrivée</button>'
+          : '<button class="an-btn" onclick="hyDepart(\''+date+'\','+idJs+')">Départ</button>')+'</td>'
+      + '<td class="hy-c"><input class="hy-in hy-temps" inputmode="numeric" placeholder="mm:ss" value="'+escTexte(r.temps)+'" onchange="hyMaj(\''+date+'\','+idJs+',\'temps\',this.value)" aria-label="Temps total"></td>'
+      + '<td class="hy-c an-nowrap">'+(pt.invite ? '<span class="an-muted">—</span>'
+          : '<button class="hy-mini" onclick="hyEtoile(\''+date+'\','+idJs+',-1)" aria-label="Retirer une étoile">−</button> <strong>'+(+r.etoiles||0)+'★</strong> <button class="hy-mini" onclick="hyEtoile(\''+date+'\','+idJs+',1)" aria-label="Ajouter une étoile">+</button>')+'</td>'
+      + '<td><input class="hy-in hy-rem" value="'+escTexte(r.rem)+'" onchange="hyMaj(\''+date+'\','+idJs+',\'rem\',this.value)" aria-label="Remarques"></td></tr>';
+  };
+  participants.filter(pt => !pt.invite).forEach(pt => {
+    if (pt.promo !== promoCourante) { promoCourante = pt.promo; h += '<tr class="hy-promo"><td colspan="12" style="color:'+(CYCLE_COLORS[pt.promo]||'inherit')+'">'+escTexte(pt.promo.replace('JSP','JSP '))+'</td></tr>'; }
+    h += ligne(pt);
   });
+  h += '<tr class="hy-promo"><td colspan="12">Invités <span class="an-small an-muted" style="font-weight:400">(parents, encadrants… ne comptent pas dans le suivi des JSP)</span></td></tr>';
+  participants.filter(pt => pt.invite).forEach(pt => { h += ligne(pt); });
+  h += '<tr><td colspan="12"><button class="an-btn" onclick="hyAjouterInvite(\''+date+'\')"><i class="ti ti-user-plus"></i> Ajouter un invité</button></td></tr>';
   h += '</tbody></table></div></div>';
 
   // Classement du jour
   const vus = new Set();
-  const cl = jsps.map(j => ({ j, r: d[j.id] })).filter(x => x.r && hyEnSecondes(x.r.temps) !== null)
-    .filter(x => { if (vus.has(x.j.id)) return false; vus.add(x.j.id); if (x.r.binome) vus.add(+x.r.binome); return true; })
+  const cl = jsps.map(j => ({ j, r: d[j.id] })).concat(invites.map(v => ({ j: { id: v.id, prenom: v.nom, nom: '', invite: true }, r: d[v.id] })))
+    .filter(x => x.r && hyEnSecondes(x.r.temps) !== null)
+    .filter(x => { const k = String(x.j.id); if (vus.has(k)) return false; vus.add(k); if (x.r.binome) vus.add(String(x.r.binome)); return true; })
     .sort((a,b) => ((+b.r.tours||1) - (+a.r.tours||1)) || (hyEnSecondes(a.r.temps) - hyEnSecondes(b.r.temps)));
   h += '<div class="card an-card"><h3 class="an-h4" style="margin-top:0">Classement du jour</h3>';
-  h += cl.length ? '<table class="an-table"><tbody>' + cl.map((x,k) => '<tr><td class="an-nowrap"><strong>'+(k+1)+'</strong></td><td>'+escTexte(x.j.prenom+' '+x.j.nom)+(x.r.binome ? ' <strong>&amp;</strong> '+escTexte(hyNomJsp(x.r.binome)) : ' <span class="an-muted an-small">'+escTexte(hyPromo(x.j).replace('JSP','JSP '))+'</span>')+'</td>'
+  h += cl.length ? '<table class="an-table"><tbody>' + cl.map((x,k) => '<tr><td class="an-nowrap"><strong>'+(k+1)+'</strong></td><td>'+escTexte(x.j.invite ? x.j.prenom + ' (invité)' : x.j.prenom+' '+x.j.nom)+(x.r.binome ? ' <strong>&amp;</strong> '+escTexte(hyNomJsp(x.r.binome, date)) : (x.j.invite ? '' : ' <span class="an-muted an-small">'+escTexte(hyPromo(x.j).replace('JSP','JSP '))+'</span>'))+'</td>'
       + '<td>'+HY_STATIONS.map(s => hyPastille(x.r, s)).join('')+(x.r.binome && d[x.r.binome] ? '<br>'+HY_STATIONS.map(s => hyPastille(d[x.r.binome], s)).join('') : '')+'</td>'
       + '<td class="an-nowrap">'+(+x.r.tours>1?x.r.tours+' tours · ':'')+'<strong>'+escTexte(x.r.temps)+'</strong></td></tr>').join('') + '</tbody></table>'
     : '<p class="an-muted">Pas encore de temps saisi.</p>';
@@ -3148,7 +3172,7 @@ function hyChoisirBinome(date, id, val) {
   if (r.binome) { const o = hyData(date, true)[r.binome]; if (o) delete o.binome; }
   delete r.binome;
   if (val) {
-    const pid = +val, p = hyLigne(date, pid, true);
+    const pid = hyIdNorm(val), p = hyLigne(date, pid, true);
     if (p.binome && p.binome !== id) { const q = hyData(date, true)[p.binome]; if (q) delete q.binome; }
     p.binome = id; r.binome = pid;
     if (r.temps && !p.temps) p.temps = r.temps; else if (p.temps && !r.temps) r.temps = p.temps;
@@ -3157,7 +3181,26 @@ function hyChoisirBinome(date, id, val) {
   }
   hySauverPlusTard(); hyRafraichir();
 }
-function hyPartenaire(date, id) { const r = hyData(date, false)[id]; return r && r.binome ? +r.binome : null; }
+function hyPartenaire(date, id) { const r = hyData(date, false)[id]; return r && r.binome != null && r.binome !== '' ? hyIdNorm(r.binome) : null; }
+function hyAjouterInvite(date) {
+  const nom = (prompt('Nom de l\'invité (ex. Papa de Charly)') || '').trim();
+  if (!nom) return;
+  const d = hyData(date, true);
+  if (!Array.isArray(d._invites)) d._invites = [];
+  let n = 1; while (d._invites.some(v => v.id === 'i' + n)) n++;
+  d._invites.push({ id: 'i' + n, nom: nom.slice(0, 40) });
+  hySauverPlusTard(); hyRafraichir();
+}
+function hySupprimerInvite(date, id) {
+  const d = hyData(date, true);
+  const inv = (d._invites || []).find(v => v.id === id);
+  if (!inv || !confirm('Retirer ' + inv.nom + ' de cette séance ?')) return;
+  const r = d[id];
+  if (r && r.binome != null && d[r.binome]) delete d[r.binome].binome;
+  delete d[id]; delete HY_CHRONO[id];
+  d._invites = d._invites.filter(v => v.id !== id);
+  hySauverPlusTard(); hyRafraichir();
+}
 function hyMaj(date, id, champ, val) {
   const r = hyLigne(date, id, true);
   val = String(val).trim();
@@ -3196,7 +3239,7 @@ function hyProgression(id) {
     h += '<div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Binôme</th><th>Tours</th><th>Temps</th></tr></thead><tbody>'
       + hist.map(([d, v]) => { const r = v[id]; return '<tr><td class="an-nowrap">'+fmtDate(d)+'</td>'
         + HY_STATIONS.map(s => '<td class="hy-c">'+hyPastille(r, s)+'</td>').join('')
-        + '<td class="an-small">'+(r.binome ? escTexte(hyNomJsp(r.binome)) : '—')+'</td><td>'+escTexte(r.tours||'')+'</td><td><strong>'+escTexte(r.temps||'—')+'</strong></td></tr>'; }).join('')
+        + '<td class="an-small">'+(r.binome ? escTexte(hyNomJsp(r.binome, d)) : '—')+'</td><td>'+escTexte(r.tours||'')+'</td><td><strong>'+escTexte(r.temps||'—')+'</strong></td></tr>'; }).join('')
       + '</tbody></table></div>';
     const avecTemps = hist.filter(([d, v]) => hyEnSecondes(v[id].temps) !== null);
     if (avecTemps.length >= 2) {
@@ -3317,7 +3360,7 @@ function hyFicheJsp(id) {
   if (hist.length) {
     h += '<h4 class="an-h4">Historique</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Binôme</th><th>Temps</th><th>★</th></tr></thead><tbody>'
       + hist.map(r => '<tr><td class="an-nowrap">'+fmtDate(r.date)+'</td>'+HY_STATIONS.map(s => '<td class="hy-c">'+hyPastille(r, s)+'</td>').join('')
-        + '<td class="an-small">'+(r.binome ? escTexte(hyNomJsp(r.binome)) : '—')+'</td><td><strong>'+escTexte(r.temps || '—')+'</strong></td><td>'+(+r.etoiles || '')+'</td></tr>').join('')
+        + '<td class="an-small">'+(r.binome ? escTexte(hyNomJsp(r.binome, r.date)) : '—')+'</td><td><strong>'+escTexte(r.temps || '—')+'</strong></td><td>'+(+r.etoiles || '')+'</td></tr>').join('')
       + '</tbody></table></div>';
   } else h += '<p class="an-muted">Aucune mission Hyrox enregistrée pour l\'instant.</p>';
   h += '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Fermer</button></div></div>';
