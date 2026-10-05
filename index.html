@@ -17902,7 +17902,31 @@ function renderCommandesHabillement() {
     return `<p style="font-size:13px;color:var(--gris-txt);padding:10px 0">Aucune commande enregistrée. Utilise le bouton "Générer une commande" pour créer un bon à partir des manques de stock actuels.</p>`;
   }
 
-  return commandes.map(c => `
+  // Résumé visuel + filtres par statut
+  const nb = { attente: 0, partielle: 0, recue: 0 };
+  commandes.forEach(c => nb[etatCommandeHabillement(c)]++);
+  const filtre = window._cmdFiltre || 'toutes';
+  const nbArticles = commandes.filter(c => etatCommandeHabillement(c) !== 'recue')
+    .reduce((n, c) => n + c.lignes.filter(l => !l.recu).reduce((m, l) => m + (+l.qte || 0), 0), 0);
+  const puce = (k, lbl, n, col) => `<button onclick="window._cmdFiltre='${k}';document.getElementById('content').innerHTML=renderHabillement('commandes')"
+      style="padding:6px 12px;border-radius:20px;border:1.5px solid ${col};background:${filtre===k?col:'white'};color:${filtre===k?'white':col};font-size:13px;font-weight:600;cursor:pointer">${lbl} · ${n}</button>`;
+  let entete = `<div class="stats-grid" style="margin-bottom:12px">
+      <div class="stat-card orange"><div class="stat-val">${nb.attente}</div><div class="stat-lbl">En attente</div></div>
+      <div class="stat-card bleu"><div class="stat-val">${nb.partielle}</div><div class="stat-lbl">Partiellement reçues</div></div>
+      <div class="stat-card vert"><div class="stat-val">${nb.recue}</div><div class="stat-lbl">Reçues</div></div>
+      <div class="stat-card bleu"><div class="stat-val">${nbArticles}</div><div class="stat-lbl">Articles encore attendus</div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px">
+      ${puce('toutes', 'Toutes', commandes.length, '#374151')}
+      ${puce('attente', 'En attente', nb.attente, '#b45309')}
+      ${puce('partielle', 'Partielles', nb.partielle, '#2563b0')}
+      ${puce('recue', 'Reçues', nb.recue, '#166534')}
+      ${nb.recue ? `<button class="btn-danger" style="margin-left:auto;padding:6px 12px;font-size:13px;border-radius:8px" onclick="deleteCommandesRecuesHabillement()"><i class="ti ti-trash"></i> Effacer les commandes reçues (${nb.recue})</button>` : ''}
+    </div>`;
+  const visibles = commandes.filter(c => filtre === 'toutes' || etatCommandeHabillement(c) === filtre);
+  if (!visibles.length) return entete + `<p style="font-size:13px;color:var(--gris-txt);padding:10px 0">Aucune commande dans cette catégorie.</p>`;
+
+  return entete + visibles.map(c => `
     <div class="table-card" style="margin-bottom:16px">
       <div style="padding:12px 16px;background:var(--bleu-pale);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px">
         <div>
@@ -17945,8 +17969,25 @@ function toggleCommandeLigneRecue(commandeId, ligneIdx, checked) {
   showNotifToast(checked ? '✅ Ligne marquée reçue — stock mis à jour' : '↩️ Réception annulée — stock ajusté');
 }
 
+function etatCommandeHabillement(c) {
+  const n = c.lignes.filter(l => l.recu).length;
+  return n === 0 ? 'attente' : n === c.lignes.length ? 'recue' : 'partielle';
+}
+
+function deleteCommandesRecuesHabillement() {
+  const recues = (DB.commandesHabillement || []).filter(c => etatCommandeHabillement(c) === 'recue');
+  if (!recues.length) return;
+  if (!confirm('Effacer les ' + recues.length + ' commande(s) entièrement reçue(s) ?\n\nLe stock ne sera pas modifié. Si tu veux en garder une trace, exporte-les en PDF ou Excel avant.')) return;
+  const ids = new Set(recues.map(c => c.id));
+  DB.commandesHabillement = DB.commandesHabillement.filter(c => !ids.has(c.id));
+  if (window._cmdFiltre === 'recue') window._cmdFiltre = 'toutes';
+  saveData();
+  document.getElementById('content').innerHTML = renderHabillement('commandes');
+  showNotifToast('🗑️ ' + recues.length + ' commande(s) reçue(s) effacée(s)');
+}
+
 function deleteCommandeHabillement(id) {
-  if (!confirm('Supprimer cette commande ? (le stock déjà reçu ne sera pas modifié)')) return;
+  if (!confirm('Supprimer cette commande ?\n\nLe stock déjà reçu ne sera pas modifié. Pense à l\'exporter en PDF si tu veux en garder une trace.')) return;
   DB.commandesHabillement = DB.commandesHabillement.filter(c => c.id !== id);
   saveData();
   document.getElementById('content').innerHTML = renderHabillement('commandes');
