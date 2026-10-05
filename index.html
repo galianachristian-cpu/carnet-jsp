@@ -3012,6 +3012,21 @@ const HY_STATIONS = [
   { k:'su', nom:'Sit-ups', R:15, S:25, C:40 }];
 const HY_NIV_COL = { R:'#2E7D32', S:'#1F3A68', C:'#C62828' };
 const HY_CHRONO = {};   // jspId -> heure de départ (ms), en mémoire le temps de la séance
+const HY_BIN_COL = ['#E67E22','#8E44AD','#16A085','#D35400','#2980B9','#C0392B','#7F8C8D','#27AE60','#B7950B','#6C3483'];
+// Répétitions faites à une station : nombre libre (défi perso) ou nombre du niveau choisi
+function hyRep(r, s) {
+  if (r && r.reps && r.reps[s.k] != null && r.reps[s.k] !== '') return +r.reps[s.k];
+  const n = r && r.niv && r.niv[s.k];
+  return n ? s[n] : null;
+}
+function hyNivDe(s, n) { return n == null ? '' : n >= s.C ? 'C' : n >= s.S ? 'S' : n >= s.R ? 'R' : ''; }
+function hyPastille(r, s) {
+  const n = hyRep(r, s);
+  if (n == null) return '<span class="hy-pastille hy-vide">·</span>';
+  const niv = hyNivDe(s, n), perso = r.reps && r.reps[s.k] != null;
+  return '<span class="hy-pastille" style="background:'+(HY_NIV_COL[niv] || '#6b7280')+';min-width:26px;'+(perso ? 'outline:2px dashed rgba(255,255,255,.7);outline-offset:-4px' : '')+'" title="'+s.nom+' : '+n+(perso ? ' (défi perso)' : '')+'">'+n+'</span>';
+}
+function hyNomJsp(id) { const j = (DB.jsps || []).find(x => x.id == id); return j ? j.prenom + ' ' + j.nom : '?'; }
 let hyTicker = null, hySaveTimer = null;
 
 function hyData(date, creer) {
@@ -3049,27 +3064,37 @@ function renderAnimHyrox() {
     + '</select>'
     + '<button class="an-btn an-btn-icone" '+(i>=0&&i<dates.length-1?'':'disabled')+' onclick="window._animDate=\''+(dates[i+1]||'')+'\';showSection(\''+(window._hySec||'animation')+'\')" aria-label="Séance suivante"><i class="ti ti-chevron-right"></i></button>'
     + '</div>';
-  h += '<div class="card an-card"><p class="an-p an-small an-muted">Touche une case de station pour changer le niveau (vide → R → S → C). '
+  h += '<div class="card an-card"><p class="an-p an-small an-muted">Touche une case de station pour choisir le défi : vide → R → S → C → <strong>nombre libre</strong> (défi perso, case en pointillés). '
+    + '<strong>Binôme</strong> : choisis le partenaire, le chrono et le temps final sont communs aux deux. '
     + '« Départ » puis « Arrivée » calcule le temps tout seul ; tu peux aussi le taper (ex. 14:32). Tout est enregistré automatiquement.</p>'
     + '<div class="hy-legende">' + HY_STATIONS.map(s => '<span><strong>'+s.nom+'</strong> R '+s.R+' · S '+s.S+' · C '+s.C+'</span>').join('') + '</div></div>';
 
   const promos = ['JSP2','JSP3','JSP4','JSP1'];
   const jsps = (DB.jsps || []).slice().sort((a,b) => (promos.indexOf(hyPromo(a)) - promos.indexOf(hyPromo(b))) || a.nom.localeCompare(b.nom));
   let promoCourante = null;
-  h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th>'
+  // binômes du jour : une couleur par binôme
+  const binCol = {}; let nbBin = 0;
+  jsps.forEach(j => { const r = d[j.id]; if (r && r.binome && binCol[j.id] == null) { binCol[j.id] = binCol[r.binome] = HY_BIN_COL[nbBin++ % HY_BIN_COL.length]; } });
+  h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th><th>Binôme</th>'
     + HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.replace(' ', '<br>')+'</th>').join('')
     + '<th class="hy-c">Tours</th><th class="hy-c">Chrono</th><th class="hy-c">Temps</th><th class="hy-c">Étoiles</th><th>Remarques</th></tr></thead><tbody>';
   jsps.forEach(j => {
     const p = hyPromo(j);
-    if (p !== promoCourante) { promoCourante = p;  h += '<tr class="hy-promo"><td colspan="11" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
+    if (p !== promoCourante) { promoCourante = p;  h += '<tr class="hy-promo"><td colspan="12" style="color:'+(CYCLE_COLORS[p]||'inherit')+'">'+escTexte(p.replace('JSP','JSP '))+'</td></tr>'; }
     const r = d[j.id] || { niv:{}, tours:'', temps:'', rpe:'', rem:'' };
     const enCours = HY_CHRONO[j.id];
-    h += '<tr data-jsp="'+j.id+'"><td><button class="hy-nom" onclick="hyProgression('+j.id+')" title="Voir la progression">'+escTexte(j.prenom+' '+j.nom)+'</button></td>'
-      + HY_STATIONS.map(s => { const n = r.niv[s.k] || ''; return '<td class="hy-c"><button class="hy-niv" style="'+(n?'background:'+HY_NIV_COL[n]+';color:#fff;border-color:'+HY_NIV_COL[n]:'')+'" onclick="hyCycleNiv(\''+date+'\','+j.id+',\''+s.k+'\')" aria-label="'+s.nom+' : niveau '+(n||'aucun')+'">'+(n||'·')+'</button></td>'; }).join('')
+    const col = binCol[j.id];
+    const pris = new Set(); Object.keys(d).forEach(k => { if (d[k] && d[k].binome) pris.add(String(k)); });
+    const optBin = '<option value="">—</option>' + jsps.filter(x => x.id !== j.id && (!pris.has(String(x.id)) || String(r.binome) === String(x.id)))
+      .map(x => '<option value="'+x.id+'" '+(String(r.binome) === String(x.id) ? 'selected' : '')+'>'+escTexte(x.prenom+' '+x.nom)+'</option>').join('');
+    h += '<tr data-jsp="'+j.id+'"'+(col ? ' style="box-shadow:inset 5px 0 0 '+col+'"' : '')+'><td><button class="hy-nom" onclick="hyProgression('+j.id+')" title="Voir la progression">'+escTexte(j.prenom+' '+j.nom)+'</button></td>'
+      + '<td><select class="hy-in" style="min-width:130px;'+(col ? 'border-color:'+col+';border-width:2px' : '')+'" onchange="hyChoisirBinome(\''+date+'\','+j.id+',this.value)" aria-label="Binôme">'+optBin+'</select></td>'
+      + HY_STATIONS.map(s => { const n = hyRep(r, s), niv = hyNivDe(s, n), perso = r.reps && r.reps[s.k] != null, c = n == null ? '' : (HY_NIV_COL[niv] || '#6b7280');
+          return '<td class="hy-c"><button class="hy-niv" style="'+(c ? 'background:'+c+';color:#fff;border-color:'+c+';' : '')+(perso ? 'border-style:dashed;border-color:#fff;outline:2px solid '+c+';' : '')+'" onclick="hyCycleNiv(\''+date+'\','+j.id+',\''+s.k+'\')" aria-label="'+s.nom+' : '+(n == null ? 'aucun' : n+' répétitions')+'">'+(n == null ? '·' : n)+'</button></td>'; }).join('')
       + '<td class="hy-c"><input class="hy-in hy-tours" type="number" min="0" max="9" value="'+escTexte(r.tours)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'tours\',this.value)" aria-label="Nombre de tours"></td>'
       + '<td class="hy-c">'+(enCours
           ? '<button class="an-btn hy-arrivee" onclick="hyArrivee(\''+date+'\','+j.id+')"><span class="hy-run" data-dep="'+enCours+'">'+hyFormat((Date.now()-enCours)/1000)+'</span> Arrivée</button>'
-          : '<button class="an-btn" onclick="hyDepart('+j.id+')">Départ</button>')+'</td>'
+          : '<button class="an-btn" onclick="hyDepart(\''+date+'\','+j.id+')">Départ</button>')+'</td>'
       + '<td class="hy-c"><input class="hy-in hy-temps" inputmode="numeric" placeholder="mm:ss" value="'+escTexte(r.temps)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'temps\',this.value)" aria-label="Temps total"></td>'
       + '<td class="hy-c an-nowrap"><button class="hy-mini" onclick="hyEtoile(\''+date+'\','+j.id+',-1)" aria-label="Retirer une étoile">−</button> <strong>'+(+r.etoiles||0)+'★</strong> <button class="hy-mini" onclick="hyEtoile(\''+date+'\','+j.id+',1)" aria-label="Ajouter une étoile">+</button></td>'
       + '<td><input class="hy-in hy-rem" value="'+escTexte(r.rem)+'" onchange="hyMaj(\''+date+'\','+j.id+',\'rem\',this.value)" aria-label="Remarques"></td></tr>';
@@ -3077,14 +3102,16 @@ function renderAnimHyrox() {
   h += '</tbody></table></div></div>';
 
   // Classement du jour
+  const vus = new Set();
   const cl = jsps.map(j => ({ j, r: d[j.id] })).filter(x => x.r && hyEnSecondes(x.r.temps) !== null)
+    .filter(x => { if (vus.has(x.j.id)) return false; vus.add(x.j.id); if (x.r.binome) vus.add(+x.r.binome); return true; })
     .sort((a,b) => ((+b.r.tours||1) - (+a.r.tours||1)) || (hyEnSecondes(a.r.temps) - hyEnSecondes(b.r.temps)));
   h += '<div class="card an-card"><h3 class="an-h4" style="margin-top:0">Classement du jour</h3>';
-  h += cl.length ? '<table class="an-table"><tbody>' + cl.map((x,k) => '<tr><td class="an-nowrap"><strong>'+(k+1)+'</strong></td><td>'+escTexte(x.j.prenom+' '+x.j.nom)+' <span class="an-muted an-small">'+escTexte(hyPromo(x.j).replace('JSP','JSP '))+'</span></td>'
-      + '<td>'+HY_STATIONS.map(s => { const n = x.r.niv[s.k]; return n ? '<span class="hy-pastille" style="background:'+HY_NIV_COL[n]+'">'+n+'</span>' : '<span class="hy-pastille hy-vide">·</span>'; }).join('')+'</td>'
+  h += cl.length ? '<table class="an-table"><tbody>' + cl.map((x,k) => '<tr><td class="an-nowrap"><strong>'+(k+1)+'</strong></td><td>'+escTexte(x.j.prenom+' '+x.j.nom)+(x.r.binome ? ' <strong>&amp;</strong> '+escTexte(hyNomJsp(x.r.binome)) : ' <span class="an-muted an-small">'+escTexte(hyPromo(x.j).replace('JSP','JSP '))+'</span>')+'</td>'
+      + '<td>'+HY_STATIONS.map(s => hyPastille(x.r, s)).join('')+(x.r.binome && d[x.r.binome] ? '<br>'+HY_STATIONS.map(s => hyPastille(d[x.r.binome], s)).join('') : '')+'</td>'
       + '<td class="an-nowrap">'+(+x.r.tours>1?x.r.tours+' tours · ':'')+'<strong>'+escTexte(x.r.temps)+'</strong></td></tr>').join('') + '</tbody></table>'
     : '<p class="an-muted">Pas encore de temps saisi.</p>';
-  h += '<p class="an-small an-muted">Le temps donne le classement du jour ; les niveaux montrent la progression de chacun d\'une fois sur l\'autre.</p></div>';
+  h += '<p class="an-small an-muted">Le temps donne le classement du jour (un temps par binôme) ; les défis montrent la progression de chacun d\'une fois sur l\'autre.</p></div>';
 
   clearInterval(hyTicker);
   if (Object.keys(HY_CHRONO).length) hyTicker = setInterval(() => {
@@ -3102,11 +3129,35 @@ function hyRafraichir() {
 }
 function hyCycleNiv(date, id, k) {
   const r = hyLigne(date, id, true);
-  const ordre = ['', 'R', 'S', 'C'];
-  r.niv[k] = ordre[(ordre.indexOf(r.niv[k] || '') + 1) % 4];
-  if (!r.niv[k]) delete r.niv[k];
+  const s = HY_STATIONS.find(x => x.k === k);
+  if (!r.reps) r.reps = {};
+  if (r.reps[k] != null) { delete r.reps[k]; delete r.niv[k]; }          // défi perso → vide
+  else if (r.niv[k] === 'C') {                                             // C → nombre libre
+    const v = prompt('Défi perso — ' + s.nom + ' : nombre de répétitions', String(s.C));
+    const n = parseInt(v, 10);
+    delete r.niv[k];
+    if (n > 0 && n < 1000) { r.reps[k] = n; const niv = hyNivDe(s, n); if (niv) r.niv[k] = niv; }
+  } else {
+    const ordre = ['', 'R', 'S', 'C'];
+    r.niv[k] = ordre[ordre.indexOf(r.niv[k] || '') + 1];
+  }
   hySauverPlusTard(); hyRafraichir();
 }
+function hyChoisirBinome(date, id, val) {
+  const r = hyLigne(date, id, true);
+  if (r.binome) { const o = hyData(date, true)[r.binome]; if (o) delete o.binome; }
+  delete r.binome;
+  if (val) {
+    const pid = +val, p = hyLigne(date, pid, true);
+    if (p.binome && p.binome !== id) { const q = hyData(date, true)[p.binome]; if (q) delete q.binome; }
+    p.binome = id; r.binome = pid;
+    if (r.temps && !p.temps) p.temps = r.temps; else if (p.temps && !r.temps) r.temps = p.temps;
+    if (r.tours && !p.tours) p.tours = r.tours; else if (p.tours && !r.tours) r.tours = p.tours;
+    if (HY_CHRONO[id] && !HY_CHRONO[pid]) HY_CHRONO[pid] = HY_CHRONO[id];
+  }
+  hySauverPlusTard(); hyRafraichir();
+}
+function hyPartenaire(date, id) { const r = hyData(date, false)[id]; return r && r.binome ? +r.binome : null; }
 function hyMaj(date, id, champ, val) {
   const r = hyLigne(date, id, true);
   val = String(val).trim();
@@ -3116,33 +3167,41 @@ function hyMaj(date, id, champ, val) {
     if (hyEnSecondes(val) === null) { showToast('Temps : écris minutes:secondes, ex. 14:32', true); hyRafraichir(); return; }
   }
   r[champ] = val;
+  const pid = (champ === 'temps' || champ === 'tours') ? hyPartenaire(date, id) : null;
+  if (pid) hyLigne(date, pid, true)[champ] = val;   // temps final commun au binôme
   hySauverPlusTard();
   if (champ === 'temps' || champ === 'tours') hyRafraichir();
 }
-function hyDepart(id) { HY_CHRONO[id] = Date.now(); hyRafraichir(); }
+function hyDepart(date, id) {
+  const t = Date.now(); HY_CHRONO[id] = t;
+  const pid = hyPartenaire(date, id); if (pid) HY_CHRONO[pid] = t;
+  hyRafraichir();
+}
 function hyArrivee(date, id) {
   const dep = HY_CHRONO[id]; if (!dep) return;
+  const temps = hyFormat((Date.now() - dep) / 1000);
   delete HY_CHRONO[id];
-  const r = hyLigne(date, id, true);
-  r.temps = hyFormat((Date.now() - dep) / 1000);
+  hyLigne(date, id, true).temps = temps;
+  const pid = hyPartenaire(date, id);
+  if (pid) { delete HY_CHRONO[pid]; hyLigne(date, pid, true).temps = temps; }
   hySauverPlusTard(); hyRafraichir();
 }
 function hyProgression(id) {
   const j = (DB.jsps || []).find(x => x.id === id); if (!j) return;
-  const hist = Object.entries(getAnim().hyrox || {}).filter(([d, v]) => v[id] && (v[id].temps || Object.keys(v[id].niv || {}).length))
+  const hist = Object.entries(getAnim().hyrox || {}).filter(([d, v]) => v[id] && (v[id].temps || Object.keys(v[id].niv || {}).length || Object.keys(v[id].reps || {}).length))
     .sort((a, b) => a[0].localeCompare(b[0]));
   let h = '<div class="an-modal"><h3>Hyrox — '+escTexte(j.prenom+' '+j.nom)+'</h3>';
   if (!hist.length) h += '<p class="an-muted">Aucun résultat pour l\'instant.</p>';
   else {
-    h += '<div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Tours</th><th>Temps</th></tr></thead><tbody>'
+    h += '<div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Binôme</th><th>Tours</th><th>Temps</th></tr></thead><tbody>'
       + hist.map(([d, v]) => { const r = v[id]; return '<tr><td class="an-nowrap">'+fmtDate(d)+'</td>'
-        + HY_STATIONS.map(s => { const n = (r.niv||{})[s.k]; return '<td class="hy-c">'+(n?'<span class="hy-pastille" style="background:'+HY_NIV_COL[n]+'">'+n+'</span>':'·')+'</td>'; }).join('')
-        + '<td>'+escTexte(r.tours||'')+'</td><td><strong>'+escTexte(r.temps||'—')+'</strong></td></tr>'; }).join('')
+        + HY_STATIONS.map(s => '<td class="hy-c">'+hyPastille(r, s)+'</td>').join('')
+        + '<td class="an-small">'+(r.binome ? escTexte(hyNomJsp(r.binome)) : '—')+'</td><td>'+escTexte(r.tours||'')+'</td><td><strong>'+escTexte(r.temps||'—')+'</strong></td></tr>'; }).join('')
       + '</tbody></table></div>';
     const avecTemps = hist.filter(([d, v]) => hyEnSecondes(v[id].temps) !== null);
     if (avecTemps.length >= 2) {
       const a = hyEnSecondes(avecTemps[0][1][id].temps), b = hyEnSecondes(avecTemps[avecTemps.length-1][1][id].temps);
-      h += '<p class="an-p">Depuis le '+fmtDate(avecTemps[0][0])+' : <strong>'+(b <= a ? hyFormat(a-b)+' de gagné' : hyFormat(b-a)+' de plus')+'</strong> (à comparer avec les niveaux choisis).</p>';
+      h += '<p class="an-p">Depuis le '+fmtDate(avecTemps[0][0])+' : <strong>'+(b <= a ? hyFormat(a-b)+' de gagné' : hyFormat(b-a)+' de plus')+'</strong> (à comparer avec les défis choisis et le binôme).</p>';
     }
   }
   h += '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Fermer</button></div></div>';
@@ -3163,7 +3222,7 @@ const HY_GRADES = [
 const HY_NIV_PTS = { R:1, S:2, C:3 };
 function hyHistorique(id) {
   return Object.entries(getAnim().hyrox || {})
-    .filter(([d, v]) => v[id] && (hyEnSecondes(v[id].temps) !== null || Object.keys(v[id].niv || {}).length || +v[id].etoiles))
+    .filter(([d, v]) => v[id] && (hyEnSecondes(v[id].temps) !== null || Object.keys(v[id].niv || {}).length || Object.keys(v[id].reps || {}).length || +v[id].etoiles))
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([d, v]) => Object.assign({ date: d }, v[id]));
 }
@@ -3256,9 +3315,9 @@ function hyFicheJsp(id) {
       + '</svg></div><p class="an-small an-muted">Plus la courbe descend, plus le temps s\'améliore.</p>';
   }
   if (hist.length) {
-    h += '<h4 class="an-h4">Historique</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Temps</th><th>★</th></tr></thead><tbody>'
-      + hist.map(r => '<tr><td class="an-nowrap">'+fmtDate(r.date)+'</td>'+HY_STATIONS.map(s => { const n = (r.niv||{})[s.k]; return '<td class="hy-c">'+(n ? '<span class="hy-pastille" style="background:'+HY_NIV_COL[n]+'">'+n+'</span>' : '·')+'</td>'; }).join('')
-        + '<td><strong>'+escTexte(r.temps || '—')+'</strong></td><td>'+(+r.etoiles || '')+'</td></tr>').join('')
+    h += '<h4 class="an-h4">Historique</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'+HY_STATIONS.map(s => '<th class="hy-c">'+s.nom.split(' ')[0]+'</th>').join('')+'<th>Binôme</th><th>Temps</th><th>★</th></tr></thead><tbody>'
+      + hist.map(r => '<tr><td class="an-nowrap">'+fmtDate(r.date)+'</td>'+HY_STATIONS.map(s => '<td class="hy-c">'+hyPastille(r, s)+'</td>').join('')
+        + '<td class="an-small">'+(r.binome ? escTexte(hyNomJsp(r.binome)) : '—')+'</td><td><strong>'+escTexte(r.temps || '—')+'</strong></td><td>'+(+r.etoiles || '')+'</td></tr>').join('')
       + '</tbody></table></div>';
   } else h += '<p class="an-muted">Aucune mission Hyrox enregistrée pour l\'instant.</p>';
   h += '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Fermer</button></div></div>';
@@ -6287,7 +6346,7 @@ function renderPlanning(moisActif) {
     calHtml += `<div onclick="${caseOnclick}" style="min-width:0;min-height:64px;border-radius:8px;padding:4px;cursor:pointer;border:1px solid ${isVacances?'#fecaca':'var(--gris-bord)'};background:${bgCase}">`;
     calHtml += '<div style="font-size:12px;font-weight:'+(isToday?'700':'500')+';color:'+(isToday?'var(--bleu)':isVacances?'#b91c1c':isPast?'var(--gris-txt)':'#1f2937')+';margin-bottom:3px">'+d+(isVacances?' <i class="ti ti-beach" style="font-size:10px"></i>':'')+'</div>';
     dayEvts.forEach(e => {
-      calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="event.stopPropagation();showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+(e.images&&e.images.length?'<i class="ti ti-paperclip"></i> ':'')+e.titre+'</div>';
+      calHtml += '<div title="'+e.titre+' — '+e.lieu+'" onclick="event.stopPropagation();showEvtDetail('+e.id+')" style="font-size:10px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:4px;padding:2px 4px;margin-bottom:2px;line-height:1.3;cursor:pointer;font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+e.titre+'</div>';
     });
     ['JSP1','JSP2','JSP3','JSP4'].forEach(function(c) {
       const items = (progByCycle[c] && progByCycle[c][dateStr]) || [];
@@ -6680,7 +6739,6 @@ function renderCarteProchaineSeance(j) {
     html += '<div class="prochaine-evt"><span class="prochaine-titre">'+escTexte(e.titre)+'</span>'
       + '<span class="prochaine-type type-'+e.type+'">'+libelleTypePlanning(e.type)+'</span></div>';
     if (e.lieu && e.lieu.trim()) html += '<div class="prochaine-lieu"><i class="ti ti-map-pin"></i> '+escTexte(e.lieu)+'</div>';
-    html += '<div style="margin:12px 0 4px">'+htmlGalerieEvt(e, false)+'</div>';
   });
   // Programme du groupe de l'enfant
   var cycle = getCycleJSP(j);
@@ -7209,9 +7267,7 @@ function renderAgendaParent(saison) {
     html += '<div class="agenda-infos">';
     if (estProchaine) html += '<span class="agenda-rebours">'+texteCompteARebours(it.date)+'</span>';
     parDate[it.date].forEach(e => {
-      html += '<div class="agenda-evt"><span class="agenda-titre">'+escTexte(e.titre)+'</span><span class="prochaine-type type-'+e.type+'">'+libelleTypePlanning(e.type)+'</span>'
-        + ((e.images||[]).some(function(im){ return !im.prive; }) ? '<span title="Pièces jointes" style="color:var(--bleu);font-size:14px"><i class="ti ti-paperclip"></i> Pièce jointe</span>' : '')
-        + '</div>';
+      html += '<div class="agenda-evt"><span class="agenda-titre">'+escTexte(e.titre)+'</span><span class="prochaine-type type-'+e.type+'">'+libelleTypePlanning(e.type)+'</span></div>';
       if (e.lieu && e.lieu.trim()) html += '<div class="agenda-lieu"><i class="ti ti-map-pin"></i> '+escTexte(e.lieu)+'</div>';
     });
     if (items2.length) {
@@ -7255,7 +7311,7 @@ function modalJourParent(dateStr) {
   if (evts.length) {
     evtsHtml = '<div style="margin-bottom:16px">' + evts.map(function(e){
       return '<div style="font-size:13px;background:'+(typeBg[e.type]||'#f3f4f6')+';color:'+(typeColors[e.type]||'#374151')+';border-radius:8px;padding:10px 14px;margin-bottom:6px;font-weight:600">'
-        + '<i class="ti ti-calendar-event"></i> '+escAttr(e.titre)+((e.lieu && e.lieu.trim())?' — '+escAttr(e.lieu):'')+'</div>' + htmlGalerieEvt(e, false);
+        + '<i class="ti ti-calendar-event"></i> '+escAttr(e.titre)+((e.lieu && e.lieu.trim())?' — '+escAttr(e.lieu):'')+'</div>';
     }).join('') + '</div>';
   }
   var lienHtml = progHtml ? '<p style="font-size:13px;margin-top:6px;margin-bottom:16px"><a href="'+LIEN_COURS_JSP_DRIVE+'" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Ouvrir tous les supports de cours (Google Drive)</a></p>' : '';
@@ -11813,150 +11869,6 @@ function renderHistorique() {
   return html2;
 }
 
-// ══════════════════════════════════════════
-//  PLANNING — images jointes aux événements (ex. feuille Hyrox)
-//  Les images sont stockées dans Supabase Storage (bucket « planning-images »).
-//  Dans DB.planning on ne garde que de petites références : e.images = [{path, nom, prive}]
-// ══════════════════════════════════════════
-const PLANNING_BUCKET = 'planning-images';
-
-function urlImagePlanning(path) {
-  if (!supabaseClient) return '';
-  const r = supabaseClient.storage.from(PLANNING_BUCKET).getPublicUrl(path);
-  return (r && r.data && r.data.publicUrl) || '';
-}
-
-// Réduit l'image (1600 px max, JPEG) pour qu'elle reste lisible sans alourdir
-function compresserImagePlanning(file) {
-  return new Promise(function(resolve, reject) {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = function() {
-      const MAX = 1600;
-      let w = img.naturalWidth, h = img.naturalHeight;
-      if (w > MAX || h > MAX) { const k = MAX / Math.max(w, h); w = Math.round(w * k); h = Math.round(h * k); }
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      c.getContext('2d').drawImage(img, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      c.toBlob(function(b) { b ? resolve(b) : reject(new Error('compression')); }, 'image/jpeg', 0.82);
-    };
-    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('lecture')); };
-    img.src = url;
-  });
-}
-
-async function ajouterImagesPlanning(evtId, input) {
-  const e = DB.planning.find(x => x.id == evtId);
-  const files = Array.from(input.files || []);
-  if (!e || !files.length) return;
-  if (!supabaseClient || !navigator.onLine) { alert('Pas de connexion : impossible d\'ajouter un fichier pour le moment. Réessaie quand le réseau est revenu.'); input.value = ''; return; }
-  const btn = document.getElementById('btnAddImgPlanning');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Envoi en cours…'; }
-  if (!Array.isArray(e.images)) e.images = [];
-  let ok = 0, erreur = '', tropGros = '';
-  for (const f of files) {
-    try {
-      const estPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
-      let blob, ext, mime;
-      if (estPdf) {
-        if (f.size > 10 * 1024 * 1024) { tropGros = f.name || 'PDF'; continue; }
-        blob = f; ext = 'pdf'; mime = 'application/pdf';
-      } else {
-        blob = await compresserImagePlanning(f); ext = 'jpg'; mime = 'image/jpeg';
-      }
-      const path = e.id + '/' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext;
-      const { error } = await supabaseClient.storage.from(PLANNING_BUCKET).upload(path, blob, { contentType: mime, upsert: false });
-      if (error) throw error;
-      const entree = { path: path, nom: (f.name || (estPdf ? 'document' : 'image')).replace(/\.[^.]+$/, ''), prive: false };
-      if (estPdf) entree.type = 'pdf';
-      e.images.push(entree);
-      ok++;
-    } catch (err) {
-      erreur = (err && err.message) || 'erreur';
-    }
-  }
-  if (tropGros) alert('Le PDF « ' + tropGros + ' » dépasse 10 Mo : il n\'a pas été ajouté. Réduis-le (ou exporte-le en plus léger) et réessaie.');
-  input.value = '';
-  if (ok) saveData();
-  if (erreur) {
-    alert(/bucket|not found/i.test(erreur)
-      ? 'Le dossier de fichiers n\'est pas encore créé côté Supabase. Il faut d\'abord faire l\'étape de configuration.'
-      : 'Un fichier n\'a pas pu être envoyé (' + erreur + '). Vérifie la connexion et réessaie.');
-  }
-  showEvtDetail(e.id);
-}
-
-async function supprimerImagePlanning(evtId, idx) {
-  const e = DB.planning.find(x => x.id == evtId);
-  if (!e || !e.images || !e.images[idx]) return;
-  if (!confirm('Supprimer ce fichier ?')) return;
-  const img = e.images[idx];
-  e.images.splice(idx, 1);
-  saveData();
-  try { if (supabaseClient) await supabaseClient.storage.from(PLANNING_BUCKET).remove([img.path]); } catch (err) { /* le fichier restera orphelin, sans gravité */ }
-  showEvtDetail(e.id);
-}
-
-function basculerPrivePlanning(evtId, idx) {
-  const e = DB.planning.find(x => x.id == evtId);
-  if (!e || !e.images || !e.images[idx]) return;
-  e.images[idx].prive = !e.images[idx].prive;
-  saveData();
-  showEvtDetail(e.id);
-}
-
-// Plein écran : on touche l'image pour zoomer / dézoomer, on fait défiler pour se déplacer
-function ouvrirImagePlanning(url) {
-  const old = document.getElementById('lightboxPlanning');
-  if (old) old.remove();
-  const d = document.createElement('div');
-  d.id = 'lightboxPlanning';
-  d.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.93);overflow:auto;-webkit-overflow-scrolling:touch';
-  d.innerHTML = '<button type="button" aria-label="Fermer" onclick="document.getElementById(\'lightboxPlanning\').remove()" style="position:fixed;top:12px;right:12px;z-index:2;width:52px;height:52px;border-radius:50%;border:none;background:#fff;color:#111;font-size:26px;cursor:pointer">✕</button>'
-    + '<img src="' + url + '" alt="Image du planning" onclick="this.style.width=(this.style.width===\'250%\'?\'100%\':\'250%\')" style="display:block;width:100%;max-width:none;margin:auto;cursor:zoom-in">';
-  document.body.appendChild(d);
-}
-
-// Galerie d'un événement. admin=true : boutons d'ajout / suppression / visibilité.
-// Pour les familles (admin=false) on masque les images marquées « équipe seulement ».
-function htmlGalerieEvt(e, admin) {
-  const imgs = (e.images || []).map(function(im, i) { return { im: im, i: i }; })
-    .filter(function(x) { return admin || !x.im.prive; });
-  if (!imgs.length && !admin) return '';
-  let h = '<div style="margin:0 0 16px">';
-  if (imgs.length) {
-    h += '<div style="font-size:12px;font-weight:700;color:var(--gris-txt);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px"><i class="ti ti-paperclip"></i> Pièces jointes</div>'
-      + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">';
-    imgs.forEach(function(x) {
-      const u = urlImagePlanning(x.im.path);
-      const estPdf = x.im.type === 'pdf';
-      h += '<div style="border:1px solid var(--gris-bord);border-radius:10px;overflow:hidden;background:#fff">';
-      if (estPdf) {
-        h += '<a href="' + u + '" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:110px;padding:6px;text-decoration:none;background:#fef2f2;color:#b91c1c">'
-          + '<i class="ti ti-file-type-pdf" style="font-size:38px"></i>'
-          + '<span style="font-size:12px;font-weight:600;text-align:center;line-height:1.2;max-height:30px;overflow:hidden;word-break:break-word">' + escAttr(x.im.nom || 'Document') + '</span></a>';
-      } else {
-        h += '<img src="' + u + '" alt="' + escAttr(x.im.nom || 'Image') + '" loading="lazy" onclick="ouvrirImagePlanning(this.src)" style="display:block;width:100%;height:110px;object-fit:cover;cursor:zoom-in">';
-      }
-      if (admin) {
-        h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;gap:4px">'
-          + '<button type="button" onclick="basculerPrivePlanning(' + e.id + ',' + x.i + ')" title="' + (x.im.prive ? 'Visible par l\'équipe seulement' : 'Visible aussi par les familles') + '" style="min-height:40px;padding:0 8px;border-radius:8px;border:1px solid var(--gris-bord);background:' + (x.im.prive ? '#fef3c7' : '#dcfce7') + ';font-size:12px;font-weight:600;cursor:pointer">'
-          + '<i class="ti ' + (x.im.prive ? 'ti-lock' : 'ti-eye') + '"></i> ' + (x.im.prive ? 'Équipe' : 'Familles') + '</button>'
-          + '<button type="button" onclick="supprimerImagePlanning(' + e.id + ',' + x.i + ')" aria-label="Supprimer le fichier" style="min-height:40px;min-width:40px;border-radius:8px;border:none;background:none;color:var(--rouge);cursor:pointer"><i class="ti ti-trash"></i></button>'
-          + '</div>';
-      }
-      h += '</div>';
-    });
-    h += '</div>';
-  }
-  if (admin) {
-    h += '<input type="file" id="inputImgPlanning" accept="image/*,application/pdf" multiple style="display:none" onchange="ajouterImagesPlanning(' + e.id + ',this)">'
-      + '<button type="button" id="btnAddImgPlanning" class="btn-add" style="margin-top:' + (imgs.length ? '12' : '0') + 'px;min-height:48px" onclick="document.getElementById(\'inputImgPlanning\').click()"><i class="ti ti-paperclip"></i> Ajouter une image ou un PDF</button>';
-  }
-  return h + '</div>';
-}
-
 function showEvtDetail(id) {
   const e = DB.planning.find(x=>x.id==id);
   if (!e) return;
@@ -11973,7 +11885,6 @@ function showEvtDetail(id) {
       <span style="font-size:12px;font-weight:700;padding:3px 12px;border-radius:20px;background:white;color:${col}">${libelleTypePlanning(e.type)}</span>
       ${enVacances ? `<div style="margin-top:10px;font-size:12px;color:#b91c1c"><i class="ti ti-beach"></i> Cet événement tombe pendant les vacances scolaires (${getNomVacances(e.date)})</div>` : ''}
     </div>
-    ${htmlGalerieEvt(e, true)}
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Fermer</button>
       <button class="btn-danger" onclick="deleteItem('planning',${e.id},'planning');closeModal()"><i class="ti ti-trash"></i> Supprimer</button>
@@ -11982,11 +11893,6 @@ function showEvtDetail(id) {
 
 function deleteItem(collection, id, section) {
   if (!confirm('Supprimer cet élément ?')) return;
-  if (collection === 'planning' && supabaseClient) {
-    const ev = DB.planning.find(x => x.id == id);
-    const chemins = ev && ev.images ? ev.images.map(i => i.path) : [];
-    if (chemins.length) supabaseClient.storage.from(PLANNING_BUCKET).remove(chemins).catch(function(){});
-  }
   memoriserSuppressions(collection, DB[collection].filter(x=>x.id==id));
   DB[collection] = DB[collection].filter(x=>x.id!=id);
   saveData(); showSection(section);
