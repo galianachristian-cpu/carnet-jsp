@@ -845,6 +845,60 @@ const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_U
 let saveEnCours = false;
 let saveEnAttente = false;
 
+// ── Protection contre l'écrasement par un appareil resté ouvert ──
+// cloudBase = dernière version du cloud connue par cet appareil (date + contenu).
+// Avant d'écrire, on relit le cloud : si un autre appareil (ou une mise à jour
+// directe de la base) a écrit entre-temps, on fusionne au lieu d'écraser :
+// ce qui a été modifié ici est conservé, ce qui a été modifié ailleurs aussi.
+let cloudBase = null;
+
+function canonJSON(v) {
+  if (v === undefined) return 'u';
+  if (Array.isArray(v)) return '[' + v.map(canonJSON).join(',') + ']';
+  if (v && typeof v === 'object') {
+    return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort()
+      .map(k => JSON.stringify(k) + ':' + canonJSON(v[k])).join(',') + '}';
+  }
+  return JSON.stringify(v);
+}
+
+function snapshotBase(data, ts) {
+  cloudBase = { ts: ts || null, json: JSON.stringify(data || {}) };
+}
+
+function estObjetSimple(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+
+// Fusion à trois voies : base = dernière version connue, local = cet appareil,
+// cloud = version actuelle en ligne. Descend dans les objets (ex. une fiche,
+// un niveau de questions) pour fusionner finement.
+function fusion3(base, local, cloud, profondeur) {
+  const cb = canonJSON(base), cl = canonJSON(local), cc = canonJSON(cloud);
+  if (cl === cb) return cloud;               // pas modifié ici : version en ligne
+  if (cc === cb || cc === cl) return local;  // pas modifié ailleurs : version d'ici
+  if (profondeur > 0 && estObjetSimple(base) && estObjetSimple(local) && estObjetSimple(cloud)) {
+    const out = {};
+    new Set([...Object.keys(base), ...Object.keys(local), ...Object.keys(cloud)]).forEach(k => {
+      const v = fusion3(base[k], local[k], cloud[k], profondeur - 1);
+      if (v !== undefined) out[k] = v;
+    });
+    return out;
+  }
+  return local; // modifié des deux côtés au même endroit : la modification faite ici l'emporte
+}
+
+function appliquerDansDB(nouveau) {
+  Object.keys(DB).forEach(k => { if (!(k in nouveau)) delete DB[k]; });
+  Object.assign(DB, nouveau);
+}
+
+function rafraichirEcranSiLibre() {
+  try {
+    const bg = document.getElementById('modalBg');
+    const modalOuverte = bg && !bg.classList.contains('hidden');
+    if (!modalOuverte && currentUser && currentSection) showSection(currentSection);
+  } catch (e) { /* écran non prêt */ }
+}
+
 function setSyncStatus(state, msg) {
   const dot = document.getElementById('sync-cloud-dot');
   const lbl = document.getElementById('sync-cloud-label');
@@ -865,14 +919,38 @@ async function saveData() {
   try {
     setSyncStatus('wait', 'Sauvegarde…');
     await fusionnerDemandesDepuisCloud();
-    const { error } = await supabaseClient
-      .from('carnet_jsp_data')
-      .update({ data: DB, updated_at: new Date().toISOString() })
-      .eq('id', 'main');
-    if (error) throw error;
+    let ecrit = false, fusionAppliquee = false;
+    for (let essai = 0; essai < 4 && !ecrit; essai++) {
+      const { data: row, error } = await supabaseClient
+        .from('carnet_jsp_data').select('data, updated_at').eq('id', 'main').single();
+      if (error) throw error;
+      const cloudValide = row && row.data && row.data.jsps && row.data.jsps.length;
+      let aEcrire = DB;
+      if (cloudValide && cloudBase && row.updated_at !== cloudBase.ts) {
+        // Quelqu'un a écrit depuis notre dernier chargement : on fusionne au lieu d'écraser
+        aEcrire = fusion3(JSON.parse(cloudBase.json), DB, row.data, 3);
+        fusionAppliquee = true;
+      }
+      let q = supabaseClient.from('carnet_jsp_data')
+        .update({ data: aEcrire, updated_at: new Date().toISOString() }).eq('id', 'main');
+      q = row && row.updated_at ? q.eq('updated_at', row.updated_at) : q.is('updated_at', null);
+      const res = await q.select('updated_at');
+      if (res.error) throw res.error;
+      if (res.data && res.data.length) {
+        ecrit = true;
+        if (aEcrire !== DB) appliquerDansDB(aEcrire);
+        snapshotBase(DB, res.data[0].updated_at);
+      }
+      // sinon : une autre écriture est passée entre la lecture et l'écriture → on recommence
+    }
+    if (!ecrit) throw new Error('conflit');
+    if (fusionAppliquee) {
+      localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
+      rafraichirEcranSiLibre();
+    }
     setSyncStatus('ok', 'Synchronisé · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
   } catch(e) {
-    setSyncStatus('err', 'Hors ligne — local utilisé');
+    setSyncStatus('err', e && e.message === 'conflit' ? 'Réessai à la prochaine sauvegarde' : 'Hors ligne — local utilisé');
   } finally {
     saveEnCours = false;
     if (saveEnAttente) { saveEnAttente = false; saveData(); }
@@ -885,7 +963,7 @@ async function loadFromCloud() {
   try {
     const { data: row, error } = await supabaseClient
       .from('carnet_jsp_data')
-      .select('data')
+      .select('data, updated_at')
       .eq('id', 'main')
       .single();
     if (error) throw error;
@@ -919,6 +997,7 @@ async function loadFromCloud() {
       if (!cloud.demandesAbsence) cloud.demandesAbsence = [];
       normaliserAbsences(cloud);
       DB = cloud;
+      snapshotBase(DB, row.updated_at);
       localStorage.setItem('carnet_jsp_v5', JSON.stringify(DB));
       setSyncStatus('ok', 'Cloud · ' + new Date().toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}));
       return true;
@@ -1898,6 +1977,31 @@ function loadData() {
 }
 
 let DB = loadData();
+snapshotBase(DB, null); // sans date : la 1re sauvegarde fusionnera avec le cloud
+
+// Quand l'appli revient au premier plan (et toutes les 2 min si elle est visible) :
+// si le cloud a changé, on recharge s'il n'y a rien de nouveau ici, sinon on
+// sauvegarde avec fusion. Évite qu'une tablette restée ouverte travaille sur
+// une vieille copie.
+async function verifierFraicheurCloud() {
+  if (!supabaseClient || saveEnCours || !cloudBase) return;
+  try {
+    const { data: r, error } = await supabaseClient
+      .from('carnet_jsp_data').select('updated_at').eq('id', 'main').single();
+    if (error || !r || r.updated_at === cloudBase.ts) return;
+    const { data: row, error: e2 } = await supabaseClient
+      .from('carnet_jsp_data').select('data, updated_at').eq('id', 'main').single();
+    if (e2 || !row || !row.data || !row.data.jsps || !row.data.jsps.length || saveEnCours) return;
+    const fusion = fusion3(JSON.parse(cloudBase.json), DB, row.data, 3);
+    if (canonJSON(fusion) === canonJSON(row.data)) {
+      if (await loadFromCloud()) rafraichirEcranSiLibre();
+    } else {
+      saveData();
+    }
+  } catch (e) { /* hors ligne : on réessaiera */ }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) verifierFraicheurCloud(); });
+setInterval(() => { if (!document.hidden) verifierFraicheurCloud(); }, 120000);
 
 // Chargement cloud au démarrage (après login)
 async function initCloudSync() {
@@ -11682,6 +11786,9 @@ function renderParentAccueil() {
   html2 += '</div>';
   html2 += '</div>';
 
+  // Résultats Hyrox caserne
+  html2 += renderCarteHyroxParent(j);
+
   // Prochains événements
   if (prochains.length) {
     html2 += '<div class="section-header"><h2><i class="ti ti-calendar" aria-hidden="true"></i> Et ensuite</h2></div>';
@@ -11702,6 +11809,57 @@ function renderParentAccueil() {
   return html2;
 }
 
+
+// Binôme d'une mission : un autre JSP, ou un invité de la séance (ex. « Papa Charly »)
+function hyAvecQui(r) {
+  if (!r.binome) return '<span style="color:var(--gris-txt)">—</span>';
+  const nom = hyNomJsp(r.binome, r.date).replace(' (invité)', '');
+  if (hyEstInvite(r.binome)) return '<span class="badge badge-orange" style="white-space:nowrap"><i class="ti ti-heart-handshake" aria-hidden="true"></i> ' + escTexte(nom) + '</span>';
+  return escTexte(nom);
+}
+
+// Carte « Hyrox caserne » sur le profil du JSP (accueil parent)
+function renderCarteHyroxParent(j) {
+  const hist = hyHistorique(j.id);
+  let h = '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px;margin-bottom:20px">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:12px"><i class="ti ti-trophy" aria-hidden="true"></i> Hyrox caserne</div>';
+  if (!hist.length) return h + '<p style="color:var(--gris-txt);font-size:13px;text-align:center;padding:12px">Pas encore de mission Hyrox enregistrée.</p></div>';
+  const fini = hist.filter(r => hyEnSecondes(r.temps) !== null);
+  const t = fini.map(r => hyEnSecondes(r.temps));
+  const gain = t.length >= 2 ? t[0] - t[t.length - 1] : null;
+  const etoiles = hist.reduce((n, r) => n + (+r.etoiles || 0), 0);
+  const carte = (cls, val, lbl) => '<div class="stat-card ' + cls + '"><div class="stat-val">' + val + '</div><div class="stat-lbl">' + lbl + '</div></div>';
+  h += '<div class="stats-grid" style="margin-bottom:12px">'
+    + carte('bleu', fini.length, 'Mission' + (fini.length > 1 ? 's' : '') + ' terminée' + (fini.length > 1 ? 's' : ''))
+    + carte('vert', t.length ? hyFormat(Math.min(...t)) : '—', 'Meilleur temps')
+    + carte(gain === null ? 'bleu' : gain >= 0 ? 'vert' : 'orange', gain === null ? '—' : (gain >= 0 ? '−' : '+') + hyFormat(Math.abs(gain)), 'Progrès depuis la 1re mission')
+    + carte('orange', etoiles + ' ★', 'Étoiles' + (etoiles >= 10 ? ' — récompense !' : ' (récompense à 10)'))
+    + '</div>';
+  const avecInvite = hist.filter(r => r.binome && hyEstInvite(r.binome));
+  if (avecInvite.length) {
+    const noms = [...new Set(avecInvite.map(r => hyNomJsp(r.binome, r.date).replace(' (invité)', '')))];
+    h += '<p style="font-size:13px;margin:0 0 10px"><i class="ti ti-heart-handshake" aria-hidden="true" style="color:#b45309"></i> '
+      + avecInvite.length + ' mission' + (avecInvite.length > 1 ? 's' : '') + ' faite' + (avecInvite.length > 1 ? 's' : '')
+      + ' en binôme avec ' + escTexte(noms.join(', ')) + '</p>';
+  }
+  const derniers = hist.slice(-5).reverse();
+  h += '<div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th>'
+    + HY_STATIONS.map(st => '<th class="hy-c">' + st.nom.split(' ')[0] + '</th>').join('')
+    + '<th>Avec</th><th>Temps</th></tr></thead><tbody>'
+    + derniers.map(r => '<tr><td class="an-nowrap">' + fmtDate(r.date) + '</td>'
+      + HY_STATIONS.map(st => '<td class="hy-c">' + hyPastille(r, st) + '</td>').join('')
+      + '<td class="an-small">' + hyAvecQui(r) + '</td>'
+      + '<td><strong>' + escTexte(r.temps || '—') + '</strong></td></tr>').join('')
+    + '</tbody></table></div>'
+    + '<p style="font-size:12px;color:var(--gris-txt);margin:8px 0">Niveau de chaque exercice : '
+    + '<span style="color:' + HY_NIV_COL.R + ';font-weight:700">● Reprise</span> · '
+    + '<span style="color:' + HY_NIV_COL.S + ';font-weight:700">● Standard</span> · '
+    + '<span style="color:' + HY_NIV_COL.C + ';font-weight:700">● Confirmé</span></p>';
+  if (fini.length >= 2 || hist.length > 5) {
+    h += '<button class="btn-add" style="font-size:13px" onclick="hyFicheJsp(' + JSON.stringify(j.id).replace(/"/g, '&quot;') + ')"><i class="ti ti-chart-line" aria-hidden="true"></i> Voir toute la progression</button>';
+  }
+  return h + '</div>';
+}
 
 function renderParentAbsences() {
   const j = getMyJSP();
