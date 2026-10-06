@@ -2749,7 +2749,7 @@ function renderAnimSeance() {
         + (f ? '<button class="an-btn an-btn-plein" onclick="animOuvrirFiche(\''+animJs(cle)+'\')"><i class="ti ti-file-text"></i> Fiche</button>'
              : (peut ? '<button class="an-btn" onclick="animEditerFiche(\''+animJs(cle)+'\',\''+animJs(it.bloc)+'\')"><i class="ti ti-plus"></i> Créer la fiche</button>' : ''))
         + (nq ? '<button class="an-btn an-btn-quiz" onclick="animLancerQuizFiche(\''+animJs(cle)+'\')"><i class="ti ti-player-play"></i> Quiz ('+nq+')</button>' : '')
-        + '<a class="an-btn" href="'+getLienCours(c, it.bloc, it.item)+'" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Cours</a>'
+        + animBoutonsSupport(c, it.bloc, it.item)
         + '<button class="an-btn" onclick="animRetour(\''+animJs(cle)+'\',\''+date+'\')"><i class="ti ti-message-check"></i> Retour</button>'
         + '</div></div>';
     });
@@ -2776,10 +2776,33 @@ function renderAnimFiches() {
     h += '<div class="an-cours an-cours-compact"><div class="an-cours-titre">'+escTexte(it.item)+' '+animBadgeStatut(f)+'</div><div class="an-actions">'
       + (f ? '<button class="an-btn" onclick="animOuvrirFiche(\''+animJs(cle)+'\')">Ouvrir</button>'
            : (peut ? '<button class="an-btn" onclick="animEditerFiche(\''+animJs(cle)+'\',\''+animJs(it.bloc)+'\')"><i class="ti ti-plus"></i> Créer</button>' : ''))
+      + (getSupport2026(cycle, it.item) ? animBoutonsSupport(cycle, it.bloc, it.item) : '')
       + '</div></div>';
   });
   h += '</div>';
+  h += animBibliotheque2026(cycle);
   return h;
+}
+// Boutons « Support JSP » (PDF) et « Diaporama » (PPTX animateurs) ; à défaut, ancien lien « Cours ».
+function animBoutonsSupport(cycle, bloc, item) {
+  var sup = getSupport2026(cycle, item);
+  if (!sup) return '<a class="an-btn" href="'+getLienCours(cycle, bloc, item)+'" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Cours</a>';
+  return '<a class="an-btn" href="'+lienDrive(sup.pdf)+'" target="_blank" rel="noopener" title="'+escTexte(sup.titre)+' — version jeunes (PDF)"><i class="ti ti-file-type-pdf"></i> Support JSP</a>'
+    + '<a class="an-btn" href="'+lienDrive(sup.pptx)+'" target="_blank" rel="noopener" title="'+escTexte(sup.titre)+' — version animateurs (PowerPoint modifiable)"><i class="ti ti-presentation"></i> Diaporama</a>';
+}
+// Tous les supports 2026 du cycle, y compris ceux qui ne correspondent à aucun item du programme de l'appli.
+function animBibliotheque2026(cycle) {
+  var liste = SUPPORTS_COURS_2026[cycle] || [];
+  if (!liste.length) return '';
+  var h = '<div class="card an-card"><div class="an-bloc">Supports de cours 2026 · '+cycle.replace('JSP','JSP ')+' ('+liste.length+')</div>'
+    + '<p class="an-muted an-small">Support JSP = PDF à montrer ou donner aux jeunes. Diaporama = PowerPoint modifiable pour les animateurs.</p>';
+  liste.forEach(function(sup){
+    h += '<div class="an-cours an-cours-compact"><div class="an-cours-titre">'+escTexte(sup.titre)+'</div><div class="an-actions">'
+      + '<a class="an-btn" href="'+lienDrive(sup.pdf)+'" target="_blank" rel="noopener"><i class="ti ti-file-type-pdf"></i> Support JSP</a>'
+      + '<a class="an-btn" href="'+lienDrive(sup.pptx)+'" target="_blank" rel="noopener"><i class="ti ti-presentation"></i> Diaporama</a>'
+      + '</div></div>';
+  });
+  return h + '</div>';
 }
 
 // ── Affichage d'une fiche ──
@@ -13112,7 +13135,59 @@ const LIVRET_LIENS_COURS_ITEM = {
     "La prise de garde": 'https://drive.google.com/file/d/1hN2wohuYluLARSbzo-QyDIu4lnMzKFtv/view',
   },
 };
+// ── Supports de cours 2026 (charte SDIS 34) ──
+// PDF = version pour les jeunes (lecture seule) ; PPTX = version modifiable pour les animateurs.
+// Fichiers rangés dans « JSP dossier 2026 » sur le Drive de Christian. Pour ajouter un cycle : compléter SUPPORTS_COURS_2026.
+// Aucune donnée Supabase n'est touchée : ces liens sont dans le code.
+function lienDrive(id) { return 'https://drive.google.com/file/d/' + id + '/view'; }
+const SUPPORTS_COURS_2026 = {
+  JSP2: [
+    { titre: 'Les engins d\'incendie et de secours', pdf: '1SQPFO-3o7ouUQDlAWEbPgg2QahhQexb-', pptx: '1WUqjJjF3QpHS5adPRX1MXXL4DolWmgL6' },
+    { titre: 'Les statuts des sapeurs-pompiers', pdf: '1M2jDFloh7SdP97FH955KpRQ7p16XVfsJ', pptx: '1kO09EV9szXaysFeGYQNgRaQmgoCdgi-R' },
+    { titre: 'La combustion', pdf: '1zOVaSGSuy44wWRZXJZvxIKdQrP0sGFzQ', pptx: '1Uc-jPc9gN6sLOSwuiPNl_o-dGGbXgzRj' },
+    { titre: 'Les modes de propagation', pdf: '1fwsBmdRH0IQWh5fiaeAdCZa9bT5Wh4dm', pptx: '1CrdA9PH7TsWQDAXlQPXksqmkuHDx1RBL' },
+    { titre: 'Comportement et réaction au feu des matériaux', pdf: '1tROl6NWF2qm2dxW96ttuVLChX6SySAcK', pptx: '1wnXVDeRcZ1jHhxqR2gLA45a635HGOvKL' },
+    { titre: 'Classes de feux et agents extincteurs', pdf: '1gheKKVgkwFa9ijh_mK_WknrCqfJwFFlD', pptx: '17UadpJk9oyqB3jygo9zyVTu63PlS0m2v' },
+    { titre: 'Les procédés d\'extinction', pdf: '11R2pjcm_AxKaOqKG41M7aIkiTA6CwbOA', pptx: '1b22lPfHNemef2de8NIKJhfArr78ohbV0' },
+    { titre: 'Les établissements', pdf: '1AvnI0TivOzPo8Kug_HX0d5cyTJ3uG3Lk', pptx: '1lEn6d2wWXCVMuextb6kozE_c5MDarCep' },
+    { titre: 'Le prompt secours', pdf: '1rXi1ylD_u8rW-YG58rIi7TUUxIZVujjz', pptx: '1F6HkeYYrfCnWku9cRhg1mlFV-mcsV6h8' },
+    { titre: 'L\'appareil respiratoire isolant (ARI)', pdf: '1zuRNCBKFmkJ9XXrAUBHnPqoGVEbSgZ6Y', pptx: '1Q01MUcjyvMqSsaMJk5pqEMCHAxYelFK7' },
+    { titre: 'Le lot de sauvetage et de protection contre les chutes (LSPCC)', pdf: '1ckbGi2lVZQEuWajtixICrXG3Dy_QA7fi', pptx: '1npC2exoHvMaV0ouCw0Z-WdudiQo_tZTA' },
+    { titre: 'Les échelles à coulisse', pdf: '17qveT-C2FIY0p2S3Hlv6uJBdZfCTTBmA', pptx: '1k_Re4QdlvpY1t-n4FA7yQsRuCT_CyoAR' },
+    { titre: 'Les matériels d\'épuisement et d\'assèchement', pdf: '1bSN3n0WJWsg3ujm71LKOQtix-d6sJbvu', pptx: '1DvTMk93m9XviQQyHUARNNtVeZ6fZtznX' },
+    { titre: 'Les matériels électriques et d\'éclairage', pdf: '1HQEYZ5IQhNJLf2RsaIED2_8C904p6O9y', pptx: '18dSX28NpLBmiYX11z7eOEpoNDnzhSkx1' },
+    { titre: 'Les risques de la vie courante', pdf: '1m0j50VDatLHo14AT9QOU1jUwzbtV6OUz', pptx: '1QQh1y0zj57NN96SvIfBASk0taIQrMh5t' },
+    { titre: 'La préparation physique', pdf: '1Jaikviy3FIdXGETGLfUj_TtpYle7OQf8', pptx: '1Sk4BVHWiqFmYHlPNZLL0nwLVOIMrUdpy' },
+  ],
+};
+// Correspondance item du programme -> support 2026 (index dans SUPPORTS_COURS_2026[cycle]).
+const SUPPORTS_COURS_2026_ITEM = {
+  JSP2: {
+    'Les engins d\'incendie et de secours. Contrôle et reconditionnement': 0,
+    'Les règles et précautions d\'emploi des tuyaux': 7,
+    'Les établissements de lances de plein pied': 7,
+    'Les moyens de production de mousse': 5,
+    'La toxicité des fumées d\'incendies': 2,
+    'Les contraintes physiologiques de l\'ARI': 9,
+    'L\'équipement en binôme (RAPACE)': 9,
+    'Le comportement et la réaction au feu des matériaux': 4,
+    'L\'évolution au moyen du LSPCC': 10,
+    'Les règles d\'emploi et de sécurité de l\'échelle à coulisse': 11,
+    'Les matériels d\'épuisement': 12,
+    'Les matériels électriques portatifs': 13,
+    'Les différents statuts des sapeurs-pompiers': 1,
+    'Les risques d\'incendie': 14,
+    'Les risques domestiques': 14,
+  },
+};
+function getSupport2026(cycle, item) {
+  var idx = SUPPORTS_COURS_2026_ITEM[cycle] && SUPPORTS_COURS_2026_ITEM[cycle][item];
+  if (idx === undefined || idx === null) return null;
+  return (SUPPORTS_COURS_2026[cycle] || [])[idx] || null;
+}
 function getLienCours(cycle, bloc, item) {
+  var sup = getSupport2026(cycle, item);
+  if (sup) return lienDrive(sup.pdf);
   var parItem = LIVRET_LIENS_COURS_ITEM[cycle] && LIVRET_LIENS_COURS_ITEM[cycle][item];
   if (parItem) return parItem;
   return (LIVRET_LIENS_COURS[cycle] && LIVRET_LIENS_COURS[cycle][bloc]) || LIEN_COURS_JSP_DRIVE;
