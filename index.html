@@ -2729,7 +2729,15 @@ function renderAnimSeance() {
     if (s.materiel) h += '<p class="an-p"><strong>Matériel :</strong> '+escTexte(s.materiel)+'</p>';
     if (s.notes) h += '<p class="an-p an-muted">'+escTexte(s.notes)+'</p>';
   } else {
-    h += '<p class="an-muted">Pas encore de déroulé pour cette séance.</p>';
+    const auto = animDerouleAuto(date);
+    if (auto) {
+      h += '<p class="an-muted an-small"><i class="ti ti-wand"></i> Proposition automatique à partir des fiches'+(peut?' — clique sur « Créer le déroulé » pour l\'ajuster et l\'enregistrer':'')+'.</p>'
+        + '<div class="an-scroll"><table class="an-table"><thead><tr><th>Durée</th><th>Quoi</th><th>Comment</th></tr></thead><tbody>'
+        + auto.deroule.map(r => '<tr><td class="an-nowrap">'+escTexte(r.duree)+'</td><td><strong>'+escTexte(r.quoi)+'</strong></td><td>'+escTexte(r.comment)+'</td></tr>').join('')
+        + '</tbody></table></div>';
+    } else {
+      h += '<p class="an-muted">Pas encore de déroulé pour cette séance.</p>';
+    }
   }
   h += '</div>';
 
@@ -2845,6 +2853,7 @@ function animOuvrirFiche(cle) {
   }
   h += '<div class="an-actions an-actions-bas">'
     + (f.quiz && f.quiz.length ? '<button class="an-btn an-btn-quiz" onclick="closeModal();animLancerQuizFiche(\''+animJs(cle)+'\')"><i class="ti ti-player-play"></i> Lancer le quiz</button>' : '')
+    + animBoutonsSupport(f.cycle, f.bloc, f.item)
     + '<button class="an-btn" onclick="animImprimerFiche(\''+animJs(cle)+'\')"><i class="ti ti-printer"></i> Imprimer</button>'
     + (peut ? '<button class="an-btn" onclick="animEditerFiche(\''+animJs(cle)+'\')"><i class="ti ti-pencil"></i> Modifier</button>' : '')
     + (peut && f.statut !== 'validee' ? '<button class="an-btn an-btn-plein" onclick="animValiderFiche(\''+animJs(cle)+'\')"><i class="ti ti-circle-check"></i> Valider la fiche</button>' : '')
@@ -2959,16 +2968,51 @@ function animEnregistrerFiche() {
   animOuvrirFiche(cle);
 }
 
+// Propose un déroulé de séance à partir du programme du jour et des fiches (rien n'est enregistré tant qu'on ne valide pas).
+function animMinutes(d) { const m = String(d||'').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; }
+function animDerouleAuto(date) {
+  const a = getAnim();
+  const items = animItemsDuJour(date);
+  if (!items.length) return null;
+  const deroule = [{ duree: "10'", quoi: 'Rassemblement', comment: 'Appel, tenue, présentation des cours du jour et consignes de sécurité' }];
+  const mat = [], secu = [];
+  ['JSP1','JSP2','JSP3','JSP4'].forEach(c => {
+    items.filter(it => it.cycle === c).forEach(it => {
+      const f = a.fiches[animCle(c, it.item)];
+      const acts = (f && f.activites) || [];
+      const total = acts.reduce((n, ac) => n + animMinutes(ac.duree), 0);
+      const detail = acts.length ? acts.map(ac => ac.titre + (ac.duree ? ' (' + ac.duree + ')' : '')).join(' → ') : 'Cours (pas encore de fiche)';
+      deroule.push({ duree: (total || 45) + "'", quoi: c.replace('JSP','JSP ') + ' · ' + it.item, comment: detail });
+      if (f && f.materiel) mat.push(c.replace('JSP','JSP ') + ' : ' + f.materiel);
+      acts.forEach(ac => { if (ac.securite && !secu.includes(ac.securite)) secu.push(ac.securite); });
+    });
+  });
+  const nbQuiz = items.reduce((n, it) => { const f = a.fiches[animCle(it.cycle, it.item)]; return n + (f && f.quiz ? f.quiz.length : 0); }, 0);
+  if (nbQuiz) deroule.push({ duree: "10'", quoi: 'Quiz de la séance', comment: 'Quiz sur tablette en équipes mixtes (bouton « Quiz de toute la séance »)' });
+  deroule.push({ duree: "5'", quoi: 'Fin de séance', comment: 'Rangement du matériel, bilan rapide, consignes pour la prochaine séance' });
+  return { deroule, materiel: mat.join(' · '), notes: secu.length ? 'Sécurité : ' + secu.join(' ') : '' };
+}
+
 // ── Édition du déroulé d'une séance ──
 function animEditerSeance(date) {
-  const s = getAnim().seances[date] || { deroule: [], materiel: '', notes: '' };
+  const enr = getAnim().seances[date];
+  const auto = (!enr || !(enr.deroule||[]).length) ? animDerouleAuto(date) : null;
+  const s = enr && (enr.deroule||[]).length ? enr : Object.assign({ deroule: [], materiel: '', notes: '' }, enr || {}, auto || {});
   const txt = (s.deroule||[]).map(r => [r.duree, r.quoi, r.comment].join(' | ')).join('\n');
   openModalWide('<div class="an-modal"><h3>Déroulé du '+fmtDate(date)+'</h3>'
     + '<label class="an-label">Étapes <span class="an-muted">(une par ligne : Durée | Quoi | Comment)</span></label>'
     + '<textarea id="an-s-der" class="an-textarea an-mono" rows="8" placeholder="10\' | Rassemblement | Appel, tenue, consignes">'+escTexte(txt)+'</textarea>'
     + '<label class="an-label">Matériel</label><textarea id="an-s-mat" class="an-textarea" rows="2">'+escTexte(s.materiel)+'</textarea>'
     + '<label class="an-label">Remarques pour les animateurs</label><textarea id="an-s-notes" class="an-textarea" rows="2">'+escTexte(s.notes)+'</textarea>'
-    + '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Annuler</button><button class="an-btn an-btn-plein" onclick="animEnregistrerSeance(\''+date+'\')">Enregistrer le déroulé</button></div></div>');
+    + '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="animRemplirDerouleAuto(\''+date+'\')"><i class="ti ti-wand"></i> Proposer depuis les fiches</button><button class="an-btn" onclick="closeModal()">Annuler</button><button class="an-btn an-btn-plein" onclick="animEnregistrerSeance(\''+date+'\')">Enregistrer le déroulé</button></div></div>');
+}
+function animRemplirDerouleAuto(date) {
+  const auto = animDerouleAuto(date);
+  if (!auto) { showToast('Aucun cours prévu ce jour-là dans le programme', true); return; }
+  document.getElementById('an-s-der').value = auto.deroule.map(r => [r.duree, r.quoi, r.comment].join(' | ')).join('\n');
+  document.getElementById('an-s-mat').value = auto.materiel;
+  document.getElementById('an-s-notes').value = auto.notes;
+  showToast('Déroulé proposé : vérifie puis enregistre');
 }
 function animEnregistrerSeance(date) {
   const deroule = animLignes(document.getElementById('an-s-der').value).map(l => { const p = l.split('|').map(x => x.trim()); return { duree: p[0]||'', quoi: p[1]||'', comment: p.slice(2).join(' | ') }; });
