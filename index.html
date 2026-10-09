@@ -11926,7 +11926,7 @@ function modalQuestionnaireLive(niveau, rang, jspId, indexCourant, reponsesData)
   if (indexCourant >= questions.length) {
     // Fin du questionnaire : calcul de la note
     const bonnes = reponsesData.filter((r,i) => r === questions[i].bonne).length;
-    finaliserQuestionnaire(niveau, rang, jspId, reponsesData, bonnes);
+    finaliserQuestionnaire(niveau, rang, jspId, reponsesData, Math.round(bonnes / questions.length * 100) / 10);
     return;
   }
 
@@ -11982,7 +11982,7 @@ function validerQuestionnaireSaisie(niveau, rang, jspId) {
     if (!confirm('Certaines questions n\'ont pas de réponse cochée — elles seront comptées comme fausses. Continuer ?')) return;
   }
   const bonnes = reponsesData.filter((r,i) => r === questions[i].bonne).length;
-  finaliserQuestionnaire(niveau, rang, jspId, reponsesData, bonnes);
+  finaliserQuestionnaire(niveau, rang, jspId, reponsesData, Math.round(bonnes / questions.length * 100) / 10);
 }
 
 function finaliserQuestionnaire(niveau, rang, jspId, reponsesData, note) {
@@ -13495,49 +13495,53 @@ function renderParentQuestionnaires() {
 function lancerQuestionnairePourJSP(assignationId) {
   const a = DB.questionnairesAssignes.find(x => x.id === assignationId);
   if (!a) return;
-  const j = getMyJSP();
-  if (a.annuel) {
-    const questions = piocherQuestionsAnnuelles(a.niveau, 20);
-    modalQuestionnaireLiveJSP(a, questions, 0, []);
-  } else {
-    const questions = getQuestionsCulture(a.niveau, a.rang);
-    if (!questions.length) { showToast('Questionnaire indisponible'); return; }
-    modalQuestionnaireLiveJSP(a, questions, 0, []);
-  }
+  const questions = a.annuel
+    ? piocherQuestionsAnnuelles(a.niveau, 20)
+    : getQuestionsCulture(a.niveau, a.rang);
+  if (!questions.length) { showToast('Questionnaire indisponible'); return; }
+  // L'état du questionnaire en cours est gardé en mémoire (et non dans les boutons)
+  window._qJSP = { assignationId: a.id, questions: questions, reponses: [] };
+  modalQuestionnaireLiveJSP();
 }
 
-function modalQuestionnaireLiveJSP(assignation, questions, indexCourant, reponsesData) {
+function modalQuestionnaireLiveJSP() {
+  const st = window._qJSP;
+  if (!st) return;
+  const assignation = DB.questionnairesAssignes.find(x => x.id === st.assignationId);
+  if (!assignation) { closeModal(); return; }
+  const questions = st.questions;
+  const indexCourant = st.reponses.length;
   if (indexCourant >= questions.length) {
-    finaliserQuestionnairePourJSP(assignation, questions, reponsesData);
+    window._qJSP = null;
+    finaliserQuestionnairePourJSP(assignation, questions, st.reponses);
     return;
   }
   const q = questions[indexCourant];
   const sur = assignation.annuel ? 20 : 10;
   const choixHtml = q.choix.map((c, i) => `
-    <button onclick="repondreQuestionnaireLiveJSP(${assignation.id},${indexCourant},${i},${JSON.stringify(reponsesData)},${JSON.stringify(questions).replace(/'/g,'\\u0027')})"
+    <button onclick="repondreQuestionnaireLiveJSP(${i})"
       style="display:block;width:100%;text-align:left;padding:12px 16px;margin-bottom:8px;border-radius:10px;border:1.5px solid var(--gris-bord);background:white;cursor:pointer;font-size:14px;font-family:inherit"
       onmouseover="this.style.background='var(--bleu-clair)'" onmouseout="this.style.background='white'">
       <b style="color:var(--bleu);margin-right:6px">${['A','B','C','D'][i]}</b> ${c}
     </button>`).join('');
 
   openModal(`<h3><i class="ti ti-clipboard-text"></i> ${assignation.niveau} — ${assignation.annuel ? 'Contrôle annuel' : getLabelMoisRang(assignation.niveau, assignation.rang)}</h3>
-    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:4px">Question ${indexCourant+1}/${questions.length}${assignation.annuel ? ' — sur '+sur : ''}</p>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:4px">Question ${indexCourant+1}/${questions.length} — note sur ${sur}</p>
     <p style="font-size:16px;font-weight:600;margin-bottom:14px">${q.enonce}</p>
     ${choixHtml}`);
 }
 
-function repondreQuestionnaireLiveJSP(assignationId, indexCourant, choixIndex, reponsesData, questions) {
-  const a = DB.questionnairesAssignes.find(x => x.id === assignationId);
-  reponsesData = [...reponsesData, choixIndex];
-  modalQuestionnaireLiveJSP(a, questions, indexCourant + 1, reponsesData);
+function repondreQuestionnaireLiveJSP(choixIndex) {
+  const st = window._qJSP;
+  if (!st) return;
+  st.reponses.push(choixIndex);
+  modalQuestionnaireLiveJSP();
 }
 
 function finaliserQuestionnairePourJSP(assignation, questions, reponsesData) {
   const bonnes = reponsesData.filter((r, i) => r === questions[i].bonne).length;
   const sur = assignation.annuel ? 20 : 10;
-  const note = assignation.annuel
-    ? Math.round((bonnes / questions.length) * 20 * 10) / 10
-    : bonnes;
+  const note = Math.round((bonnes / questions.length) * sur * 10) / 10;
 
   // Enregistre le résultat
   DB.questionnaireReponses.push({
