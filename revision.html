@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1a3c6e">
+<meta name="description" content="Application de révision sapeurs-pompiers : fiches, quiz, flashcards, examen blanc et recherche rapide.">
+<title>Révision Pompiers 34</title>
+<style>
+:root{
+  --navy:#1a3c6e;--navy2:#244f8f;--red:#d32f2f;--red2:#b71c1c;
+  --bg:#f3f5fa;--card:#ffffff;--card2:#f8f9fc;--text:#1b2230;--muted:#5d6b82;--line:#e2e7f0;
+  --ok:#2e7d32;--ko:#c62828;--okbg:#e8f5e9;--kobg:#fdecea;--mark:#ffe08a;--marktext:#1b2230;
+  --shadow:0 2px 12px rgba(20,30,60,.08);--radius:16px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d121b;--card:#161d2a;--card2:#1b2433;--text:#e8edf5;--muted:#9eabc0;--line:#283347;
+    --okbg:#14301a;--kobg:#3b1919;--mark:#8a6a00;--marktext:#fff;--shadow:0 2px 12px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d121b;--card:#161d2a;--card2:#1b2433;--text:#e8edf5;--muted:#9eabc0;--line:#283347;
+  --okbg:#14301a;--kobg:#3b1919;--mark:#8a6a00;--marktext:#fff;--shadow:0 2px 12px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+mark{background:var(--mark);color:var(--marktext);border-radius:3px;padding:0 1px}
+
+/* Header */
+.top{position:sticky;top:0;z-index:20;background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.top::after{content:"";display:block;height:3px;background:linear-gradient(90deg,var(--red),#ff7043,var(--red))}
+.top-in{max-width:920px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--red);display:grid;place-items:center;font-size:20px;flex:none}
+.brand{flex:1;min-width:0;text-decoration:none}
+.brand b{display:block;font-size:17px;letter-spacing:.2px}
+.brand small{opacity:.8;font-size:12px}
+.icon-btn{background:rgba(255,255,255,.12);border:0;border-radius:12px;width:40px;height:40px;display:grid;place-items:center;color:#fff;font-size:18px}
+.icon-btn:hover{background:rgba(255,255,255,.22)}
+
+main{max-width:920px;margin:0 auto;padding:16px}
+h1{font-size:24px;margin:4px 0 12px}
+h2{font-size:18px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px 14px;font-weight:600;text-decoration:none;min-height:44px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.primary:hover{background:var(--red2)}
+.btn.navy{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* Hero search */
+.hero{background:linear-gradient(135deg,var(--navy),#2b5ca8 60%,#3a6fc2);color:#fff;border-radius:20px;padding:20px 18px;position:relative;overflow:hidden}
+.hero::after{content:"🔥";position:absolute;right:-8px;bottom:-22px;font-size:110px;opacity:.12}
+.hero h1{margin:0 0 4px;font-size:22px}
+.hero p{margin:0 0 14px;opacity:.9}
+.search{display:flex;align-items:center;gap:10px;background:#fff;color:#1b2230;border-radius:14px;padding:4px 6px 4px 14px;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.search input{flex:1;border:0;outline:0;font:inherit;font-size:16px;padding:10px 0;background:transparent;color:inherit;min-width:0}
+.search .kbd{font-size:12px;border:1px solid #ccd3e0;border-radius:6px;padding:1px 6px;color:#5d6b82}
+.search-page .search{background:var(--card);color:var(--text);border:1px solid var(--line)}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px}
+.hero .chip{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#fff}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+
+/* Quick actions */
+.actions{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.action{display:flex;flex-direction:column;gap:4px;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:14px;box-shadow:var(--shadow);text-decoration:none}
+.action .ic{font-size:24px}
+.action b{font-size:15px}
+.action span{font-size:13px;color:var(--muted)}
+.action:hover{border-color:var(--red)}
+
+/* Themes grid */
+.themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.theme{display:flex;gap:12px;align-items:flex-start;text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:5px solid var(--c);transition:transform .12s}
+.theme:hover{transform:translateY(-2px)}
+.theme .ti{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:24px;background:color-mix(in srgb,var(--c) 16%,transparent);flex:none}
+.theme b{display:block;line-height:1.25}
+.theme small{color:var(--muted)}
+.bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--c,var(--ok));border-radius:9px;transition:width .3s}
+
+/* Lists */
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:12px;align-items:center;text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.item:hover{border-color:var(--muted)}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block}
+.item .t small{color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:12px;font-weight:600;border-radius:999px;padding:2px 8px;background:color-mix(in srgb,var(--c,#546e7a) 15%,transparent);color:var(--c,#546e7a);white-space:nowrap}
+:root[data-theme="dark"] .tag{filter:brightness(1.5)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tag{filter:brightness(1.5)}}
+.star{background:none;border:0;font-size:22px;line-height:1;padding:4px;color:#f2b400}
+
+/* Theme header */
+.thead{border-radius:20px;padding:18px;color:#fff;background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 60%,#000));margin-bottom:14px}
+.thead .ti{font-size:34px}
+.thead h1{margin:6px 0 2px}
+.thead .bar{background:rgba(255,255,255,.25)}
+.thead .bar i{background:#fff}
+.back{display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:var(--muted);font-weight:600;margin-bottom:10px;background:none;border:0;padding:0}
+
+/* Fiche */
+.fiche h3{font-size:16px;margin:18px 0 6px;color:var(--navy)}
+:root[data-theme="dark"] .fiche h3{color:#8fb4ff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .fiche h3{color:#8fb4ff}}
+.fiche p{margin:6px 0}
+.fiche ul{margin:6px 0;padding-left:20px}
+.fiche li{margin:4px 0}
+.tbl{overflow-x:auto;margin:10px 0;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--card2);font-weight:700}
+tr:last-child td{border-bottom:0}
+.callout{border-left:4px solid var(--navy2);background:color-mix(in srgb,var(--navy2) 10%,transparent);padding:10px 12px;border-radius:10px;margin:10px 0}
+.callout.warn{border-left-color:var(--red);background:color-mix(in srgb,var(--red) 10%,transparent)}
+.callout.warn::before{content:"⚠️ "}
+.callout:not(.warn)::before{content:"💡 "}
+
+/* Quiz */
+.qhead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.qhead .bar{flex:1;margin:0;height:8px}
+.timer{font-variant-numeric:tabular-nums;font-weight:700;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px 10px}
+.timer.low{color:#fff;background:var(--red);border-color:var(--red)}
+.question{font-size:19px;font-weight:700;margin:6px 0 16px;line-height:1.35}
+.choices{display:flex;flex-direction:column;gap:10px}
+.choice{display:flex;align-items:center;gap:12px;text-align:left;border:2px solid var(--line);background:var(--card);border-radius:14px;padding:12px 14px;min-height:54px;transition:border-color .12s,background .12s}
+.choice:hover:not([disabled]){border-color:var(--navy2)}
+.choice .k{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;background:var(--card2);border:1px solid var(--line);flex:none}
+.choice.sel{border-color:var(--navy2);background:color-mix(in srgb,var(--navy2) 10%,var(--card))}
+.choice.ok{border-color:var(--ok);background:var(--okbg)}
+.choice.ok .k{background:var(--ok);color:#fff;border-color:var(--ok)}
+.choice.ko{border-color:var(--ko);background:var(--kobg)}
+.choice.ko .k{background:var(--ko);color:#fff;border-color:var(--ko)}
+.choice[disabled]{cursor:default}
+.feedback{margin-top:14px;border-radius:14px;padding:12px 14px}
+.feedback.ok{background:var(--okbg);border:1px solid var(--ok)}
+.feedback.ko{background:var(--kobg);border:1px solid var(--ko)}
+.qnav{display:flex;gap:10px;margin-top:16px}
+.qnav .btn{flex:1}
+.dots{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.dots button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:12px;font-weight:700}
+.dots button.done{background:var(--navy);color:#fff;border-color:var(--navy)}
+.dots button.cur{outline:2px solid var(--red);outline-offset:1px}
+
+/* Results */
+.ring{--p:0;--c:var(--ok);width:130px;height:130px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),var(--line) 0);display:grid;place-items:center;margin:0 auto}
+.ring div{width:104px;height:104px;border-radius:50%;background:var(--card);display:grid;place-items:center;text-align:center}
+.ring b{font-size:28px;line-height:1}
+.ring small{color:var(--muted);font-size:12px}
+.review{border-left:4px solid var(--ko);background:var(--card);border-radius:12px;padding:12px 14px;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.review.good{border-left-color:var(--ok)}
+.review p{margin:4px 0}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.kpi b{display:block;font-size:24px}
+.kpi span{font-size:13px;color:var(--muted)}
+
+/* Flashcards */
+.flash{perspective:1200px;margin:10px 0}
+.flash-in{display:grid;transition:transform .45s;transform-style:preserve-3d;cursor:pointer}
+.flash.flipped .flash-in{transform:rotateY(180deg)}
+.face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:24px 20px;min-height:260px;display:flex;flex-direction:column;justify-content:center}
+.face.back{transform:rotateY(180deg)}
+.face .lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:10px}
+.face .big{font-size:20px;font-weight:700;line-height:1.35}
+.face .ans{font-size:19px;font-weight:700;color:var(--ok);margin-bottom:8px}
+
+/* Search results */
+.answer{border:2px solid var(--red);border-radius:18px;background:var(--card);padding:16px;box-shadow:var(--shadow)}
+.answer .lbl{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--red);margin-bottom:6px}
+.answer .rep{font-size:18px;font-weight:700;margin:6px 0}
+.res{display:block;text-decoration:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.res:hover{border-color:var(--muted)}
+.res .meta{display:flex;gap:8px;align-items:center;margin-bottom:4px}
+.res p{margin:2px 0;color:var(--muted);font-size:14px}
+.res b{display:block}
+.empty{text-align:center;padding:30px 10px;color:var(--muted)}
+.empty .e{font-size:42px}
+
+/* Segmented */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:none;padding:9px 14px;font-weight:600}
+.seg button.on{background:var(--navy);color:#fff}
+
+/* Bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.nav-in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;text-decoration:none;font-size:11px;font-weight:600;color:var(--muted)}
+.nav a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
+.nav a.on{color:var(--red)}
+.nav a.on span{filter:none;opacity:1}
+
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:#1b2230;color:#fff;padding:10px 16px;border-radius:12px;opacity:0;transition:.25s;z-index:50;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.fade{animation:fade .18s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.foot{margin:28px 0 8px;font-size:12px;color:var(--muted);text-align:center}
+@media (max-width:520px){
+  .question{font-size:17px}
+  .themes{grid-template-columns:1fr 1fr}
+  .theme{flex-direction:column;gap:8px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="logo" aria-hidden="true">🚒</div>
+    <a class="brand" href="#/"><b>Révision Pompiers 34</b><small>Fiches · Quiz · Examens · Recherche</small></a>
+    <button class="icon-btn" id="btnSearch" title="Rechercher (/)" aria-label="Rechercher">🔍</button>
+  </div>
+</header>
+<main id="app"></main>
+<nav class="nav" aria-label="Navigation principale">
+  <div class="nav-in">
+    <a href="#/" data-r="home"><span>🏠</span>Accueil</a>
+    <a href="#/search" data-r="search"><span>🔍</span>Recherche</a>
+    <a href="#/exam" data-r="exam"><span>📝</span>Examen</a>
+    <a href="#/progress" data-r="progress"><span>📈</span>Progrès</a>
+    <a href="#/more" data-r="more"><span>⚙️</span>Réglages</a>
+  </div>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =========================================================================
+   CONTENU — doctrine nationale, adaptée au contexte de l'Hérault.
+   Format des fiches : mini-markdown (## titre, - liste, | tableau |,
+   > astuce, ! attention, **gras**).
+   ========================================================================= */
+function Q(q, choix, r, ex){ return { q, choix, r, ex }; }
+
+const BASE = [
+/* ---------------- Référentiels départementaux SDIS 34 ---------------- */
+{ id:'rdeb', nom:'RDEB · Engagement des binômes', icone:'🫁', couleur:'#c62828', source:'SDIS 34 · RDEB v2 (avril 2026)',
+  fiches:[
+  { titre:"L'ARI-CO : nomenclature", tags:'ari ari-co bouteille 6 l 7,2 l type ii iv 300 bar avertisseur 55 manomètre indicateur pression détendeur sad soupape demande bipasse masque griffe filet raccord y cagoule évacuation 18 kg',
+    contenu:`L'appareil respiratoire isolant à circuit ouvert (**ARI-CO**) est un EPI de **catégorie III**, vérifié chaque année par le GTL.
+## Bouteilles (air comprimé, ogive noire et blanche)
+| Type | Volume | Pression de service | Air disponible |
+| Type II (métallique renforcée) | 6 L | 300 bar | 1 800 L |
+| Type IV (composite, liner plastique) | 7,2 L | 300 bar | 2 160 L |
+## Organes
+- **Détendeur** : abaisse la pression de 300 à **7 bar ou moins**
+- **Indicateur de pression** : gradué de 0 à 350 bar ; zone blanche de travail **55 à 300 bar**, zone rouge de sécurité **0 à 55 bar**
+- **Avertisseur** pneumatique : déclenché à **55 bar**, 90 dB, au moins 10 s, consomme **5 l/min**
+- **SAD** (soupape à la demande) avec **bipasse** (plus de 60 l/min)
+- **Raccord moyenne pression Y** (flexible ≈ 1 m) et **cagoule d'évacuation** (55 l/min)
+- **Masque** à griffes (fixé au casque) ou à filet, double jupe avec demi-masque intérieur
+## À retenir
+- Poids de l'ARI-CO : **18 kg maximum**
+- Côté droit : engagement et progression ; côté gauche : sécurité et sauvetage
+- Sur la bouteille : un **outil de force et déblai** pour le chef d'équipe, une **commande** pour l'équipier
+- L'ARI-CO du conducteur sert de protection au conducteur, de réserve en cas de panne et de lot d'assistance en air
+> Lors d'un remplacement de bouteille, la nouvelle doit afficher **270 bar ou plus**.` },
+  { titre:"Contraintes du port de l'ARI", tags:'contraintes physiques physiologiques psychologiques espace mort co2 fréquence cardiaque stress consommation',
+    contenu:`## Physiques
+- Centre de gravité modifié, effort musculaire accru, passages étroits plus difficiles
+## Physiologiques
+- **Espace mort** augmenté par le masque : une partie du CO2 expiré est réinspirée
+- Résistances respiratoires accrues : l'expiration demande un effort
+- **Fréquence cardiaque** en hausse (effort, stress, chaleur) : déshydratation, hypoglycémie, épuisement plus rapide
+## Psychologiques
+- Inconfort du masque ; un porteur qui perd son calme **respire plus vite et consomme plus d'air**
+## Liées à l'équipement et à l'air
+- Perception, audition et communication réduites
+- Durée d'intervention limitée par la **consommation** du porteur et la **capacité** de la bouteille
+> L'entraînement régulier sous ARI retarde les effets de l'effort.` },
+  { titre:'Habillage et contrôle croisé (RAPACE)', tags:'rapace contrôle croisé capeler coiffer encliqueter habillage binôme porteur sous ari robinet armement pression ajustement code étanchéité',
+    contenu:`## Vocabulaire
+- **Capeler** : porter l'ARI-CO
+- **Coiffer** : placer le masque sur le visage
+- **Encliqueter** : connecter la SAD au masque
+- **Binôme porteur** d'ARI : masque en attente ; **binôme sous ARI** : masque coiffé et encliqueté
+## Règles
+- Sur engin-pompe urbain, **les deux binômes capellent** pendant le transit (sauf ordre contraire du chef d'agrès)
+- Bijoux, piercings et montres sont interdits
+- En attente, la SAD reste **encliquetée** sur le masque
+- Le masque se coiffe **à l'air frais**, avant d'entrer en atmosphère viciée
+- Binôme = un **chef d'équipe** + un **équipier**, **indissociable** en zone d'exclusion
+## Contrôle croisé : RAPACE
+| Lettre | Contrôle |
+| R · Robinet | Bouteille ouverte jusqu'à la butée |
+| A · Armement | Balise (BSD) ou indicateur (ICS) activé |
+| P · Pression | Engagement initial à **270 bar ou plus** |
+| A · Ajustement | EPI correctement portés |
+| C · Code | Code de communication adapté |
+| E · Étanchéité | Aucune fuite au masque ni à la SAD |
+! Une anomalie au contrôle croisé interdit l'engagement.` },
+  { titre:"Autonomie d'engagement et débits", tags:'autonomie débit consommation calcul abaque 10 50 105 135 l/min réserve 50 bar temps aller mission retour 30 min 36 min 14 min 17 min',
+    contenu:`Un engagement comprend trois temps : **aller**, **mission**, **retour**.
+| Situation | Débit | Autonomie à 300 bar (6 L / 7,2 L) |
+| Survie, attente des secours | ≈ 10 l/min | 3 h / 3 h 36 |
+| Engagement à vue | ≈ 50 l/min | 30 min / 36 min |
+| Engagement avec ligne de vie (15 min max) | ≈ 105 l/min | 14 min / 17 min |
+| Sauvetage (moins de 5 min) | ≈ 135 l/min | 11 min / 13 min |
+## Calcul
+- Autonomie = (pression d'engagement − **50 bar** de réserve) × volume ÷ consommation
+- Exemple : 250 bar × 7,2 L ÷ 105 l/min ≈ **17 min**
+- Les abaques du référentiel donnent l'heure de sortie prévisible au contrôleur
+! Dès que l'avertisseur se déclenche, la sortie du binôme est immédiate : on n'attend pas d'arriver dans la réserve.` },
+  { titre:'Enregistrement, contrôleur et binôme de sécurité', tags:'enregistrement contrôleur tgp tableau gestion personnels binôme sécurité attente engagement point engagement',
+    contenu:`## Enregistrement
+- Avant chaque engagement, en **zone contrôlée**, auprès du contrôleur (à défaut par le binôme, après avoir prévenu le chef d'agrès)
+- Contenu : identité des porteurs, **pression d'engagement**, **heure d'entrée**, **heure de sortie prévisible**, **mission**
+- Support privilégié : le **TGP** (tableau de gestion des personnels)
+## Le contrôleur
+- Régule **un seul point d'engagement**
+- Supervise au maximum **5 binômes** : 4 engagés + 1 binôme de sécurité
+- Gilet haute visibilité, radio sur la tactique de niveau 5
+- En cas d'urgence : il engage le binôme de sécurité et rend compte
+## Le binôme de sécurité
+- Mis en place par le COS **dès que possible**, en zone contrôlée, sous l'autorité du contrôleur
+- Même niveau de protection que les binômes engagés, moyen hydraulique à disposition
+- **En attente** : bouteille ouverte, balise activée, masque en attente, contact visuel ou radio, maintient l'itinéraire de repli, surveille les balises, contrôle l'ouvrant d'engagement
+- **Engagé** : assiste le binôme en difficulté, aide au dégagement, rend compte
+- Dès qu'il est engagé, un **nouveau binôme de sécurité** est désigné
+- Matériel possible : ligne de vie, caméra thermique, système de traction, outil de force, pince coupante, éclairage, assistance en air, échelle télescopique
+> Un sauvetage peut justifier l'envoi immédiat d'un binôme sans contrôleur ni binôme de sécurité.` },
+  { titre:'Zonage, façades et lecture du feu', tags:'zone exclusion contrôlée soutien zonage façade a b c d aiguilles montre r+5 chef secteur observation fumées chaudes opaques mobiles inflammables toxiques',
+    contenu:`| Zone | Rôle |
+| Exclusion | Exposition directe aux risques ; accès réservé aux équipes équipées |
+| Contrôlée | Zone tampon : enregistrement, engagement, binôme de sécurité, parc matériel |
+| Soutien | Commandement, soutien sanitaire, reconditionnement ; hors de tout danger |
+- À partir du **R+5** : un chef de secteur est conseillé au plus près du sinistre
+- Attention aux chutes de matériaux à l'aplomb des bâtiments
+## Désignation des façades
+- **Façade A** : accès principal (ou définie par le premier COS)
+- Puis **B, C, D** dans le **sens des aiguilles d'une montre**
+## Observation sur incendie
+- Météo, bâtiment, fumées, flammes, chaleur, ouvrants, sons
+## Les fumées sont dangereuses car
+- **C**haudes, **O**paques, **M**obiles, **I**nflammables, to**X**iques` },
+  { titre:'Ligne de vie, ligne guide et liaison personnelle', tags:'ligne vie ligne guide liaison personnelle nodule établissement ldv 40 776 m² 388 m² 60 m exploration linéaire latérale circulaire amarrage retournement croisement cat collier',
+    contenu:`La **ligne de vie** assure un lien physique continu avec le point d'engagement, **par l'établissement** ou **par ligne guide** (pas les deux en même temps).
+## Par l'établissement
+- Établissement d'attaque Ø 45 sous pression (**LDV 40**) + liaison personnelle ou maintien physique
+- Foyer à moins de **60 m** ; reconnaissance jusqu'à **776 m²** (60 m + exploration bilatérale)
+## Par ligne guide
+- Reconnaissance jusqu'à **388 m²** (60 m + exploration unilatérale), ou sauvetage sans moyen hydraulique
+- Un moyen hydraulique reste à disposition (à sec ou en attente)
+- Chaque engin-pompe urbain a **2 lignes guides** ; prolongements et dérivations : équipes **IBNB-ELD**
+## Caractéristiques
+| Élément | Valeurs |
+| Ligne guide | 60 m, aramide, Ø 6 mm, résiste à 600 kg et 500 °C |
+| Nodules (tous les 2,5 m) | **3 nodules = vers le sinistre** (IN-CEN-DIE), **1 nodule = vers la sortie** (VIE) |
+| Liaison personnelle | 6 m : partie courte 1,25 m, partie longue 4,75 m |
+## Rôles et techniques
+- **Chef d'équipe** : garant de la sécurité collective (lance ou ligne guide, choix des amarrages)
+- **Équipier** : caméra thermique
+- Amarrages : initial, intermédiaires, final ; technique : **un tour mort et deux demi-nœuds**
+- Retournement : le chef d'équipe finit derrière son équipier (serre-file)
+- Explorations : **linéaire**, **latérale**, **circulaire** (jusqu'à 56 m² avec les 6 m de liaison)` },
+  { titre:'Recherche de victimes, AIDES et marquage', tags:'aides accéder isoler désenfumer explorer sauver recherche primaire secondaire marquage r reconnu main gauche main droite eas espace attente sécurisé',
+    contenu:`## Technique AIDES
+Recherche pièce par pièce **depuis l'extérieur** (chambres par exemple), en ressortant entre chaque pièce :
+- **A**ccéder : échelle, MEA, échelle télescopique ou plain-pied
+- **I**soler : fermer la porte vers les circulations intérieures
+- **D**ésenfumer : laisser ouvert l'ouvrant d'accès
+- **E**xplorer : caméra thermique
+- **S**auver : technique adaptée, puis sortir
+## Recherche primaire (superstructure)
+- 1er temps : **étage du foyer** et **ascenseurs** (ramener la cabine au RDC, porte calée ouverte)
+- 2e temps : **étage au-dessus** et **dernier étage**
+- 3e temps : étages intermédiaires et inférieurs
+- La **recherche secondaire** se fait après la maîtrise, de façon approfondie
+## Règles de déplacement
+- Debout, accroupi ou à quatre pattes selon la chaleur
+- Escalier dangereux : descente en **marche arrière**
+- Longer les murs, sens défini : « main gauche » ou « main droite »
+- Deux binômes peuvent s'engager sur la même ligne de vie (extinction + recherche)
+## Marquage
+- Bombe à craie : **R = Reconnu** ; absence de marquage = pièce non reconnue
+- Portes refermées après reconnaissance
+## EAS (espaces d'attente sécurisés, ERP)
+- À l'abri des fumées, des flammes et du rayonnement ; au moins 2 par niveau` },
+  { titre:'Communications radio et compte rendu', tags:'radio tth 900 dir 603 624 643 664 niveau 5 niveau 3/4 codis station directrice compte rendu je suis je vois je fais à disposition balise bsd ics',
+    contenu:`## Radio
+- **TTH 900** : chef d'agrès, conducteur et chaque chef d'équipe, activé dès le transit ; porté dans la poche intérieure de la veste
+- Tactique **niveau 5** (DIR 603, 624, 643, 664) : chefs d'agrès, chefs d'équipe, conducteurs
+- Tactique **niveau 3/4** : chef de groupe et chefs d'agrès
+- Le **CODIS** est la station directrice
+- Message **clair, précis, concis**, débit lent ; ou simplement « **À disposition** »
+- Sous ARI, éloigner le micro de la membrane phonique
+## Compte rendu de situation (binôme)
+- **Je suis** : identité et localisation précise
+- **Je vois** : importance, évolution, dangers
+- **Je fais** : action en cours
+- Si le sauvetage est rapide et faisable seul, on dégage la victime d'abord et on rend compte ensuite
+## Balise BSD / indicateur ICS
+- Activé dès la zone de soutien ; alerte d'immobilité, de température, de détresse
+- Alarme température : rejoindre une zone à l'abri (réactions immédiates de moins de 5 min)
+- Balise déclenchée : le chef d'agrès ou le contrôleur appelle chaque binôme, à défaut **tous les binômes ressortent**
+- Le message de détresse radio permet d'identifier le binôme sans désengager les autres` },
+  { titre:"Après l'engagement : réengagement et décontamination", tags:'réengagement récupération bilan suie malaise 140 25 hydratation 1,5 l décontamination souillure je sais je sens je vois p3 douche decopi exposition',
+    contenu:`## Ne plus réengager si
+- **Suie dans les voies aériennes** au mouchage ou **malaise**
+- Autres critères : pouls > 140, respiration > 25/min, comportement inhabituel, rougeur du visage et du torse, pâleur, soif intense (avec VSAV : tension > 190 mmHg, SpO2 < 94 %)
+- Critère au 2e bilan : pas de réengagement, hydratation progressive (**1,5 L en 15 min**), VSAV et/ou SSO
+## Récupération
+- Retirer masque, casque, cagoule, poser l'ARI-CO ; ouvrir la veste
+- Refroidir mains, tête et cou ; s'asseoir ; lingettes ; boire (recracher la première gorgée)
+## Exposition aux fumées
+- Voies : **inhalation**, **ingestion**, **cutanée**, **oculaire**
+| Souillure | Repère | Exemple |
+| Superficielle | « Je sais » | Fumée courte à l'air libre |
+| Moyenne | « Je sens » | Fumée courte en déblai ou attaque |
+| Importante | « Je vois » | Exposition longue, traces visibles |
+- Déshabillage et nettoyage avec **demi-masque P3** et **gants jetables**
+- **Douche obligatoire** au retour au CIS
+! Jamais de nettoyeur haute pression sur un ARI-CO.` },
+  { titre:'Gaz toxiques (CO, H2S) et bouteilles de gaz', tags:'monoxyde carbone co sulfure hydrogène h2s ppm alarme basse haute 20 100 5 10 œuf pourri bouteille gaz ogive couleur acétylène',
+    contenu:`| | Monoxyde de carbone (CO) | Sulfure d'hydrogène (H2S) |
+| Origine | Combustion incomplète | Décomposition de la matière |
+| Détection | Incolore, inodore, insipide | Odeur d'œuf pourri (perte d'odorat vers 250 ppm) |
+| Alarme basse | 20 ppm | 5 ppm |
+| Alarme haute | 100 ppm | 10 ppm |
+| Intoxication aiguë | Plus de 200 ppm | Plus de 250 ppm |
+| Explosivité (LIE à LSE) | 10,9 à 76 % | 4 à 46 % |
+- Alarme basse : **15 min maximum** sans protection respiratoire
+- Au-delà de 15 min, ou en alarme haute : **ARI-CO obligatoire**
+- Sauvetage à vue en cas de force majeure : entrer en retenant sa respiration
+## Bouteilles de gaz : couleur de l'ogive
+| Couleur | Signification |
+| Jaune | Toxique et/ou corrosif |
+| Rouge | Inflammable |
+| Bleu clair | Oxydant |
+| Vert vif | Inerte |
+| Blanc | Oxygène |
+| Marron | Acétylène |
+| Noir | Azote |
+| Gris | Dioxyde de carbone |
+- Ne pas manipuler une bouteille sauf nécessité absolue
+- Les bouteilles GPL **composites** ne peuvent pas éclater` },
+  { titre:'Réseaux électriques et gaz : distances et zonage', tags:'électricité tension tbt bt hta htb dlv distance limite voisinage enedis rte linky gaz grdf grtgaz pression zonage réflexe 50 m 100 m 200 m',
+    contenu:`## Domaines de tension (courant alternatif)
+| Domaine | Tension |
+| TBT | Jusqu'à 50 V |
+| BT | 50 à 1 000 V |
+| HTA | 1 000 à 50 000 V |
+| HTB | Plus de 50 000 V |
+- Dans l'Hérault : HTA à 20 000 V ; HTB à 63 000, 225 000 et 400 000 V
+- Plus il y a d'isolateurs, plus la tension est haute ; les lignes téléphoniques sont toujours sous les lignes électriques
+## Câble au sol : distances limites de voisinage (DLV)
+- Zone d'exclusion : **10 m** (BT, HTA) et **50 m** (HTB)
+- Zone contrôlée : **20 m** (BT), **50 m** (HTA), **100 m** (HTB)
+- Câble hors sol endommagé : 3 m (tram, ferroviaire), 5 m (autres réseaux)
+! La DLV de la zone d'exclusion ne se réduit jamais : on n'y entre qu'après coupure et consignation par l'exploitant.
+## Gaz : zonage réflexe
+| Situation | Exclusion | Contrôlée |
+| Canalisation de distribution (fuite enflammée ou non) | 50 m | 100 m |
+| Réservoir GPL ou bouteille : fuite | 50 m | 100 m |
+| Bouteille de gaz soumise à l'incendie | 100 m | |
+| Réservoir GPL soumis à l'incendie | 200 m | |
+| Bouteille d'acétylène soumise à l'incendie | 200 m | 300 m |
+- Canalisation de transport haute pression : rayon en mètres = diamètre en millimètres` },
+  { titre:'Parkings couverts, caves et ascenseurs prioritaires', tags:'parking stationnement couvert cave sous-sol ssiap etare véhicule électrique vea ascenseur prioritaire igh 60 secondes',
+    contenu:`## Parking couvert ou cave
+- S'appuyer sur le SSIAP, le gardien, un plan ETARE ou d'intervention
+- **Ramener l'ascenseur au RDC**, porte calée ouverte
+- Reconnaître d'abord les **cages d'escalier** (niveau sinistré, niveaux enfumés), vérifier les portes palières
+- Couper les énergies, barrer les fluides
+- Chercher le foyer à la **caméra thermique** depuis l'ouvrant
+- Accès véhicules si les escaliers sont impraticables ou si le véhicule est à vue
+- Rechercher les **véhicules électriques** ; désenfumage après analyse du COS
+! Les portes coupe-feu asservies peuvent se refermer et bloquer les lignes de vie.
+## Ascenseurs prioritaires
+- Appel prioritaire : cabine ramenée en **60 s maximum**, appels annulés
+- Seuls les ascenseurs d'**IGH** sont utilisables en toute sécurité (secourus 36 h, gaine désenfumée, portes coupe-feu 2 h)
+- Ailleurs : seulement pour monter du matériel, en phase secondaire` }
+  ],
+  questions:[
+  Q("Quelle est la pression minimale d'engagement initial sous ARI-CO au SDIS 34 ?",["270 bar","200 bar","300 bar","250 bar"],0,"C'est le « P » du contrôle croisé RAPACE."),
+  Q("À quelle pression se déclenche l'avertisseur de l'ARI-CO ?",["55 bar","70 bar","30 bar","100 bar"],0,"Dès qu'il se déclenche, le binôme sort immédiatement."),
+  Q("Quel volume d'air contient une bouteille de 7,2 L à 300 bar ?",["2 160 L","1 800 L","720 L","3 000 L"],0,"7,2 × 300 = 2 160 L (bouteille de type IV, composite)."),
+  Q("Quel volume d'air contient une bouteille de 6 L à 300 bar ?",["1 800 L","2 160 L","600 L","1 200 L"],0,"6 × 300 = 1 800 L (bouteille de type II, métallique renforcée)."),
+  Q("Quel est le poids maximal d'un ARI-CO ?",["18 kg","10 kg","25 kg","30 kg"],0,"Ce poids pèse sur les capacités physiques du porteur."),
+  Q("Dans RAPACE, que signifie le « C » ?",["Code de communication adapté","Casque","Contrôleur","Cagoule"],0,"Robinet, Armement, Pression, Ajustement, Code, Étanchéité."),
+  Q("Dans RAPACE, que vérifie le premier « A » ?",["L'armement de la balise BSD ou de l'indicateur ICS","L'ajustement des EPI","L'alarme incendie","L'air de la bouteille"],0,"Le second A correspond à l'ajustement des EPI."),
+  Q("Où et quand le masque doit-il être coiffé ?",["À l'air frais, avant d'entrer en atmosphère viciée","Une fois dans la fumée","Seulement en cas de malaise","Au CIS avant le départ"],0,"On ne coiffe jamais dans la fumée."),
+  Q("Combien de binômes un contrôleur supervise-t-il au maximum ?",["5 (4 engagés et 1 de sécurité)","2","10","3"],0,"Il régule un seul point d'engagement."),
+  Q("Dans quelle zone se fait l'enregistrement des binômes ?",["La zone contrôlée","La zone d'exclusion","La zone de soutien","Dans l'engin"],0,"La zone contrôlée est la zone tampon d'où l'on engage."),
+  Q("Que doit-on noter à l'enregistrement d'un binôme ?",["Identité, pression, heure d'entrée, heure de sortie prévisible, mission","Seulement les noms","La couleur des casques","Le numéro de l'engin uniquement"],0,"Ces informations sont reportées sur le TGP."),
+  Q("Quand le binôme de sécurité est engagé, il faut :",["Désigner un nouveau binôme de sécurité dès que possible","Arrêter toute l'opération","Engager tous les binômes restants","Attendre la fin de l'intervention"],0,"Il doit toujours y avoir un binôme de sécurité disponible."),
+  Q("Débit de référence d'un engagement avec ligne de vie :",["105 l/min","50 l/min","10 l/min","135 l/min"],0,"10 = survie, 50 = à vue, 105 = ligne de vie, 135 = sauvetage."),
+  Q("Débit de référence en position de survie (attente des secours) :",["10 l/min","50 l/min","105 l/min","135 l/min"],0,"Soit environ 3 h avec une bouteille de 6 L pleine."),
+  Q("Autonomie d'un engagement à vue avec une BARI de 6 L à 300 bar :",["30 min","14 min","60 min","45 min"],0,"(300 − 50) × 6 ÷ 50 = 30 min."),
+  Q("Autonomie d'un engagement avec ligne de vie avec une BARI de 7,2 L à 300 bar :",["17 min","36 min","10 min","25 min"],0,"(300 − 50) × 7,2 ÷ 105 ≈ 17 min."),
+  Q("Quelle réserve déduit-on de la pression dans le calcul d'autonomie ?",["50 bar","100 bar","20 bar","Aucune"],0,"La réserve est réservée au retour."),
+  Q("Sur la ligne guide, que signifient 3 nodules ?",["La direction du sinistre","La direction de la sortie","Un point d'amarrage","La fin de la ligne"],0,"IN-CEN-DIE (3 nodules) vers le feu, VIE (1 nodule) vers le point d'engagement."),
+  Q("Quelle est la longueur de la ligne guide ?",["60 m","30 m","100 m","20 m"],0,"Elle permet de reconnaître jusqu'à 388 m²."),
+  Q("Quelle est la longueur totale de la liaison personnelle ?",["6 m (1,25 m + 4,75 m)","3 m","10 m","1,5 m"],0,"Partie courte 1,25 m, partie longue 4,75 m."),
+  Q("Sur une ligne de vie, le chef d'équipe :",["Est garant de la sécurité collective (lance ou ligne guide)","Porte la caméra thermique","Reste dehors","Tient le TGP"],0,"L'équipier porte la caméra thermique."),
+  Q("Quelle technique permet d'amarrer rapidement une ligne guide ?",["Un tour mort et deux demi-nœuds","Un nœud de cabestan","Une tête d'alouette","Un nœud de chaise"],0,"Le chef d'équipe choisit les points d'ancrage."),
+  Q("Comment désigne-t-on la façade B ?",["La suivante après A, dans le sens des aiguilles d'une montre","La façade opposée à A","La façade arrière","La façade la plus haute"],0,"A = accès principal, puis B, C, D dans le sens horaire."),
+  Q("Dans la technique AIDES, que signifie le « I » ?",["Isoler : fermer la porte vers les circulations","Inspecter","Informer le COS","Intervenir"],0,"Accéder, Isoler, Désenfumer, Explorer, Sauver."),
+  Q("Comment marque-t-on une pièce reconnue ?",["Un « R » à la bombe à craie","Une croix rouge","On laisse la porte ouverte","On ne marque rien"],0,"L'absence de marquage signifie que la pièce n'a pas été reconnue."),
+  Q("Recherche primaire en superstructure : que fouille-t-on en premier ?",["L'étage du foyer et les ascenseurs","Le dernier étage","Le rez-de-chaussée","Le sous-sol"],0,"Puis l'étage au-dessus et le dernier étage, puis le reste."),
+  Q("Le compte rendu de situation d'un binôme comprend :",["Je suis, je vois, je fais","Je suis, je demande","Situation, objectifs, exécution","Nom, prénom, grade"],0,"Le « je vois » permet au chef d'agrès de stabiliser la situation."),
+  Q("Les DIR de la liaison tactique de niveau 5 sont :",["603, 624, 643, 664","101, 102, 103, 104","18, 112, 15, 17","500, 600, 700, 800"],0,"Niveau 5 : chefs d'agrès, chefs d'équipe et conducteurs."),
+  Q("Une balise de sécurité se déclenche et personne ne répond à la radio :",["Tous les binômes regagnent la sortie","On attend la fin de l'intervention","On coupe la balise","Seul le contrôleur entre"],0,"Le chef d'agrès appelle d'abord chaque binôme."),
+  Q("Quel signe interdit tout réengagement ?",["De la suie dans les voies aériennes au mouchage","Une légère soif","Une veste mouillée","Une fatigue normale"],0,"Un malaise interdit aussi le réengagement."),
+  Q("Après un critère au 2e bilan, l'hydratation recommandée est de :",["1,5 L en 15 minutes","5 L d'un coup","Rien avant 2 h","0,5 L par heure"],0,"Pas de réengagement ; VSAV et/ou SSO demandés."),
+  Q("Le repère « je sens » correspond à une souillure :",["Moyenne","Superficielle","Importante","Nulle"],0,"Je sais = superficiel, je sens = moyen, je vois = important."),
+  Q("Pour le déshabillage et la décontamination incendie, on porte :",["Un demi-masque P3 et des gants jetables","Rien de particulier","Un ARI capelé","Une tenue de plongée"],0,"Avec risque technologique : filtre antigaz ou ARI-CO et tenue de type III."),
+  Q("Monoxyde de carbone : seuil d'alarme basse du détecteur",["20 ppm","100 ppm","200 ppm","5 ppm"],0,"Alarme haute : 100 ppm."),
+  Q("En alarme basse CO, combien de temps peut-on rester sans protection respiratoire ?",["15 minutes maximum","1 heure","5 minutes","Sans limite"],0,"Au-delà, ou en alarme haute, l'ARI-CO est obligatoire."),
+  Q("Quel gaz sent l'œuf pourri ?",["Le sulfure d'hydrogène (H2S)","Le monoxyde de carbone","L'azote","Le CO2"],0,"Au-delà d'environ 250 ppm, on ne le sent plus."),
+  Q("Ogive de bouteille de gaz de couleur rouge :",["Gaz inflammable","Gaz toxique","Oxygène","Gaz inerte"],0,"Jaune = toxique/corrosif, bleu clair = oxydant, vert vif = inerte."),
+  Q("Câble HTB tombé au sol : rayon de la zone d'exclusion",["50 m","10 m","5 m","200 m"],0,"BT et HTA : 10 m. Cette distance ne se réduit jamais."),
+  Q("Fuite sur une canalisation de distribution de gaz : zonage réflexe",["50 m d'exclusion, 100 m de zone contrôlée","10 m et 20 m","200 m et 300 m","Aucun zonage"],0,"Bouteille d'acétylène soumise à l'incendie : 200 m et 300 m."),
+  Q("Ascenseur à appel prioritaire : la cabine est ramenée en",["60 secondes maximum","5 minutes","10 secondes","30 minutes"],0,"Seuls les ascenseurs d'IGH sont utilisables en toute sécurité."),
+  Q("Peut-on nettoyer un ARI-CO au nettoyeur haute pression ?",["Non, c'est interdit","Oui, c'est recommandé","Oui, une fois par mois","Seulement le masque"],0,"L'eau pourrait bloquer la ligne d'air.")
+  ]},
+
+{ id:'smes', nom:'RDSMES · Sauvetages & mises en sécurité', icone:'🪜', couleur:'#ef6c00', source:'SDIS 34 · RDSMES v2 (avril 2026)',
+  fiches:[
+  { titre:'Sauvetage, mise en sécurité, sauvegarde', tags:'sauvetage mise sécurité confinement évacuation sauvegarde opérationnelle auto-sauvetage règle minimums source flux cible ibnb eld',
+    contenu:`## Sauvetage
+- Extraire une personne soumise à un **danger vital et imminent** qui ne peut pas s'y soustraire seule
+- Il peut justifier une plus grande exposition des sauveteurs : le COS décide selon la **balance bénéfice/risque**
+- **À vue** : victime visible de l'extérieur (échelles, MEA, lots de sauvetage)
+- **En exploration** : accès par l'intérieur, avec moyen hydraulique et ligne de vie
+## Mise en sécurité
+- Éloigner du danger des personnes **non menacées immédiatement**
+- **Confinement** : laisser les personnes à l'abri, là où elles sont
+- **Évacuation** : les déplacer en les accompagnant
+## Sauvegarde opérationnelle
+- Auto-sauvetage + sauvetage de sauveteur
+## Actions du COS
+- Sur la **source** (coupure gaz, attaque), sur le **flux** (désenfumage, ventilation), sur la **cible** (sauvetage, évacuation, confinement)
+## Règle des minimums
+- Minimum de **personnels** exposés, minimum de **temps** (air disponible), minimum de **risque** (identifié avant l'engagement)
+> La spécialité **IBNB-ELD** appuie les primo-intervenants : ligne guide jusqu'à 420 m, cheminements complexes, parkings, tunnels.` },
+  { titre:'Échelles et moyens élévateurs aériens (MEA)', tags:'mea eps epc échelle coulisse crochets panier polygone sustentation stabilisateur sol stable instable interdit détecteur tension passage vide',
+    contenu:`## Évacuation par MEA
+- **Isolée** : victime dans le panier, déposée sur la voie publique
+- **Multiple** : personnes valides par la structure extensible
+- **Par transfert** : panier vers un niveau inférieur ou un endroit sûr proche
+## MEA du SDIS 34
+- **EPS** (mouvements séquentiels) et **EPC** (mouvements combinés), de 18, 24 ou 30 m
+- **Polygone de sustentation** : formé par les appuis des 4 stabilisateurs ; la résultante des forces doit rester à l'intérieur
+- Sol **stable** (supporte les poids lourds), **instable** (cales de stabilisation), **interdit** (bordure de trottoir, plaque d'égout, dalle de moins de 15 t)
+- Dangers : heurt du panier, électrisation ; vérifier balcons, câbles, vent, foudre, brouillard
+- Détecteur de tension depuis la cabine : 20 m (MEA 18), 30 m (MEA 24), 40 m (MEA 30) ; depuis le panier, alarme rouge à **10 m**
+- Croisement sur la structure : celui qui **monte** s'arrête et se décale
+## Passage au vide d'une victime inconsciente
+- À l'échelle à coulisse : montants au ras de la structure, un sauveteur attend sur l'échelle, un binôme passe la victime ; jambes de la victime sur les épaules du sauveteur, aisselles calées par ses bras
+- Au MEA : garde-corps du panier au ras de la structure, jambes de la victime dans le panier
+> Anticiper les réactions de la victime au passage au vide, l'accompagner.` },
+  { titre:'Itinéraires de repli, de secours et évacuation générale', tags:'itinéraire repli secours évacuation générale étage échelle coulisse 2 plans 3 plans mea 18 24 30 point regroupement',
+    contenu:`- **Itinéraire de repli** : chemin inverse de la progression, reconnu et dégagé ; à utiliser **en priorité**
+- **Itinéraire de secours** : si le repli est impraticable ou trop loin ; défini par le binôme ou le chef d'agrès (niveau, façade)
+- À défaut : chercher une zone de mise à l'abri
+| Moyen | Jusqu'au |
+| Échelle à coulisse 2 plans | 2e étage |
+| Échelle à coulisse 3 plans | 4e étage |
+| MEA 18 m | 6e étage |
+| MEA 24 m | 8e étage |
+| MEA 30 m | 10e étage |
+- Préparer au sol les échelles à coulisse 2 plans et les échelles à crochets
+- Une échelle d'itinéraire de secours n'est pas amarrée et n'est réemployée qu'en extrême urgence
+## Évacuation générale
+- Message : « **ÉVACUATION, ÉVACUATION, ÉVACUATION** », émis par n'importe quel intervenant, en priorité à la radio
+- Sortie de la zone d'exclusion, ralliement au point de regroupement (ou à l'engin)
+- Les contrôleurs font le point des binômes et rendent compte au COS` },
+  { titre:'Auto-sauvetage et gestion de l\'air', tags:'auto-sauvetage imprévu attente secours saut inspiration économie air 10 l/min cagoule évacuation raccord y i assistance respiratoire passage étroit fils câbles',
+    contenu:`## Analyse de l'imprévu
+- Quel problème ? Blessés ? Environnement stable ? Autonomie restante ? Lance proche ? Contact avec la ligne de vie ? Désorientés ? Besoin d'aide ? Radio OK ?
+- Ensuite : attendre les secours ou tenter une évacuation
+## Attente des secours
+- Chercher le tuyau ou un ouvrant, passer un **message de détresse**
+- Se signaler : lampe, balise ; se placer près du sol contre une paroi ; taper au sol ou sur un mur
+- Respirer avec la technique du **saut d'inspiration** : inspirer, retenir, expirer
+- En économie d'air (≈ **10 l/min**) : 300 bar ≈ 3 h (6 L) ou 3 h 36 (7,2 L)
+- L'avertisseur consomme 5 l/min : on peut l'obturer avec le doigt
+- Bouteille vide : retirer la SAD et remonter le bas de la cagoule sur le groin du masque
+## Assistance respiratoire d'un intervenant
+| Problème | Solution |
+| Masque défectueux, SAD ou ligne d'air en panne | Cagoule d'évacuation |
+| Bouteille vide | Raccord moyenne pression **type Y** entre sauveteur et intervenant |
+- Le raccord **type I** sert seulement à brancher une cagoule d'évacuation
+- L'air est pris sur la bouteille du sauveteur : il recalcule son autonomie
+## Obstacles
+- Fils et câbles : passer dessous, au ras du sol, bouteille dans l'angle mur/sol, pince coupante
+- Passages étroits (seulement en évacuation imprévue) : en avant, de dos, profil réduit ; retrait de l'ARI-CO en dernier recours, robinet côté porteur` },
+  { titre:'Message et appel de détresse (NELAR)', tags:'détresse urgent nelar nom engin localisation air renfort appel détresse mode direct sos dir 3 secondes 20 secondes tph 900 ber dir 1 bail-out évacuation urgence tuyau',
+    contenu:`## Message de détresse
+- Dès environ **30 secondes** de difficulté
+- Il commence par « **URGENT, URGENT, URGENT** »
+- Moyen mnémotechnique **NELAR** :
+| Trame | NELAR | Contenu |
+| Je suis | **N**om, **E**ngin, **L**ocalisation | S'identifier, position précise |
+| Je vois | **A**ir | La détresse + la pression la plus faible du binôme |
+| Je fais | | La procédure en cours |
+| Je demande | **R**enfort | Les moyens nécessaires |
+- Exemple : « URGENT ×3. Je suis binôme Y du FPT Z, entrée de l'appartement du RDC. Je vois plafond effondré, équipier coincé, 80 bar. Je fais position d'attente et survie. Je demande assistance respiratoire. »
+- Celui qui reçoit le message **confirme** la demande pour faire baisser le stress
+## Appel de détresse (mode direct)
+- Si le message reste **3 fois sans réponse**
+- Appuyer **au moins 3 s** sur le bouton détresse : tonalité de 20 s et « SOS DIR » sur les écrans
+- Le récepteur répond : « ICI ENGIN Y du SDIS 34, IDENTIFIEZ-VOUS, et PARLEZ », puis prévient le COS, qui informe le CODIS 34
+- Seuls les **TPH 900** et **BER** reçoivent les appels de détresse ; le COS peut les récupérer sur la DIR 1
+- Si personne n'acquitte en 20 s : recommencer
+- On ne raccroche qu'une fois l'assistance apportée
+## Évacuation d'urgence
+- Par une fenêtre, sur échelle à coulisse ou MEA ; la technique du **bail-out n'est pas retenue**
+- Par l'extérieur avec le tuyau : amarré sur une partie résistante (nœud simple en amont s'il est à sec), descente en croisant mains et pieds` },
+  { titre:'Sauvetage de sauveteur', tags:'sauvetage sauveteur intervenant difficulté renfort secours abordage packaging poignée sauvetage sim traction escalier déshabillage 270 bar exclusive',
+    contenu:`## Principes
+- Anticiper : itinéraires de repli et de secours, binôme de sécurité, parc matériel
+- Le sapeur-pompier blessé est une **victime particulière** (équipement, localisation)
+- Gérer l'émotion : risque de sidération ou d'auto-engagement ; relève possible
+- Demander un **renfort secours** au CODIS
+## Le binôme de sauvetage
+- En pleine possession de ses moyens physiques et mentaux
+- Outils : **SIM**, caméra thermique, pince coupante
+- Pression d'engagement **270 bar ou plus**
+! Sa mission est exclusive : jamais associée à une reconnaissance ou une attaque.
+## Abordage de l'intervenant
+- Identifier le problème et le risque de suraccident
+- Évaluer conscience et respiration
+- Vérifier l'**ouverture de la bouteille** et faire un appui bref sur le **bipasse**
+- Rendre compte, assister en air, préparer l'extraction ; le détacher de la ligne de vie s'il est inconscient
+- « **Packaging** » : serrer fermement les bretelles de son ARI-CO
+## Extraction
+- Traction au sol par la **poignée de sauvetage** de l'ARI-CO (à 1 ou 2 sauveteurs) ou avec la **SIM**
+- Escalier : SIM tendue au-dessus de la tête, calée entre le dos et la bouteille, sous les aisselles, nœud de plein poing près du sternum, connectée à la poignée ; un 2e sauveteur sous les genoux
+- Retirer l'ARI-CO pour remonter au tuyau, franchir un passage étroit ou extraire par une fenêtre
+- **Déshabillage** d'un intervenant inconscient en ≈ **30 s** : demi-assis, casque et masque retirés ensemble, ouvrir la veste (tirette antipanique)` },
+  { titre:'La victime : prise en charge et assistance respiratoire', tags:'victime porter accompagnement dos bras pompier chaise assistance respiratoire cagoule co ppm bariatrique smpm derniers recours commande',
+    contenu:`- Comportement (calme, stressée, paniquée) et état (valide, invalide, consciente ou non) varient : créer un **lien de confiance**
+- Porters : par accompagnement, à dos, dans les bras, porter pompier, en chaise
+## Assistance respiratoire d'une victime
+- Évacuer en priorité par les **communications existantes** ; sinon MEA ou échelle à coulisse
+- CO entre 20 et 100 ppm et moins de 15 min : évacuation **sans** protection respiratoire
+- Au-delà de 15 min ou de 100 ppm : évacuation **sous** protection respiratoire (cagoule d'évacuation)
+- Pas conseillé si la sortie est à vue
+- Pendant le branchement de la cagoule, il y a un court moment sans air : rassurer la victime
+## Cas particuliers
+- **Bariatrique** : techniques du SMPM ou MEA avec civière bariatrique
+- **Derniers recours** (commande, connecteur, demi-nœuds) : uniquement en extrême urgence, encadré en formation` }
+  ],
+  questions:[
+  Q("Qu'est-ce qu'un sauvetage ?",["Extraire une personne en danger vital et imminent qui ne peut s'y soustraire seule","Éloigner des personnes non menacées immédiatement","Laisser des personnes à l'abri sur place","Protéger des biens"],0,"La mise en sécurité concerne les personnes non menacées immédiatement."),
+  Q("Le confinement consiste à :",["Laisser les personnes à l'abri, là où elles se trouvent","Les évacuer par l'escalier","Les descendre au MEA","Les regrouper dehors"],0,"C'est une forme de mise en sécurité, avec l'évacuation."),
+  Q("Quels sont les trois minimums de la règle des minimums ?",["Personnels, temps, risque","Engins, eau, air","Chefs, radios, lances","Victimes, témoins, curieux"],0,"Minimum d'intervenants exposés, de temps (air) et de risque."),
+  Q("Itinéraire de secours avec une échelle à coulisse 3 plans : jusqu'à quel étage ?",["4e étage","2e étage","6e étage","10e étage"],0,"Coulisse 2 plans : 2e ; MEA 18 : 6e ; MEA 24 : 8e ; MEA 30 : 10e."),
+  Q("Itinéraire de secours avec un MEA de 24 m : jusqu'à quel étage ?",["8e étage","6e étage","10e étage","4e étage"],0,"MEA 18 m : 6e étage ; MEA 30 m : 10e étage."),
+  Q("Quel itinéraire utilise-t-on en priorité pour se replier ?",["L'itinéraire de repli (chemin inverse de la progression)","L'itinéraire de secours","Une fenêtre","Le toit"],0,"L'itinéraire de secours sert si le repli est impraticable."),
+  Q("Quel est le message d'évacuation générale ?",["« ÉVACUATION, ÉVACUATION, ÉVACUATION »","« URGENT, URGENT, URGENT »","« MAYDAY »","« REPLI »"],0,"Tout intervenant peut l'émettre, en priorité à la radio."),
+  Q("Par quoi commence un message de détresse ?",["« URGENT, URGENT, URGENT »","« ÉVACUATION » ×3","« Ici CODIS »","« Je demande »"],0,"Pour que tous les intervenants veillent la fréquence."),
+  Q("Dans NELAR, que signifie le « A » ?",["Air : la pression la plus faible du binôme","Adresse","Action en cours","Alerte"],0,"Nom, Engin, Localisation, Air, Renfort."),
+  Q("Dans NELAR, que signifie le « R » ?",["Renfort (je demande)","Repli","Radio","Robinet"],0,"Il quantifie les moyens nécessaires."),
+  Q("Quand déclenche-t-on un appel de détresse en mode direct ?",["Quand le message de détresse reste 3 fois sans réponse","Dès le début de l'intervention","À la fin de la mission","Jamais"],0,"Il n'y a pas de géolocalisation en mode direct."),
+  Q("Combien de temps appuie-t-on sur le bouton pour émettre un appel de détresse ?",["Au moins 3 secondes","Un appui bref","30 secondes","1 minute"],0,"Une tonalité de 20 s se déclenche et « SOS DIR » s'affiche."),
+  Q("Quelle technique de respiration est retenue pour économiser l'air ?",["Le saut d'inspiration","L'hyperventilation","La respiration rapide","Retenir sa respiration 1 minute"],0,"Inspirer, retenir sa respiration, expirer."),
+  Q("Quelle est la consommation en mode « économie d'air » ?",["Environ 10 l/min","50 l/min","105 l/min","135 l/min"],0,"Une bouteille de 6 L pleine tient environ 3 h."),
+  Q("Un collègue a sa bouteille vide. Quelle assistance utiliser ?",["Le raccord moyenne pression de type Y","La cagoule seule sans branchement","Lui retirer le masque","Le bipasse de sa SAD"],0,"Le type I ne sert qu'à brancher une cagoule d'évacuation."),
+  Q("Le masque d'un intervenant est défectueux :",["On lui met la cagoule d'évacuation","On le laisse sans protection","On lui retire l'ARI","On lui donne sa bouteille"],0,"La cagoule d'évacuation est sur le côté sécurité de l'ARI-CO."),
+  Q("Pression d'engagement du binôme chargé d'un sauvetage de sauveteur :",["270 bar ou plus","200 bar","150 bar","Peu importe"],0,"L'effort sera important et il faudra peut-être donner de l'air."),
+  Q("La mission du binôme qui sauve un intervenant :",["Est exclusive, jamais couplée à une attaque ou une reconnaissance","Peut inclure l'attaque","Commence par la reconnaissance","Est confiée au contrôleur"],0,"Priorité absolue à l'intervenant en difficulté."),
+  Q("Le « packaging » d'un intervenant à extraire consiste à :",["Serrer fermement les bretelles de son ARI-CO","Le mettre dans une bâche","Lui retirer sa veste","L'attacher au tuyau"],0,"On le tracte ensuite par la poignée de sauvetage."),
+  Q("À l'abordage d'un intervenant en difficulté, on vérifie notamment :",["L'ouverture de la bouteille, avec un appui bref sur le bipasse","Son grade","La couleur de sa tenue","Son heure d'arrivée"],0,"Puis conscience, respiration, compte rendu, assistance en air."),
+  Q("En combien de temps environ peut-on déshabiller un intervenant inconscient ?",["30 secondes","5 minutes","10 secondes","2 minutes"],0,"Pour débuter rapidement une RCP si besoin."),
+  Q("La technique du « bail-out » est-elle retenue au SDIS 34 ?",["Non","Oui, en priorité","Oui, à partir du 3e étage","Seulement en formation"],0,"L'intervenant s'évacue plutôt en s'enroulant sur la structure du bâtiment."),
+  Q("Évacuation par l'extérieur avec le tuyau : on doit",["L'amarrer sur une partie résistante et descendre en croisant mains et pieds","Sauter en tenant la lance","Le tenir à deux mains sans amarrage","Le couper"],0,"Si le tuyau est à sec, on ajoute un nœud simple en amont."),
+  Q("Sur quel sol est-il interdit de stabiliser un MEA ?",["Une plaque d'égout ou une bordure de trottoir","Une route goudronnée","Un parking pour poids lourds","Une dalle de 40 t"],0,"Ainsi que les dalles de moins de 15 t."),
+  Q("Le polygone de sustentation d'un MEA est formé par :",["Les points d'appui des stabilisateurs","Le panier et la cabine","Les quatre roues seulement","La structure extensible"],0,"La résultante des forces doit rester à l'intérieur."),
+  Q("Depuis le panier, à quelle distance d'une ligne sous tension l'alarme rouge se déclenche-t-elle ?",["10 m","1 m","50 m","100 m"],0,"Une pré-alarme orange s'allume à l'approche des 10 m."),
+  Q("Victime exposée à 50 ppm de CO depuis 10 min :",["Évacuation sans protection respiratoire","Cagoule d'évacuation obligatoire","Confinement sur place","Attente de la CMIC"],0,"Au-delà de 100 ppm ou de 15 min : sous protection respiratoire."),
+  Q("Lors d'un croisement sur la structure extensible d'un MEA :",["Celui qui monte s'arrête et se décale","Celui qui descend saute","Les deux s'arrêtent","On replie l'échelle"],0,"Il prend appui avec le dos et un pied contre la main courante.")
+  ]},
+
+{ id:'lspcc', nom:'RDLSPCC · Lot de sauvetage (LSPCC)', icone:'🪢', couleur:'#5e35b1', source:'SDIS 34 · RDLSPCC v1 (novembre 2025)',
+  fiches:[
+  { titre:'Composition du LSPCC', tags:'lspcc composition sac corde harnais triangle sangle connecteur descendeur poulie antichute cordelette protection lot engin échelle bleu jaune 30 m 60 m',
+    contenu:`Le LSPCC est un EPI de **catégorie III**, vérifié **chaque année** par le GTL.
+| Élément | Caractéristiques |
+| Sac | Lot engin **bleu ciel** (Ø 30 cm max), lot échelle **jaune citron** (Ø 40 cm max), hauteur 60 cm max |
+| Corde | **30 m** (lot engin) ou **60 m** (lot échelle), statique (allongement 5 % max), Ø 12 à 13 mm, 3 000 kg, ≈ 200 °C |
+| Harnais | Charge max **140 kg**, 1 500 kg, demi-lune, attaches sternale et dorsale |
+| Triangle d'évacuation | Charge max **150 kg**, 1 500 kg, 3 attaches sternales, 1 dorsale |
+| Anneaux de sangle | **Bleue 80 cm**, **rouge 1,5 m**, 2 000 kg |
+| Connecteurs | À vis (liaisons) ou automatique (charge) ; grand axe 2 000 kg, petit axe 750 kg |
+| Descendeur | En **8**, 2 000 kg |
+| Poulie | Mouflage ou déviation, 2 000 kg |
+| Antichute mobile | Progression verticale sur échelle, charge max 140 kg |
+| Cordelette | 40 cm, Ø 7 mm, pour le nœud Français |
+| Protection | Cuir, 45 cm, contre les frottements |
+- Un connecteur travaille sur son **grand axe**, verrouillage fermé
+- Lot EPI MEA : longe de maintien (1 m), longe antichute (1,75 m), harnais
+## Rangement du sac
+- **Bas** : corde lovée + protection
+- **Milieu** : sangles, connecteurs, poulie, descendeur, cordelettes
+- **Haut** : triangle + connecteur automatique (+ 2 harnais dans le lot engin)` },
+  { titre:'Principes : système, ancrage et amarrage', tags:'ancrage amarrage point fixe humain naturel structurel artificiel véhicule échelle commande connecteur automatique tête alouette 90° principal intermédiaire smpm garant',
+    contenu:`Un système = **point d'ancrage** → **amarrage** → **frein de charge** (descendeur) → **tirant** → **charge**.
+- La **commande** est emportée systématiquement (détection, tester une hauteur, écarter une victime)
+- Sac placé du côté du **garant** ; surveiller le système en permanence
+! Le connecteur **automatique** est toujours placé entre la corde et la charge.
+## Les ancrages
+- **Naturel** (arbre, rocher), **structurel** (colonne sèche, rambarde, balcon, poutre), **artificiel** (véhicule, échelle)
+- En cas de doute, en choisir un autre ; à défaut, demander une équipe **SMPM**
+- **Point fixe humain** : sauveteur allongé, jambes à 90° contre le mur ; au moins **20 cm** entre l'axe du descendeur et l'appui de la corde
+- **Véhicule** : moteur arrêté, frein serré, calé sur les roues arrière ; amarrage sur manille, jante froide ou essieu arrière (**jamais l'enjoliveur**)
+- **Échelle** à coulisse 2 plans, ou à crochets 2 plans reployée (sauvetage uniquement) : sangles autour des 4 montants
+## Les amarrages
+- Minimum : **une sangle + un connecteur à vis**
+- **Têtes d'alouette interdites**
+- Sangle en double ≈ 4 000 kg
+- Angle entre deux sangles : **90° maximum**
+- **Principal** : sangle(s) + connecteur(s) + descendeur
+- **Intermédiaire** : sangle(s) + connecteur ou poulie (déviation, prolongement, mouflage)
+- Plusieurs amarrages intermédiaires en descente ou remontée : équipe spécialisée` },
+  { titre:'Chute : facteur de chute, tirant d\'air, syndrome du harnais', tags:'facteur chute 0,3 1 2 tirant air marge 1 m effet pendulaire syndrome harnais suspension 600 kg epi tsi casque gants',
+    contenu:`## Facteur de chute
+Facteur = **hauteur de chute ÷ longueur de corde** qui amortit la chute.
+| Facteur | Position | Règle |
+| 0,3 | Sous l'amarrage | Recherché en permanence |
+| 1 | Au niveau de l'amarrage | À éviter |
+| 2 | Au-dessus de l'amarrage | Interdit (tout facteur supérieur à 1) |
+- Seuil de lésions (normes européennes) : **600 kg**
+## Tirant d'air
+- Hauteur minimale pour ne rien heurter à l'arrêt de la chute
+- Marge de sécurité : **1 m minimum**, à augmenter (réaction du régulateur, allongement de la corde)
+## Effet pendulaire
+- Si l'on n'est pas à l'aplomb de l'ancrage : ballant et collisions possibles
+## Syndrome du harnais
+- Suspension **inerte et prolongée** : le sang revient mal au cœur, perte de connaissance, puis arrêt cardio-respiratoire
+- En formation, la victime est **toujours un mannequin**
+## EPI
+- Minimum : **TSI** ; casque type A (F2) ou B (F1) pour tous
+- Gants obligatoires pour le sauveteur et en ambiance thermique ; ARI-CO au besoin` },
+  { titre:'Ordres de mise en œuvre', tags:'ordres laissez filer du mou sec protégez sécurisez dispositif à bras ferme contact victime en sécurité',
+    contenu:`| Ordre | Action |
+| « Laissez filer ! » | Le régulateur laisse filer la corde dans le descendeur |
+| « Du mou ! » | Le régulateur donne du mou |
+| « Sec ! » | Le régulateur retient fermement et absorbe tout le mou |
+| « Protégez le dispositif ! » | Placer des protections sur la corde |
+| « Sécurisez le dispositif ! » | Le régulateur fait une clé d'arrêt |
+| « À bras – Ferme ! » | Rythme de la remontée |
+| « Contact ! » | Le point à atteindre est atteint |
+| « Victime en sécurité ! » | La victime est prise en charge |` },
+  { titre:'Techniques générales du LSPCC', tags:'abordage victime péril sauvetage extérieur excavation reconnaissance appartement évolution risque chute toiture triangle passage vide régulateur garant',
+    contenu:`| Technique | Dispositif |
+| Abordage d'une victime en péril | Descente |
+| Sauvetage ou mise en sécurité par l'extérieur | Descente |
+| Sauvetage en excavation | Descente et remontée |
+| Reconnaissance d'appartement | Descente ou horizontal |
+| Évolution avec risque de chute | Protection contre les chutes |
+- Limites : résistance des ancrages, matériel, **longueur utile** de corde, état de la victime
+- Le chef d'agrès contrôle ; un intervenant **régule** en tenant le garant
+## Reconnaissance d'appartement
+- Seulement si la façade est inaccessible aux échelles et aux MEA
+- Avec point fixe humain : **2 harnais** (régulateur et sauveteur)
+- Annoncer plusieurs fois « **nous sommes les sapeurs-pompiers** »
+- Se détacher sur sol stable, avec radio, outil de force, détecteur et gilet pare-lame
+- Prévoir une échelle à crochets près du point à atteindre comme itinéraire de secours
+## Excavation et atmosphère viciée
+- Contrôle préalable au **détecteur multigaz** et à la commande, engagement sous ARI-CO
+## Évolution sur toiture
+- Contrôler la charpente (de l'intérieur ou en retirant les tuiles sur 1 m²)
+- Lancer une commande par-dessus le toit pour un dispositif en opposition
+- Jusqu'à 5 sangles et 5 connecteurs d'amarrages intermédiaires, qu'on ne récupère pas
+## Le triangle
+- Victime inconsciente : sur le côté, triangle sur le dos, bras opposé dans la bretelle ; à plat dos, l'autre bras, base sous les aisselles ; attaches sternales + connecteur automatique
+- Passage au vide d'une victime inconsciente : **sur le ventre, pieds face à l'ouvrant**, un sauveteur de chaque côté, on la lève ensemble sans lâcher le garant` },
+  { titre:'Nœuds, clé d\'arrêt et entretien', tags:'nœud noeud 8 double français clé arrêt répartiteur sangle rouge harnais entretien lavage réforme durée vie 10 ans cahier suivi kimoce',
+    contenu:`## Nœuds et dispositifs
+- **Nœud de 8 double** aux extrémités de corde (avec gaine thermorétractable) ; un nœud réduit la résistance d'environ 30 %
+- **Nœud Français** : **3 tours** de cordelette, bien serré
+- **Clé d'arrêt** dès qu'on ne peut plus tenir le garant
+! Pas de clé d'arrêt pendant le passage au vide d'un sauvetage : le régulateur tient le garant en permanence.
+- **Répartiteur** de plein poing avec une sangle rouge (environ −15 % de résistance)
+- Sécurisation de la charge (nœud Français sur le tirant) : pas sur une descente de sauvetage ni sur une remontée
+- Sangle rouge transformée en harnais : extrême urgence, sauveteur sous ARI-CO
+## Entretien
+- Textiles : lavage **à la main**, eau à 30 °C maximum, séchage à plat à l'abri des UV
+- Métal : eau à 40 °C maximum, contrôler la fermeture
+- **Jamais de nettoyeur haute pression**
+## Réforme
+- Marquage illisible, contact avec un produit chimique ou un carburant, partie brûlée ou fondue, corde déformée, fils coupés, choc ou fissure
+- Durée de vie des textiles : **10 ans maximum**
+- Remplir le **cahier de suivi** après chaque utilisation (formation comprise) ; signaler toute chute ou doute (KIMOCE)` }
+  ],
+  questions:[
+  Q("À quelle catégorie d'EPI appartient le LSPCC ?",["Catégorie III","Catégorie I","Catégorie II","Ce n'est pas un EPI"],0,"Protection contre des risques graves, irréversibles ou mortels."),
+  Q("Longueur de la corde du lot « engin » :",["30 m","60 m","20 m","100 m"],0,"Le lot « échelle » a une corde de 60 m."),
+  Q("Longueur de la corde du lot « échelle » :",["60 m","30 m","45 m","120 m"],0,"Son sac est jaune citron."),
+  Q("De quelle couleur est le sac du lot « engin » ?",["Bleu ciel","Jaune citron","Rouge","Noir"],0,"Le lot « échelle » est jaune citron."),
+  Q("Charge maximale d'utilisation du harnais :",["140 kg","150 kg","100 kg","200 kg"],0,"Le triangle d'évacuation : 150 kg."),
+  Q("Charge maximale d'utilisation du triangle d'évacuation :",["150 kg","140 kg","80 kg","300 kg"],0,"Il a 3 attaches sternales et 1 dorsale."),
+  Q("Quelle est la longueur de la sangle rouge ?",["1,5 m","80 cm","3 m","40 cm"],0,"La sangle bleue mesure 80 cm."),
+  Q("Quel connecteur place-t-on toujours entre la corde et la charge ?",["Le connecteur automatique","Le connecteur à vis","Aucun","La poulie"],0,"Il évite une ouverture lors du passage au vide."),
+  Q("Les têtes d'alouette sont-elles autorisées pour un amarrage ?",["Non, elles sont interdites","Oui, toujours","Seulement sur un arbre","Seulement en formation"],0,"Un amarrage = au minimum une sangle et un connecteur à vis."),
+  Q("Angle maximal entre deux sangles d'amarrage :",["90°","120°","180°","45°"],0,"Au-delà, l'effort sur les ancrages augmente fortement."),
+  Q("Quel facteur de chute recherche-t-on en permanence ?",["0,3","1","2","1,5"],0,"Facteur 1 à éviter, supérieur à 1 interdit."),
+  Q("Un facteur de chute supérieur à 1 est :",["Interdit","Recherché","Toléré","Obligatoire en toiture"],0,"Il correspond à une position au-dessus de l'amarrage."),
+  Q("Marge de sécurité minimale du tirant d'air :",["1 m","10 cm","5 m","50 cm"],0,"À augmenter selon la réaction du régulateur et l'allongement de la corde."),
+  Q("Point fixe humain : distance minimale entre l'axe du descendeur et l'appui de la corde",["20 cm","5 cm","1 m","50 cm"],0,"Le sauveteur est allongé, jambes à 90° contre le mur."),
+  Q("Ancrage sur un véhicule : où ne faut-il jamais amarrer ?",["Sur l'enjoliveur","Sur une manille","Sur l'essieu arrière","Sur une jante froide"],0,"Le véhicule doit être moteur arrêté, frein serré et calé."),
+  Q("Un doute sur la solidité d'un point d'ancrage :",["On en choisit un autre, sinon on demande le SMPM","On l'utilise quand même","On double la corde","On saute"],0,"La sécurité passe avant la rapidité."),
+  Q("Que signifie l'ordre « Sec ! » ?",["Retenir fermement la corde et absorber le mou","Donner du mou","Lâcher la corde","Sécher la corde"],0,"« Du mou ! » = donner du mou."),
+  Q("Que fait le régulateur à l'ordre « Sécurisez le dispositif ! » ?",["Une clé d'arrêt","Un nœud de 8","Il lâche le garant","Il remonte la charge"],0,"La clé d'arrêt bloque le descendeur."),
+  Q("Fait-on une clé d'arrêt pendant le passage au vide d'un sauvetage ?",["Non, le régulateur tient le garant en permanence","Oui, toujours","Oui, si la victime est lourde","Seulement la nuit"],0,"La clé d'arrêt sert quand personne ne peut tenir le garant."),
+  Q("Quel nœud trouve-t-on aux extrémités des cordes du SDIS 34 ?",["Le nœud de 8 double","Le nœud plat","Le nœud de chaise","La tête d'alouette"],0,"Il est protégé par une gaine thermorétractable."),
+  Q("Combien de tours fait-on avec la cordelette pour un nœud Français ?",["3","1","5","10"],0,"Il doit être bien serré."),
+  Q("Syndrome du harnais : quelle en est la cause ?",["Une suspension inerte et prolongée","Un harnais trop serré à l'entraînement","Une chute courte","Le froid"],0,"Il peut évoluer vers l'arrêt cardio-respiratoire."),
+  Q("Passage au vide d'une victime inconsciente avec le triangle : comment la placer ?",["Sur le ventre, pieds face à l'ouvrant","Sur le dos, tête vers l'ouvrant","Assise sur le rebord","Debout"],0,"Un sauveteur de chaque côté la lève sans lâcher le garant."),
+  Q("Reconnaissance d'appartement avec point fixe humain : combien de harnais ?",["2","1","3","Aucun"],0,"Un pour le régulateur (point fixe), un pour le sauveteur."),
+  Q("Durée de vie maximale des textiles du LSPCC :",["10 ans","2 ans","5 ans","20 ans"],0,"Dans de bonnes conditions de stockage."),
+  Q("Comment laver les textiles du LSPCC ?",["À la main, eau à 30 °C maximum","Au nettoyeur haute pression","En machine à 90 °C","À l'essence"],0,"Séchage à plat, à l'abri des UV."),
+  Q("Quand remplir le cahier de suivi du LSPCC ?",["Après chaque utilisation, formation comprise","Une fois par an","Jamais","Seulement après une chute"],0,"Toute chute ou tout doute se signale aussi par un KIMOCE."),
+  Q("En formation, qui joue la victime suspendue ?",["Un mannequin, obligatoirement","Le plus léger du groupe","Le formateur","Un volontaire"],0,"Pour éviter tout accident.")
+  ]},
+
+/* ---------------- Doctrine nationale ---------------- */
+{ id:'org', nom:'Organisation & culture SP', icone:'🏛️', couleur:'#3949ab',
+  fiches:[
+  { titre:'Le SDIS : missions et organisation', tags:'sdis casdis ddsis sdacr ro cta codis cis hérault 34 missions',
+    contenu:`## Statut
+Le **SDIS** (service départemental d'incendie et de secours) est un établissement public départemental. Dans l'Hérault : le **SDIS 34**.
+## Missions (art. L1424-2 du CGCT)
+- Prévention, protection et lutte contre les **incendies**
+- Prévention et évaluation des **risques de sécurité civile**
+- Préparation des mesures de sauvegarde et organisation des moyens de secours
+- Protection des personnes, des biens et de l'**environnement**
+- **Secours d'urgence** aux personnes victimes d'accidents, de sinistres ou de catastrophes, et leur évacuation
+## Gouvernance
+- **CASDIS** : conseil d'administration, présidé par le président du conseil départemental (ou un élu qu'il désigne)
+- **DDSIS** : directeur départemental, sous l'autorité du **préfet** pour l'opérationnel et du président du CASDIS pour la gestion
+## Documents clés
+- **SDACR** : schéma départemental d'analyse et de couverture des risques, arrêté par le préfet
+- **RO** : règlement opérationnel, il décline le SDACR (règles d'engagement, effectifs…)
+## Structures
+- **CTA-CODIS** : traite les appels d'urgence et coordonne les opérations
+- **CIS** : centre d'incendie et de secours, d'où partent les engins
+> Les règles locales (RO, ordres et notes de service du SDIS 34) priment toujours sur les généralités.` },
+  { titre:'DOS et COS', tags:'directeur commandant opérations secours maire préfet orsec police',
+    contenu:`## DOS : directeur des opérations de secours
+- C'est une **autorité de police administrative** : le **maire** sur sa commune
+- Le **préfet** lorsque l'événement dépasse la commune, à la demande du maire ou en cas de déclenchement du plan **ORSEC**
+## COS : commandant des opérations de secours
+- Sapeur-pompier qui commande les moyens engagés sur le terrain, sous l'autorité du DOS
+- Au départ, le premier chef d'agrès arrivé ; un chef de niveau supérieur reprend le commandement lors de la montée en puissance
+> Le DOS décide (quoi faire), le COS commande les secours (comment le faire).` },
+  { titre:'La chaîne de commandement', tags:'chef agrès groupe colonne site hiérarchie commandement',
+    contenu:`| Niveau | Commande |
+| Chef d'agrès | Un engin et son équipage |
+| Chef de groupe | Un groupe (2 à 4 engins) |
+| Chef de colonne | Une colonne (2 à 4 groupes) |
+| Chef de site | Plusieurs colonnes |
+- Le commandement suit la montée en puissance : chaque niveau supérieur prend le COS à son arrivée
+- Principe : **un seul chef** par niveau, des ordres clairs et des comptes rendus réguliers` },
+  { titre:"Numéros d'urgence", tags:'18 15 17 112 114 115 119 196 appel alerte téléphone numéro',
+    contenu:`| Numéro | Service |
+| 18 | Sapeurs-pompiers |
+| 15 | SAMU (urgence médicale) |
+| 17 | Police / gendarmerie |
+| 112 | Numéro d'urgence européen |
+| 114 | Urgences pour personnes sourdes ou malentendantes (SMS, visio, tchat) |
+| 115 | SAMU social |
+| 119 | Enfance en danger |
+| 196 | Urgences en mer (CROSS) |
+> Le 18 aboutit au CTA du SDIS ; le 112 est orienté vers les pompiers ou le SAMU selon les départements.` },
+  { titre:"Les sapeurs-pompiers et les risques de l'Hérault", tags:'spv spp jsp bspp bmpm uiisc militaires volontaires professionnels hérault risques inondation cévenol',
+    contenu:`## Qui sont les sapeurs-pompiers ?
+- **SPV** : sapeurs-pompiers volontaires, la grande majorité des effectifs
+- **SPP** : sapeurs-pompiers professionnels
+- **Militaires** : Brigade de sapeurs-pompiers de Paris (**BSPP**, armée de Terre), Bataillon de marins-pompiers de Marseille (**BMPM**, Marine nationale), unités d'instruction et d'intervention de la sécurité civile (**UIISC**)
+- **JSP** : jeunes sapeurs-pompiers, formés en section et validés par le **brevet national de JSP**
+## Risques marquants de l'Hérault
+- **Feux de forêts** : garrigue, massifs boisés, vents forts (tramontane, mistral)
+- **Inondations** lors des **épisodes méditerranéens** (dits « cévenols »), surtout en automne
+- Risques **littoraux** : baignade, submersion marine
+- Grands axes routiers et ferroviaires (A9, A75…)` }
+  ],
+  questions:[
+  Q("Qui est le directeur des opérations de secours (DOS) sur le territoire d'une commune ?",["Le maire","Le chef de centre","Le DDSIS","Le président du CASDIS"],0,"Le maire est DOS au titre de ses pouvoirs de police. Le préfet le devient si l'événement dépasse la commune ou en cas de plan ORSEC."),
+  Q("Que signifie COS ?",["Commandant des opérations de secours","Centre opérationnel de secours","Chef des opérations sanitaires","Coordinateur opérationnel du site"],0,"Le COS est le sapeur-pompier qui commande les moyens engagés, sous l'autorité du DOS."),
+  Q("Quel est le numéro d'urgence européen ?",["112","18","114","911"],0,"Le 112 fonctionne dans toute l'Union européenne."),
+  Q("Le 114 est le numéro d'urgence pour :",["Les personnes sourdes ou malentendantes","Le SAMU social","L'enfance en danger","Les urgences en mer"],0,"Le 114 est joignable par SMS, visio ou tchat."),
+  Q("Quel document analyse les risques du département et fixe la couverture opérationnelle ?",["Le SDACR","Le règlement opérationnel","Le plan communal de sauvegarde","Le plan ORSEC"],0,"Le SDACR est arrêté par le préfet ; le règlement opérationnel (RO) le décline."),
+  Q("Quel est le rôle du CTA ?",["Recevoir les appels d'urgence et déclencher les moyens","Former les sapeurs-pompiers","Entretenir les engins","Gérer les ressources humaines"],0,"Le CTA (centre de traitement de l'alerte), couplé au CODIS, reçoit les appels et engage les secours."),
+  Q("Un chef de groupe commande en général :",["2 à 4 engins","Un seul engin","Plusieurs colonnes","Tout le département"],0,"Agrès → groupe (2 à 4 engins) → colonne (2 à 4 groupes) → site."),
+  Q("Quelle unité militaire assure les secours à Marseille ?",["Le Bataillon de marins-pompiers (BMPM)","La BSPP","Une UIISC","La gendarmerie"],0,"Le BMPM dépend de la Marine nationale ; la BSPP (Paris) dépend de l'armée de Terre."),
+  Q("Qui préside le CASDIS ?",["Le président du conseil départemental ou un élu qu'il désigne","Le préfet","Le DDSIS","Le maire du chef-lieu"],0,"Le CASDIS est le conseil d'administration du SDIS."),
+  Q("Quel risque naturel provoque de fortes inondations dans l'Hérault, surtout en automne ?",["Les épisodes méditerranéens (cévenols)","Les avalanches","Les cyclones tropicaux","La fonte des glaciers"],0,"Ces pluies intenses et rapides provoquent des crues soudaines.")
+  ]},
+
+{ id:'inc', nom:'Incendie : le feu', icone:'🔥', couleur:'#e53935',
+  fiches:[
+  { titre:'Triangle du feu et extinction', tags:'triangle tétraèdre combustible comburant énergie activation oxygène réaction chaîne extinction refroidissement étouffement inhibition',
+    contenu:`## Le triangle du feu
+Pour qu'un feu naisse, il faut réunir trois éléments :
+- **Combustible** : ce qui brûle (bois, papier, essence, gaz…)
+- **Comburant** : en général l'**oxygène** de l'air
+- **Énergie d'activation** : flamme, étincelle, chaleur, frottement…
+## Le tétraèdre du feu
+On ajoute un 4e élément : la **réaction en chaîne**, qui entretient la combustion.
+## Les modes d'extinction
+- **Refroidissement** : on retire l'énergie (eau)
+- **Étouffement** : on prive le feu de comburant (couverture, mousse, CO2)
+- **Inhibition** : on casse la réaction en chaîne (poudre)
+- **Suppression du combustible** : on retire ou isole ce qui brûle (fermer une vanne de gaz, coupure de végétation)
+> Supprimer un seul élément suffit à éteindre le feu.` },
+  { titre:'Les classes de feux', tags:'classe a b c d f solide liquide gaz métaux huile friteuse extincteur',
+    contenu:`| Classe | Nature | Exemples | Agents adaptés |
+| A | Solides (font des braises) | Bois, papier, tissu | Eau, eau + additif, poudre ABC |
+| B | Liquides ou solides liquéfiables | Essence, fioul, cire | Mousse, poudre, CO2 |
+| C | Gaz | Butane, propane, gaz naturel | Poudre, après coupure de l'alimentation |
+| D | Métaux | Sodium, magnésium | Poudre spéciale D |
+| F | Huiles et graisses de cuisson | Friteuse | Extincteur classe F, couvercle |
+! Jamais d'eau sur une friteuse en feu : projection d'huile enflammée.
+- Les feux d'origine électrique ne forment pas une classe : couper le courant d'abord, puis CO2 ou poudre.` },
+  { titre:'Modes de propagation', tags:'propagation conduction convection rayonnement projection chaleur',
+    contenu:`- **Conduction** : la chaleur traverse un matériau (poutre métallique, cloison)
+- **Convection** : les gaz chauds et les fumées montent et se déplacent (cages d'escalier, gaines, combles)
+- **Rayonnement** : la chaleur est émise à distance, comme le soleil (bâtiment voisin, véhicule proche)
+- **Déplacement de matières enflammées** : projections, brandons, liquides enflammés qui s'écoulent
+> Pour limiter la propagation : refroidir les parois, fermer les portes, établir des lances de protection.` },
+  { titre:'Phénomènes thermiques : EGE, explosion de fumées', tags:'flashover backdraft ege embrasement généralisé éclair explosion fumées fgi rollover lecture feu',
+    contenu:`## Embrasement généralisé éclair (EGE / flashover)
+Passage brutal d'un feu localisé à un feu qui embrase **tout le volume** : les fumées et les objets atteignent leur température d'inflammation sous l'effet du rayonnement.
+- Signes : chaleur intense qui oblige à se baisser, fumées qui descendent, flammes dans les fumées (**rollover**)
+## Explosion de fumées (backdraft)
+Inflammation explosive des gaz imbrûlés d'un local **sous-ventilé** quand on lui apporte brutalement de l'air (ouverture de porte, bris de vitre).
+- Signes : fumées sombres, épaisses, **pulsantes** sortant par les interstices, vitres noircies et chaudes, porte chaude, sifflements, peu de flammes visibles
+## Inflammation des fumées (FGI)
+Inflammation de fumées accumulées loin du foyer, au contact d'une source de chaleur.
+## Conduite à tenir
+- Lire le feu avant d'ouvrir (fumées, porte, vitres)
+- Ouvrir une porte uniquement **lance en eau**, en se tenant sur le côté
+- Refroidir les fumées par **impulsions** à la lance
+! Signes d'explosion de fumées : ne pas créer d'ouverture et rendre compte immédiatement.` },
+  { titre:'Agents extincteurs et BLEVE', tags:'eau mousse poudre co2 additif extincteur bleve citerne gaz liquéfié',
+    contenu:`| Agent | Action principale | Feux |
+| Eau (jet ou diffusé) | Refroidissement | A |
+| Eau + additif | Refroidissement + meilleure pénétration | A, et B selon l'additif |
+| Mousse | Étouffement | B (et A) |
+| Poudre ABC | Inhibition | A, B, C |
+| Poudre BC | Inhibition | B, C |
+| CO2 | Étouffement | B, électrique |
+- Le CO2 sort très froid (risque de gelure) et devient dangereux en local clos.
+## BLEVE
+Vaporisation explosive d'un réservoir de **gaz liquéfié** chauffé (ex. citerne de propane) : boule de feu et projections.
+- Refroidir le réservoir **à distance**, établir un grand périmètre de sécurité` }
+  ],
+  questions:[
+  Q("Quels sont les trois éléments du triangle du feu ?",["Combustible, comburant, énergie d'activation","Combustible, eau, oxygène","Chaleur, fumée, flamme","Bois, air, étincelle"],0,"Sans l'un des trois, le feu ne peut ni naître ni durer."),
+  Q("Le tétraèdre du feu ajoute au triangle :",["La réaction en chaîne","La fumée","Le vent","L'humidité"],0,"Les poudres agissent justement sur cette réaction en chaîne (inhibition)."),
+  Q("Un feu de friteuse est un feu de classe :",["F","B","A","D"],0,"Classe F = huiles et graisses de cuisson. Ne jamais utiliser d'eau."),
+  Q("Un feu de magnésium est un feu de classe :",["D","C","F","A"],0,"Classe D = métaux, éteints avec une poudre spéciale."),
+  Q("Un feu de propane est un feu de classe :",["C","B","D","A"],0,"Classe C = gaz. On coupe d'abord l'alimentation."),
+  Q("Un feu de papiers et de bois est un feu de classe :",["A","B","C","F"],0,"Classe A = solides qui font des braises."),
+  Q("La propagation par les gaz chauds qui montent dans une cage d'escalier est :",["La convection","La conduction","Le rayonnement","La projection"],0,"Convection = mouvement des gaz chauds et des fumées."),
+  Q("La chaleur transmise à travers une poutre métallique, c'est :",["La conduction","La convection","Le rayonnement","L'inhibition"],0,"Conduction = transmission à travers la matière."),
+  Q("Quel autre nom donne-t-on à l'embrasement généralisé éclair ?",["Flashover","Backdraft","BLEVE","Rollover"],0,"Le rollover (flammes dans les fumées) est un signe annonciateur."),
+  Q("Une explosion de fumées survient typiquement :",["Lors d'un apport brutal d'air dans un local sous-ventilé","Au moment du déblai","Quand on refroidit les fumées","Dans un feu de végétation"],0,"Exemple : ouverture d'une porte d'un local fermé où le feu couve."),
+  Q("Quel signe annonce une explosion de fumées ?",["Fumées sombres et pulsantes sortant par les interstices","Grandes flammes claires","Absence totale de fumée","Porte froide au toucher"],0,"Autres signes : vitres noircies, sifflements, porte chaude."),
+  Q("La poudre ABC agit principalement par :",["Inhibition","Refroidissement","Dilution","Soufflage"],0,"Elle casse la réaction en chaîne."),
+  Q("Le CO2 agit principalement par :",["Étouffement","Inhibition","Suppression du combustible","Absorption de la fumée"],0,"Il chasse l'oxygène ; attention en local clos."),
+  Q("Le BLEVE concerne surtout :",["Un réservoir de gaz liquéfié chauffé","Un feu de forêt","Un feu de poubelle","Un feu de cheminée"],0,"Refroidir à distance et établir un grand périmètre.")
+  ]},
+
+{ id:'secu', nom:'Sécurité, EPI & ARI', icone:'🛡️', couleur:'#fb8c00',
+  fiches:[
+  { titre:'Équipements de protection individuelle', tags:'epi tenue casque cagoule veste gants bottes protection',
+    contenu:`## Équipements
+- **Casque** avec visière et/ou lunettes, **cagoule** de protection
+- **Veste et surpantalon** d'intervention
+- **Gants** d'attaque, **bottes** ou rangers d'intervention
+- Ceinturon et matériel de sauvetage selon les missions
+- **ARI** pour toute atmosphère toxique, enfumée ou appauvrie en oxygène
+## Règles de base
+- Tenue **complète et fermée** avant d'arriver sur intervention
+- Visière baissée et cagoule en place en zone de feu
+- EPI adaptés à la mission : tenue feux de forêts, gilet haute visibilité sur la route, tenue de protection chimique…` },
+  { titre:"L'ARI (appareil respiratoire isolant)", tags:'ari appareil respiratoire isolant bouteille sifflet alarme manomètre masque bar pression réserve',
+    contenu:`## Composition
+- **Dossard** et sangles, **bouteille** d'air comprimé (au SDIS 34 : 6 L ou 7,2 L à 300 bar, soit 1 800 ou 2 160 L d'air)
+- **Détendeur**, **manomètre**, **avertisseur** (sifflet d'alarme)
+- **Masque** avec soupape à la demande
+## Contrôles avant engagement
+- Contrôle croisé **RAPACE** : robinet, armement de la balise, pression (**270 bar ou plus**), ajustement, code, étanchéité
+## Engagement
+- Toujours en **binôme**, jamais séparé
+- Identité, pression, heure d'entrée, heure de sortie prévisible et mission notées à l'enregistrement
+- L'**avertisseur** (à 55 bar) signale l'entrée dans la **réserve** : le binôme ressort immédiatement
+- Le retour se décide sur le porteur qui a **le moins d'air**
+! Ne jamais retirer son masque en zone enfumée.
+> Détails complets : thème « RDEB · Engagement des binômes ».` },
+  { titre:'Sécurité en intervention', tags:'binôme ligne guide repli sécurité lspcc chute hydratation danger',
+    contenu:`- Travailler en **binôme** et garder le contact (visuel, physique, radio)
+- Utiliser une **ligne guide** ou suivre le tuyau pour retrouver la sortie
+- Repérer les **itinéraires de repli** avant de s'engager
+- Signaler tout danger : effondrement, électricité, gaz, bouteilles
+- S'hydrater et respecter les relèves
+- **LSPCC** : lot de sauvetage et de protection contre les chutes (sauvetages et mises en sécurité en hauteur)
+> En cas de doute, on s'arrête, on se met en sécurité et on rend compte.` }
+  ],
+  questions:[
+  Q("En milieu enfumé, l'engagement se fait :",["Toujours en binôme","Seul si on est expérimenté","Obligatoirement à quatre","Seul avec une radio"],0,"Le binôme n'est jamais séparé."),
+  Q("Le sifflet d'alarme de l'ARI se déclenche aux alentours de :",["55 bar","150 bar","10 bar","250 bar"],0,"Il signale l'entrée dans la réserve : le binôme ressort."),
+  Q("Quel volume d'air contient une bouteille de 6 L à 300 bar ?",["1 800 L","300 L","6 000 L","600 L"],0,"6 × 300 = 1 800 litres d'air (7,2 L × 300 = 2 160 L)."),
+  Q("Avant d'ouvrir la porte d'un local en feu, le binôme doit :",["Avoir une lance en eau et se placer sur le côté","Ouvrir en grand pour ventiler","Retirer son masque pour sentir","Ouvrir seul pour aller plus vite"],0,"On lit d'abord le feu : température de la porte, fumées."),
+  Q("Que signifie LSPCC ?",["Lot de sauvetage et de protection contre les chutes","Lance spéciale pour combustibles chimiques","Liaison de secours par câble","Lot de soins de premier contact"],0,"Il sert aux sauvetages et mises en sécurité en hauteur."),
+  Q("Un porteur d'ARI se sent mal pendant l'engagement :",["Il prévient son binôme et ils ressortent ensemble","Il ressort seul","Il retire son masque pour respirer","Il continue la mission"],0,"Le binôme ne se sépare jamais."),
+  Q("Sur quel porteur se décide le retour d'un binôme sous ARI ?",["Celui qui a le moins d'air","Celui qui a le plus d'air","Le plus jeune","Le chef d'agrès"],0,"Le binôme ressort ensemble, au rythme du plus consommateur."),
+  Q("Pour retrouver la sortie dans la fumée, on peut :",["Suivre le tuyau ou une ligne guide","Courir vers la lumière","Retirer son masque","Se séparer pour chercher"],0,"Le tuyau mène toujours vers l'extérieur.")
+  ]},
+
+{ id:'ope', nom:'Opérations & hydraulique', icone:'🚒', couleur:'#1e88e5',
+  fiches:[
+  { titre:'Marche générale des opérations (MGO)', tags:'mgo reconnaissance sauvetage établissement attaque protection déblai surveillance',
+    contenu:`La **marche générale des opérations** décrit l'enchaînement des actions sur un incendie :
+- **Reconnaissances** : localiser le feu, les victimes, les risques
+- **Sauvetages** et mises en sécurité
+- **Établissements** : mise en place des tuyaux et des lances
+- **Attaque** : extinction du foyer principal
+- **Protection** : éviter la propagation, protéger les biens
+- **Déblai** : dégarnir, éteindre les foyers cachés
+- **Surveillance** : éviter toute reprise
+> Ces actions peuvent être simultanées. Les sauvetages restent la priorité absolue.` },
+  { titre:'Message radio et ordre initial (SOIEC)', tags:'message renseignement je suis je vois je prévois je fais je demande soiec ordre initial',
+    contenu:`## Message de renseignements
+- **Je suis** : localisation, engin
+- **Je vois** : ce qui se passe (nature, ampleur, victimes)
+- **Je prévois** : l'évolution possible
+- **Je fais** : les actions engagées
+- **Je demande** : les moyens ou renforts nécessaires
+## Ordre initial : SOIEC
+- **S**ituation
+- **O**bjectifs
+- **I**dées de manœuvre
+- **E**xécution (qui fait quoi)
+- **C**ommandement (où est le chef, liaisons)` },
+  { titre:"L'équipage du FPT", tags:'fpt équipage chef agrès conducteur bat bal binôme attaque alimentation 6',
+    contenu:`| Rôle | Mission principale |
+| Chef d'agrès | Commande l'engin, reconnaissances, rend compte |
+| Conducteur | Conduit l'engin, met en œuvre la pompe |
+| Chef BAT | Chef du binôme d'attaque, tient la lance d'attaque |
+| Équipier BAT | Seconde le chef BAT |
+| Chef BAL | Chef du binôme d'alimentation, alimente l'engin |
+| Équipier BAL | Seconde le chef BAL |
+- Équipage complet du FPT : **6** sapeurs-pompiers
+- BAT = **binôme d'attaque**, BAL = **binôme d'alimentation**` },
+  { titre:'Hydraulique et DECI', tags:'tuyau dn 45 70 110 ldv lance débit pression bar dénivelé perte charge poteau incendie pi deci hydrant',
+    contenu:`## Tuyaux et lances
+- Tuyaux **DN 45** : établissements d'attaque (LDV 500)
+- Tuyaux **DN 70** : alimentation, lances à fort débit
+- Tuyaux **DN 110** : alimentation à très fort débit
+- **LDV** : lance à débit variable, prévue pour fonctionner à **6 bar**
+## Repères de calcul
+- Dénivelé : environ **1 bar pour 10 m** de hauteur
+- Pression à la pompe = pression à la lance + pertes de charge + dénivelé
+## DECI (défense extérieure contre l'incendie)
+- Poteaux et bouches d'incendie, réserves, points d'aspiration
+- Référence : un poteau d'incendie doit fournir **60 m³/h sous 1 bar pendant 2 h**, soit 120 m³` }
+  ],
+  questions:[
+  Q("Quel est l'ordre de la marche générale des opérations ?",["Reconnaissances, sauvetages, établissements, attaque, protection, déblai, surveillance","Attaque, reconnaissances, sauvetages, déblai, protection, surveillance, établissements","Établissements, attaque, sauvetages, reconnaissances, surveillance, déblai, protection","Sauvetages, attaque, déblai, établissements, reconnaissances, protection, surveillance"],0,"Ces actions peuvent être simultanées ; les sauvetages restent prioritaires."),
+  Q("Quelle est la priorité absolue en intervention ?",["Le sauvetage des personnes","La protection des biens","L'extinction","La ventilation"],0,"Les personnes d'abord, toujours."),
+  Q("Par quoi se termine un message de renseignements ?",["Je demande","Je suis","Je vois","Je prévois"],0,"Je suis, je vois, je prévois, je fais, je demande."),
+  Q("Dans SOIEC, que signifie le « O » ?",["Objectifs","Ordres","Opérations","Observation"],0,"Situation, Objectifs, Idées de manœuvre, Exécution, Commandement."),
+  Q("Combien de sapeurs-pompiers compte l'équipage complet d'un FPT ?",["6","4","3","8"],0,"Chef d'agrès, conducteur, BAT (2) et BAL (2)."),
+  Q("Que signifie BAT ?",["Binôme d'attaque","Binôme d'alimentation","Bataillon d'attaque","Brigade d'appui technique"],0,"Le BAL est le binôme d'alimentation."),
+  Q("Une LDV est prévue pour fonctionner à environ :",["6 bar","2 bar","12 bar","20 bar"],0,"LDV = lance à débit variable."),
+  Q("Le dénivelé correspond à environ :",["1 bar tous les 10 m","1 bar tous les mètres","1 bar tous les 100 m","1 bar tous les 50 m"],0,"À ajouter à la pression de refoulement pour un établissement en étage."),
+  Q("Sur quel diamètre de tuyau établit-on habituellement une LDV 500 d'attaque ?",["DN 45","DN 110","DN 20","DN 150"],0,"Le DN 45 est maniable pour l'attaque."),
+  Q("À quoi sert le déblai ?",["Éteindre les foyers cachés et éviter les reprises","Sauver les victimes","Alimenter l'engin","Faire la reconnaissance"],0,"On dégarnit et on noie les foyers résiduels."),
+  Q("Un poteau d'incendie doit fournir au minimum :",["60 m³/h sous 1 bar pendant 2 h","10 m³/h pendant 30 min","120 m³/h pendant 10 min","30 m³/h sous 6 bar pendant 1 h"],0,"Soit 120 m³ disponibles, référence de la DECI.")
+  ]},
+
+{ id:'sap', nom:'Secours à personne', icone:'🚑', couleur:'#43a047',
+  fiches:[
+  { titre:'Le bilan', tags:'bilan circonstanciel urgence vitale complémentaire surveillance transmission xabcde samu régulation',
+    contenu:`## Les étapes
+- **Bilan circonstanciel** : que s'est-il passé ? Dangers ? Nombre de victimes ? Renforts nécessaires ?
+- **Bilan d'urgence vitale** : rechercher une détresse et agir immédiatement
+- **Bilan complémentaire** : interrogatoire, examen de la tête aux pieds, mesure des paramètres
+- **Surveillance** : réévaluer régulièrement
+- **Transmission** du bilan pour avis médical (régulation du SAMU, via le CTA-CODIS)
+## XABCDE
+- **X** : hémorragie externe grave
+- **A** : voies aériennes (Airway)
+- **B** : respiration (Breathing)
+- **C** : circulation
+- **D** : état neurologique (Disability)
+- **E** : exposition, environnement (hypothermie)` },
+  { titre:'Paramètres normaux (adulte)', tags:'fréquence respiratoire cardiaque pouls saturation spo2 glasgow paramètres normes valeurs',
+    contenu:`| Paramètre | Adulte au repos |
+| Fréquence respiratoire | 12 à 20 /min |
+| Fréquence cardiaque | 60 à 100 /min |
+| Saturation (SpO2) | 94 % et plus |
+| Score de Glasgow | 15 (échelle de 3 à 15) |
+- **Glasgow** : yeux (1 à 4) + réponse verbale (1 à 5) + réponse motrice (1 à 6)
+- Les valeurs sont différentes chez l'enfant et le nourrisson : se référer au référentiel` },
+  { titre:'Arrêt cardiaque et RCP', tags:'arrêt cardiaque rcp massage compressions insufflations dae défibrillateur réanimation 30 2 nourrisson enfant',
+    contenu:`## Reconnaître
+Victime **inconsciente** qui **ne respire pas** ou respire anormalement (gasps).
+## Adulte
+- **30 compressions / 2 insufflations**
+- Fréquence de **100 à 120 compressions par minute**
+- Profondeur de **5 à 6 cm**, au centre du thorax, relâchement complet
+- **DAE** mis en œuvre le plus tôt possible ; limiter les interruptions
+## Enfant et nourrisson (secouristes)
+- **5 insufflations initiales**, puis cycles de **15 compressions / 2 insufflations**
+- Profondeur : environ **un tiers** du thorax (≈ 4 cm chez le nourrisson, ≈ 5 cm chez l'enfant)
+- Nourrisson : compressions avec 2 doigts ou 2 pouces
+> Changer de masseur toutes les 2 minutes environ pour garder des compressions efficaces.` },
+  { titre:'Hémorragies et obstruction des voies aériennes', tags:'hémorragie saignement compression garrot pansement compressif obstruction étouffement heimlich claques dos',
+    contenu:`## Hémorragie externe
+- **Compression manuelle directe** sur la plaie (avec des gants)
+- Relais par un **pansement compressif**
+- **Garrot** si la compression est inefficace ou impossible (sur un membre) : **noter l'heure de pose**, ne jamais le desserrer soi-même
+- Allonger la victime, la couvrir, la surveiller
+## Obstruction totale des voies aériennes
+- Adulte ou enfant conscient : jusqu'à **5 claques dans le dos**, puis jusqu'à **5 compressions abdominales** (Heimlich)
+- Nourrisson : 5 claques dans le dos, puis 5 **compressions thoraciques**
+- Si la victime perd connaissance : RCP
+- Obstruction **partielle** : encourager à tousser, position assise, ne rien faire qui pourrait l'aggraver` },
+  { titre:'Positions, AVC et brûlures', tags:'pls position latérale sécurité demi-assis avc vite brûlure refroidir eau malaise trauma rachis',
+    contenu:`## Positions
+- **PLS** (position latérale de sécurité) : victime **inconsciente qui respire**
+- **Position demi-assise** : détresse respiratoire chez une victime consciente
+- **Allongée** : malaise, hémorragie, état de choc
+- Victime traumatisée : **ne pas la mobiliser**, maintien de la tête en position neutre
+## AVC : VITE
+- **V**isage paralysé (bouche déviée)
+- **I**nertie d'un membre (bras ou jambe)
+- **T**rouble de la parole
+- **E**n urgence : alerter et noter **l'heure** d'apparition des signes
+## Brûlures
+- Refroidir **immédiatement** à l'eau tempérée (15 à 25 °C)
+- Retirer les vêtements non collés et les bijoux
+- Gravité : surface, localisation (visage, mains, voies aériennes…), aspect
+! Jamais de glace, de corps gras ni de pommade.` }
+  ],
+  questions:[
+  Q("À quelle fréquence réalise-t-on les compressions thoraciques ?",["100 à 120 par minute","60 à 80 par minute","140 à 160 par minute","30 par minute"],0,"C'est le rythme recommandé chez l'adulte, l'enfant et le nourrisson."),
+  Q("Chez l'adulte, la profondeur des compressions est de :",["5 à 6 cm","2 à 3 cm","8 à 10 cm","1 cm"],0,"Avec un relâchement complet du thorax entre chaque compression."),
+  Q("Quel est le rapport compressions/insufflations chez l'adulte ?",["30/2","15/2","5/1","30/5"],0,"30 compressions puis 2 insufflations."),
+  Q("Chez l'enfant en arrêt cardiaque, les secouristes commencent par :",["5 insufflations initiales puis 15/2","30 compressions sans insufflation","2 insufflations puis 30/2","Mettre l'enfant en PLS"],0,"Chez l'enfant, l'arrêt est le plus souvent d'origine respiratoire."),
+  Q("Une victime inconsciente qui respire normalement est placée :",["En PLS","En position assise","Debout","En RCP"],0,"La PLS protège les voies aériennes."),
+  Q("Premier geste face à une hémorragie externe :",["Compression manuelle directe","Poser un garrot d'emblée","Surélever le membre","Donner à boire"],0,"Le garrot vient si la compression est inefficace ou impossible."),
+  Q("Après la pose d'un garrot :",["On note l'heure et on ne le desserre jamais soi-même","On le desserre toutes les 20 minutes","On le retire dès que ça ne saigne plus","On le recouvre sans noter l'heure"],0,"Seule une équipe médicale décide de son retrait."),
+  Q("Fréquence respiratoire normale d'un adulte au repos :",["12 à 20 /min","4 à 8 /min","30 à 40 /min","60 à 100 /min"],0,"60 à 100 correspond à la fréquence cardiaque."),
+  Q("Fréquence cardiaque normale d'un adulte au repos :",["60 à 100 /min","30 à 50 /min","120 à 160 /min","12 à 20 /min"],0,"À comparer avec les valeurs de l'enfant et du nourrisson."),
+  Q("Quelle est la valeur minimale du score de Glasgow ?",["3","0","1","5"],0,"Score de 3 à 15 : yeux 1-4, verbal 1-5, moteur 1-6."),
+  Q("Adulte conscient qui ne peut plus ni parler ni tousser après avoir avalé de travers :",["5 claques dans le dos, puis 5 compressions abdominales","RCP immédiate","Lui faire boire de l'eau","L'allonger sur le dos"],0,"On alterne claques et compressions jusqu'à désobstruction."),
+  Q("Dans l'acronyme VITE (AVC), que signifie le « V » ?",["Visage paralysé","Vomissements","Vertiges","Vision trouble"],0,"Visage, Inertie d'un membre, Trouble de la parole, En urgence."),
+  Q("Comment refroidir une brûlure ?",["À l'eau tempérée (15 à 25 °C), immédiatement","Avec de la glace","Avec une pommade grasse","Avec de l'eau très chaude"],0,"Jamais de glace ni de corps gras."),
+  Q("Saturation en oxygène (SpO2) normale chez l'adulte :",["94 % et plus","70 %","50 %","85 %"],0,"Une valeur basse évoque une détresse respiratoire."),
+  Q("Victime consciente en détresse respiratoire : quelle position ?",["Demi-assise","PLS","Allongée à plat","Jambes surélevées"],0,"Elle facilite la respiration.")
+  ]},
+
+{ id:'sr', nom:'Secours routier', icone:'🚗', couleur:'#8e24aa',
+  fiches:[
+  { titre:"Étapes d'une intervention de secours routier", tags:'accident route balisage protection calage stabilisation désincarcération extraction vsr',
+    contenu:`- **Reconnaissance** : nombre de véhicules et de victimes, dangers, énergies
+- **Balisage et protection** : engin en protection **en amont**, feux, cônes, éclairage, gilets haute visibilité
+- **Sécurisation** : calage et **stabilisation** des véhicules, gestion des énergies (batterie, carburant, airbags)
+- **Accès à la victime** : abord, maintien de la tête, bilan, protection (couverture, plaque de protection)
+- **Désincarcération** : créer un espace pour extraire la victime **dans l'axe**, sans aggraver ses lésions
+- **Extraction** et prise en charge
+- **Remise en état** de la chaussée et compte rendu` },
+  { titre:'Énergies, airbags et véhicules électriques', tags:'airbag prétensionneur batterie électrique hybride ve câble orange haute tension gpl gnv condensateur',
+    contenu:`## Airbags et prétensionneurs
+- Un airbag **non déclenché** peut se déployer : ne pas se placer dans sa zone de déploiement
+- Après coupure de la batterie, certains systèmes restent alimentés **quelques minutes** (condensateurs)
+- Repérer les éléments avant toute découpe (fiches d'aide à la désincarcération)
+## Véhicules électriques et hybrides
+- **Identifier** : logos et sigles, prise de charge, absence d'échappement, silence moteur
+- **Immobiliser** : frein de stationnement, calage
+- **Couper le contact** et éloigner la clé
+- Câbles haute tension de couleur **orange** : ne jamais les couper ni les toucher
+- Batterie en feu : emballement thermique, très grandes quantités d'eau, fumées toxiques
+## Autres énergies
+- GPL / GNV : risque d'explosion, périmètre de sécurité et refroidissement` }
+  ],
+  questions:[
+  Q("Quelle est la couleur des câbles haute tension d'un véhicule électrique ?",["Orange","Bleu","Vert","Noir"],0,"Ne jamais les couper ni les toucher."),
+  Q("Première action à l'arrivée sur un accident de la route :",["Baliser et protéger la zone","Découper le toit","Retirer la victime du véhicule","Couper les câbles orange"],0,"On se protège avant d'agir."),
+  Q("Où place-t-on l'engin de protection ?",["En amont de l'accident (côté circulation qui arrive)","En aval de l'accident","Sur la voie opposée","Le plus loin possible"],0,"Il fait écran entre la circulation et la zone d'intervention."),
+  Q("À quoi servent le calage et la stabilisation du véhicule ?",["Éviter tout mouvement qui aggraverait les lésions","Faciliter le remorquage","Ouvrir les portes","Couper la batterie"],0,"Un véhicule instable met aussi en danger les intervenants."),
+  Q("Un airbag non déclenché :",["Peut se déployer : on ne se place pas dans sa zone","Ne présente aucun danger","Doit être percé","Se désactive en ouvrant la porte"],0,"Même après coupure de la batterie, un risque persiste quelques minutes."),
+  Q("Victime suspecte d'un traumatisme du rachis :",["Maintien de la tête en position neutre","Faire bouger la tête pour tester","Asseoir la victime","La faire marcher"],0,"Ne pas mobiliser sans nécessité."),
+  Q("Objectif de la désincarcération :",["Créer un espace pour extraire la victime dans l'axe","Récupérer le véhicule","Accélérer le dépannage","Retirer les airbags"],0,"Sans aggraver les lésions."),
+  Q("Sur un véhicule électrique accidenté, on :",["Coupe le contact et éloigne la clé","Coupe les câbles orange","Démarre le véhicule pour le déplacer","Arrose immédiatement la batterie"],0,"Puis on immobilise le véhicule.")
+  ]},
+
+{ id:'fdf', nom:'Feux de forêts', icone:'🌲', couleur:'#2e7d32',
+  fiches:[
+  { titre:'Facteurs de propagation et règle des 30', tags:'feu forêt végétation garrigue vent température humidité relief pente règle 30 saute brandon',
+    contenu:`## Les facteurs
+- **Combustible** : végétation (herbes, garrigue, maquis, pins), état de sécheresse
+- **Météo** : vent, température, humidité de l'air
+- **Relief** : un feu monte une pente **plus vite** qu'il ne la descend
+## Règle des 30
+Risque très élevé quand : **température > 30 °C**, **humidité < 30 %**, **vent > 30 km/h**.
+- Le **vent** est le facteur principal : il pousse les flammes et transporte les brandons
+- **Sautes de feu** : des brandons allument des **foyers secondaires** en avant du front` },
+  { titre:"Anatomie d'un feu et techniques d'attaque", tags:'tête front flanc queue arrière doigt gant foyer secondaire attaque ancrage',
+    contenu:`| Partie | Description |
+| Tête (front) | Partie la plus active, poussée par le vent |
+| Flancs | Côtés du feu, moins violents |
+| Arrière (queue) | Partie la plus calme, opposée à la tête |
+| Doigts de gant | Avancées du feu sur les flancs |
+| Foyers secondaires | Nouveaux feux créés par les sautes |
+## Techniques d'attaque
+- Toujours partir d'un **point d'ancrage** (zone sûre : route, zone déjà brûlée, rocher)
+- **Attaque de flanc** : progression le long des flancs vers la tête
+- **Attaque de front** : sur la tête, seulement si elle est faible et sans danger
+- **Attaque par l'arrière** : on éteint en remontant vers la tête
+- Protection des points sensibles : habitations, campings, routes` },
+  { titre:'GIFF, sécurité et autoprotection', tags:'giff ccf groupe intervention autoprotection rideau eau repli old débroussaillement 50 m',
+    contenu:`## Le GIFF
+- **Groupe d'intervention feux de forêts** : **4 CCF** et **1 véhicule de commandement** (chef de groupe)
+- **CCF** : camion-citerne feux de forêts, équipage de **4** (chef d'agrès, conducteur, 2 équipiers)
+- Plusieurs groupes forment une colonne
+## Sécurité
+- Repérer les **zones et itinéraires de repli** avant l'attaque
+- Garer l'engin **orienté dans le sens du départ**
+- Conserver une **réserve d'eau** pour l'autoprotection
+## Autoprotection du CCF
+- Rester **dans l'engin**, cabine fermée, **moteur tournant**
+- Déclencher le dispositif d'autoprotection (**rideau d'eau**)
+- Se protéger (couvertures) et rester bas dans la cabine
+## Prévention
+- **OLD** : obligations légales de débroussaillement, **50 m** autour des constructions (jusqu'à 100 m sur décision du maire)` }
+  ],
+  questions:[
+  Q("Que dit la règle des 30 ?",["Température > 30 °C, humidité < 30 %, vent > 30 km/h","30 CCF minimum par feu","30 minutes pour arriver sur le feu","30 m de débroussaillement"],0,"Ces trois conditions réunies signalent un risque très élevé."),
+  Q("Quel est le facteur principal de propagation d'un feu de forêt ?",["Le vent","La pluie","La nuit","Le bruit"],0,"Il pousse les flammes et transporte les brandons."),
+  Q("Un feu qui monte une pente se propage :",["Plus vite","Plus lentement","À la même vitesse","Il s'arrête"],0,"Les flammes préchauffent la végétation située au-dessus."),
+  Q("Comment appelle-t-on la partie la plus active d'un feu ?",["La tête (front)","La queue","Le flanc","Le talon"],0,"Elle est poussée par le vent."),
+  Q("De quoi se compose un GIFF ?",["4 CCF et 1 véhicule de commandement","2 VSAV et 1 FPT","6 FPT","1 CCF seul"],0,"GIFF = groupe d'intervention feux de forêts."),
+  Q("Combien de personnes compte l'équipage d'un CCF ?",["4","6","2","8"],0,"Chef d'agrès, conducteur et 2 équipiers."),
+  Q("Quelle est la distance légale de débroussaillement autour des constructions ?",["50 m","5 m","10 m","500 m"],0,"Elle peut être portée à 100 m par le maire."),
+  Q("Qu'est-ce qu'une saute de feu ?",["Des brandons qui allument un foyer secondaire en avant du front","Un feu qui recule","Un retour de flamme dans la lance","Un feu de cime"],0,"Une saute peut encercler les intervenants."),
+  Q("Comment appelle-t-on la zone sûre d'où l'on démarre une attaque ?",["Le point d'ancrage","Le point d'eau","Le poste de commandement","Le point de rassemblement"],0,"Route, zone déjà brûlée, rocher…"),
+  Q("En autoprotection, l'équipage du CCF :",["Reste dans l'engin, cabine fermée, moteur tournant, rideau d'eau en marche","Fuit à pied","Ouvre les vitres","Coupe le moteur"],0,"L'engin est le meilleur abri."),
+  Q("Avant toute attaque, on repère :",["Les zones et itinéraires de repli","Le nom des propriétaires","Les panneaux publicitaires","Le prochain repas"],0,"La sécurité passe avant l'attaque.")
+  ]},
+
+{ id:'risq', nom:'Risques technologiques & TMD', icone:'☢️', couleur:'#f9a825',
+  fiches:[
+  { titre:'La plaque orange (TMD)', tags:'tmd plaque orange code danger numéro onu matière dangereuse 33 x adr',
+    contenu:`| Partie | Signification |
+| Haut | Code danger (2 ou 3 chiffres) |
+| Bas | Numéro ONU de la matière (4 chiffres) |
+## Premier chiffre du code danger
+| Chiffre | Danger principal |
+| 2 | Gaz |
+| 3 | Liquide inflammable |
+| 4 | Solide inflammable |
+| 5 | Comburant / peroxyde |
+| 6 | Toxique |
+| 7 | Radioactif |
+| 8 | Corrosif |
+| 9 | Réaction violente spontanée |
+- Chiffre **doublé** (33, 66, 88…) : danger **renforcé**
+- **X** devant le code : la matière réagit **dangereusement avec l'eau**
+- Exemples : **33/1203** essence, **30/1202** gazole, **23/1965** gaz liquéfié (type GPL)
+## Approche
+- Arriver **dos au vent** et **en amont**
+- Reconnaissance **à distance** (jumelles), identifier la matière
+- Établir un **périmètre** de sécurité, éloigner le public
+- Demander les équipes spécialisées` },
+  { titre:'Zones et équipes spécialisées (NRBC)', tags:'zone exclusion contrôlée soutien cmic cmir nrbc chimique radiologique',
+    contenu:`- **Zone d'exclusion** : réservée aux intervenants équipés (tenues de protection adaptées)
+- **Zone contrôlée** : moyens d'appui, décontamination
+- **Zone de soutien** : poste de commandement, réserves, accueil des renforts
+## Équipes spécialisées
+- **CMIC** : cellule mobile d'intervention chimique
+- **CMIR** : cellule mobile d'intervention radiologique
+- Les risques **NRBC** (nucléaire, radiologique, biologique, chimique) suivent des procédures spécifiques` },
+  { titre:'Gaz et électricité', tags:'gaz fuite odeur explosimètre lie lse explosion électricité électrisation enedis coupure',
+    contenu:`## Fuite de gaz non enflammée
+- Faire **couper** le gaz (organe de coupure) et **ventiler**
+- **Aucune source d'ignition** : pas d'interrupteur, pas de sonnette, pas de téléphone dans la zone
+- Mesures à l'**explosimètre** (LIE = limite inférieure d'explosivité)
+- Évacuer, établir un périmètre, appeler le gestionnaire du réseau
+## Fuite de gaz enflammée
+- **Ne pas éteindre** la flamme tant que la fuite ne peut pas être coupée (risque d'explosion)
+- **Refroidir** les alentours et protéger ce qui est exposé
+## Électricité
+- Ne jamais toucher une victime électrisée avant la **coupure** du courant
+- Faire intervenir le gestionnaire du réseau (Enedis, RTE)
+- Câble tombé au sol : éloigner tout le monde` }
+  ],
+  questions:[
+  Q("Sur une plaque orange, le nombre du bas indique :",["Le numéro ONU de la matière","Le code danger","Le poids du chargement","Le numéro du transporteur"],0,"Le haut porte le code danger."),
+  Q("Que signifie le code danger 33 ?",["Liquide très inflammable","Gaz toxique","Matière corrosive","Matière radioactive"],0,"Chiffre doublé = danger renforcé. Ex. : 33/1203 = essence."),
+  Q("Que signifie un X devant le code danger ?",["La matière réagit dangereusement avec l'eau","La matière est explosive","Le transport est vide","C'est un produit alimentaire"],0,"Interdit d'utiliser de l'eau sans avis des spécialistes."),
+  Q("Quand le premier chiffre du code danger est 2, il s'agit :",["D'un gaz","D'un liquide inflammable","D'un corrosif","D'un toxique"],0,"2 = gaz, 3 = liquide inflammable, 6 = toxique, 8 = corrosif."),
+  Q("Le premier chiffre 8 signifie :",["Corrosif","Radioactif","Comburant","Gaz"],0,"7 = radioactif, 5 = comburant."),
+  Q("Comment s'approche-t-on d'un accident de TMD ?",["Dos au vent et en amont","Sous le vent","Au plus près, le plus vite possible","Par l'aval de la pente"],0,"Pour ne pas être exposé aux vapeurs ou aux écoulements."),
+  Q("Face à une fuite de gaz enflammée, on :",["N'éteint pas tant que la fuite ne peut pas être coupée","Éteint immédiatement la flamme","Ventile vers la flamme","Ignore le feu"],0,"Un gaz non brûlé peut former un nuage explosif."),
+  Q("Que signifie LIE ?",["Limite inférieure d'explosivité","Liquide inflammable et explosif","Lot d'intervention d'urgence","Limite d'intervention extérieure"],0,"Elle se mesure à l'explosimètre."),
+  Q("Quelle équipe spécialisée intervient sur les risques chimiques ?",["La CMIC","La CMIR","Le GRIMP","Le SAV"],0,"La CMIR traite le risque radiologique."),
+  Q("Qui peut entrer dans la zone d'exclusion ?",["Uniquement les intervenants équipés de protections adaptées","Le public","Les journalistes","Tout le monde"],0,"La zone de soutien accueille le PC et les renforts."),
+  Q("En présence d'une odeur de gaz dans un logement, on évite :",["D'actionner les interrupteurs","De ventiler","De faire couper le gaz","D'évacuer"],0,"Une étincelle peut suffire à déclencher l'explosion.")
+  ]},
+
+{ id:'div', nom:'Engins & opérations diverses', icone:'🧰', couleur:'#6d4c41',
+  fiches:[
+  { titre:'Les engins', tags:'engin fpt ccf ccgc vsav vsr epa vtu vl sigle véhicule',
+    contenu:`| Sigle | Signification |
+| FPT | Fourgon pompe-tonne |
+| CCF | Camion-citerne feux de forêts |
+| CCGC | Camion-citerne grande capacité |
+| VSAV | Véhicule de secours et d'assistance aux victimes |
+| VSR | Véhicule de secours routier |
+| EPA | Échelle pivotante automatique |
+| VTU | Véhicule tous usages |
+| VL | Véhicule léger (commandement, liaison) |
+- Équipages de référence : FPT **6**, CCF **4**, VSAV **3**
+- Les dotations et les effectifs exacts sont fixés par le règlement opérationnel du SDIS 34` },
+  { titre:'Opérations diverses', tags:'ascenseur bloqué inondation épuisement hyménoptères guêpes frelons ouverture porte animaux arbre',
+    contenu:`## Ascenseur bloqué
+- Rassurer les occupants, couper l'alimentation de l'ascenseur
+- Ramener la cabine **au niveau d'un palier** selon la procédure, ou attendre l'ascensoriste
+! Ne jamais faire sortir quelqu'un d'une cabine arrêtée entre deux niveaux.
+## Inondation et épuisement
+- Faire **couper l'électricité** avant d'intervenir dans un local inondé
+- Ne jamais s'engager dans une zone inondée inconnue : **30 cm d'eau** suffisent à emporter une voiture
+## Hyménoptères
+- Destruction de nids de guêpes ou de frelons selon la politique du SDIS (danger immédiat, voie publique…)
+- Tenue de protection spécifique
+## Autres
+- Ouverture de porte (personne en danger), animaux, arbres menaçants, fuites d'eau` },
+  { titre:'Les spécialités', tags:'grimp sav sal plongeur cynotechnie sd sauvetage déblaiement nrbc spécialité',
+    contenu:`- **GRIMP** : groupe de reconnaissance et d'intervention en milieu périlleux
+- **SAV** : sauvetage aquatique
+- **SAL** : scaphandriers autonomes légers (plongeurs)
+- **Cynotechnie** : recherche de personnes avec des chiens
+- **SD** : sauvetage déblaiement (effondrements)
+- **NRBC** : risques chimiques et radiologiques (CMIC, CMIR)
+- **FDF** : feux de forêts (chefs de groupe, de colonne…)` }
+  ],
+  questions:[
+  Q("Que signifie VSAV ?",["Véhicule de secours et d'assistance aux victimes","Véhicule de soutien aux accidents de la voie","Véhicule sanitaire d'aide vitale","Véhicule de sauvetage avancé"],0,"Son équipage de référence est de 3."),
+  Q("Que signifie EPA ?",["Échelle pivotante automatique","Engin de protection avancée","Équipe de premiers appuis","Échelle portable aluminium"],0,"Elle sert aux sauvetages et à l'attaque en hauteur."),
+  Q("Que signifie CCGC ?",["Camion-citerne grande capacité","Camion de commandement grand chantier","Citerne de combat grand calibre","Camion-citerne gaz comprimé"],0,"Il sert à alimenter en eau les autres engins."),
+  Q("Que signifie GRIMP ?",["Groupe de reconnaissance et d'intervention en milieu périlleux","Groupe régional d'intervention en montagne et plaine","Groupe de recherche incendie et matériel portable","Garde républicaine d'intervention"],0,"Il intervient en hauteur et en profondeur."),
+  Q("Ascenseur bloqué entre deux étages :",["On ne fait jamais sortir les occupants entre deux niveaux","On les fait sauter dans la gaine","On force les portes immédiatement","On redémarre l'ascenseur"],0,"On ramène la cabine au niveau d'un palier ou on attend l'ascensoriste."),
+  Q("Avant d'intervenir dans une cave inondée, on :",["Fait couper l'électricité","Allume la lumière","Descend sans équipement","Débranche les appareils à la main"],0,"Risque d'électrocution."),
+  Q("Quelle hauteur d'eau suffit à emporter une voiture ?",["Environ 30 cm","Environ 2 m","Environ 1 m","Environ 5 cm"],0,"Ne jamais s'engager dans une zone inondée."),
+  Q("Que signifie VTU ?",["Véhicule tous usages","Véhicule technique d'urgence","Véhicule de transport d'unité","Véhicule tout-terrain urbain"],0,"Il sert aux opérations diverses."),
+  Q("Quelle spécialité recherche des personnes à l'aide de chiens ?",["La cynotechnie","Le GRIMP","Le SAV","Le SD"],0,"Recherche de personnes disparues ou ensevelies.")
+  ]},
+
+{ id:'trans', nom:'Transmissions', icone:'📻', couleur:'#00897b',
+  fiches:[
+  { titre:'Alphabet international (OTAN)', tags:'alphabet otan épeler radio alpha bravo charlie',
+    contenu:`| Lettre | Mot | Lettre | Mot |
+| A | Alpha | N | November |
+| B | Bravo | O | Oscar |
+| C | Charlie | P | Papa |
+| D | Delta | Q | Québec |
+| E | Echo | R | Romeo |
+| F | Foxtrot | S | Sierra |
+| G | Golf | T | Tango |
+| H | Hotel | U | Uniform |
+| I | India | V | Victor |
+| J | Juliett | W | Whiskey |
+| K | Kilo | X | X-ray |
+| L | Lima | Y | Yankee |
+| M | Mike | Z | Zulu |` },
+  { titre:'Règles radio', tags:'radio règles émettre écouter canal antares alternat indicatif message',
+    contenu:`- **Écouter** avant d'émettre pour vérifier que le canal est libre
+- Préparer son message **avant** d'appuyer sur l'alternat
+- Messages **courts, clairs et structurés**
+- Pas de nom de victime ni d'information confidentielle sur les ondes
+- Utiliser les **indicatifs** prévus par l'ordre de transmissions
+- Épeler avec l'**alphabet international**
+- **ANTARES** : réseau radio numérique partagé par les services de secours et de sécurité` }
+  ],
+  questions:[
+  Q("Comment épelle-t-on la lettre C ?",["Charlie","Canada","César","Coca"],0,"Alphabet international : Alpha, Bravo, Charlie…"),
+  Q("Comment épelle-t-on la lettre J ?",["Juliett","Jacques","Jupiter","Japan"],0,""),
+  Q("Comment épelle-t-on la lettre W ?",["Whiskey","Washington","William","Wagon"],0,""),
+  Q("Comment épelle-t-on la lettre Q ?",["Québec","Quintal","Queen","Quatre"],0,""),
+  Q("Comment épelle-t-on la lettre Y ?",["Yankee","Yoyo","Yvonne","Yellow"],0,""),
+  Q("Comment s'appelle le réseau radio numérique des services de secours ?",["ANTARES","RUBIS","ORSEC","NEXSIS"],0,"ANTARES est partagé par les services de secours et de sécurité."),
+  Q("Que fait-on avant d'émettre à la radio ?",["On écoute que le canal est libre","On parle le plus fort possible","On donne le nom de la victime","On appuie longtemps sur l'alternat"],0,"Pour ne pas couper un message en cours."),
+  Q("Un bon message radio est :",["Court, clair et structuré","Long et détaillé","Improvisé","Codé en langage personnel"],0,"On le prépare avant d'appuyer sur l'alternat.")
+  ]}
+];
+
+/* =========================================================================
+   Moteur
+   ========================================================================= */
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('rp34:'+k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('rp34:'+k, JSON.stringify(v)); }catch(e){} }
+};
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const DIA = /[̀-ͯ]/g;
+function norm(s){ return String(s).normalize('NFD').replace(DIA,'').toLowerCase(); }
+function normAligned(s){ s = String(s); let o=''; for(let i=0;i<s.length;i++){ const c=s[i]; const n=c.normalize('NFD').replace(DIA,'').toLowerCase(); o += (n[0] || c); } return o; }
+function stem(t){ return t.length > 3 ? t.replace(/(s|x)$/,'') : t; }
+function tokens(s){ return norm(s).replace(/œ/g,'oe').split(/[^a-z0-9]+/).filter(t => t.length>1 || /\d/.test(t)).map(stem); }
+function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function go(h){ if(location.hash===h) render(); else location.hash=h; }
+function pct(a,b){ return b ? Math.round(a*100/b) : 0; }
+
+/* ---------- Thèmes (base + imports) ---------- */
+let THEMES = [], QBYID = {}, FBYID = {};
+function buildThemes(){
+  THEMES = BASE.map(t => ({...t, fiches:[...t.fiches], questions:[...t.questions], custom:false}));
+  const custom = store.get('custom', []);
+  custom.forEach(ct => {
+    const ex = THEMES.find(t => t.id === ct.id);
+    if(ex){ ex.fiches.push(...(ct.fiches||[])); ex.questions.push(...(ct.questions||[])); }
+    else THEMES.push({ id:ct.id, nom:ct.nom||ct.id, icone:ct.icone||'📘', couleur:ct.couleur||'#546e7a', fiches:[...(ct.fiches||[])], questions:[...(ct.questions||[])], custom:true });
+  });
+  QBYID = {}; FBYID = {};
+  THEMES.forEach(t => {
+    t.fiches.forEach((f,i) => { f.id = t.id+'-f'+i; f.theme = t.id; FBYID[f.id]=f; });
+    t.questions.forEach((q,i) => { q.id = t.id+'-q'+i; q.theme = t.id; QBYID[q.id]=q; });
+  });
+  buildIndex();
+}
+const themeOf = id => THEMES.find(t => t.id === id);
+const allQuestions = () => THEMES.flatMap(t => t.questions);
+
+/* ---------- Statistiques ---------- */
+let STATS = store.get('stats', {});
+let LEIT = store.get('leitner', {});
+let FAVS = store.get('favs', []);
+function today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function markDay(){ const days = store.get('days', []); const t = today(); if(!days.includes(t)){ days.push(t); store.set('days', days.slice(-400)); } }
+function streak(){
+  const days = new Set(store.get('days', [])); let n=0; const d=new Date();
+  if(!days.has(today())) d.setDate(d.getDate()-1);
+  for(;;){ const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); if(days.has(k)){ n++; d.setDate(d.getDate()-1); } else break; }
+  return n;
+}
+function record(q, ok){
+  const e = STATS[q.id] || {ok:0, ko:0};
+  ok ? e.ok++ : e.ko++; e.last = ok ? 1 : 0; e.t = Date.now();
+  STATS[q.id] = e; store.set('stats', STATS); markDay();
+}
+function mastery(t){ const n=t.questions.length; const m=t.questions.filter(q => STATS[q.id] && STATS[q.id].last===1).length; return pct(m,n); }
+function errors(list){ return (list || allQuestions()).filter(q => STATS[q.id] && STATS[q.id].last===0); }
+function dueCards(list){ const now=Date.now(); return (list || allQuestions()).filter(q => LEIT[q.id] && LEIT[q.id].due <= now); }
+
+/* ---------- Mini-markdown ---------- */
+function inline(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'); }
+function md(src){
+  const lines = String(src||'').split('\n'); let html='', list=false, table=false;
+  const close = () => { if(list){ html+='</ul>'; list=false; } if(table){ html+='</tbody></table></div>'; table=false; } };
+  for(const raw of lines){
+    const l = raw.trim();
+    if(l.startsWith('- ')){ if(table) close(); if(!list){ html+='<ul>'; list=true; } html+='<li>'+inline(l.slice(2))+'</li>'; continue; }
+    if(l.startsWith('|')){
+      if(list) close();
+      const cells = l.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c => c.trim());
+      if(!table){ html+='<div class="tbl"><table><thead><tr>'+cells.map(c=>'<th>'+inline(c)+'</th>').join('')+'</tr></thead><tbody>'; table=true; }
+      else html+='<tr>'+cells.map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>';
+      continue;
+    }
+    close();
+    if(!l) continue;
+    if(l.startsWith('## ')) html+='<h3>'+inline(l.slice(3))+'</h3>';
+    else if(l.startsWith('> ')) html+='<div class="callout">'+inline(l.slice(2))+'</div>';
+    else if(l.startsWith('! ')) html+='<div class="callout warn">'+inline(l.slice(2))+'</div>';
+    else html+='<p>'+inline(l)+'</p>';
+  }
+  close(); return html;
+}
+function plain(line){ return line.replace(/^(##|-|>|!)\s+/,'').replace(/^\||\|$/g,'').split('|').map(s=>s.trim()).filter(Boolean).join(' · ').replace(/\*\*/g,''); }
+
+/* ---------- Recherche ---------- */
+const STOP = new Set(('le la les de du des un une et ou a au aux en pour par sur dans que qui quoi quel quelle quels quelles comment est sont ce cet cette ces se sa son ses on il elle ils elles faut doit dois combien pourquoi quand avec pas ne plus moins tres je tu nous vous mon ma mes ton ta tes leur leurs y d l c qu s n t m j c est quoi signifie veut dire definition').split(' ').map(stem));
+const SYN = {
+  ari:['appareil','respiratoire','isolant','bouteille'], rcp:['massage','compression','reanimation','arret','cardiaque'],
+  massage:['compression','rcp'], arret:['rcp','massage'], fdf:['foret','feux','ccf'], foret:['fdf','vegetation'],
+  dae:['defibrillateur'], defibrillateur:['dae'], heimlich:['obstruction','compression','abdominale'], etouffement:['obstruction','heimlich'],
+  pls:['laterale','securite','inconsciente'], tmd:['plaque','orange','matiere','dangereuse'], plaque:['tmd','onu','code'],
+  ve:['electrique','hybride'], electrique:['ve','hybride','orange'], flashover:['ege','embrasement'], ege:['flashover','embrasement'],
+  backdraft:['explosion','fumee'], saignement:['hemorragie','garrot'], hemorragie:['garrot','compression'],
+  ldv:['lance','debit'], pression:['bar'], fpt:['equipage','fourgon'], vsav:['ambulance','victime'],
+  pompier:['sapeur'], numero:['urgence','telephone'], telephone:['numero'], alphabet:['epeler','otan'],
+  avc:['vite','visage','parole'], brulure:['refroidir','eau'], gaz:['fuite','explosimetre'], vent:['propagation'],
+  extincteur:['agent','classe'], incendie:['feu'], feu:['incendie'], classe:['feu'], garrot:['hemorragie'], bilan:['xabcde'],
+  detresse:['urgent','nelar','appel'], mayday:['detresse','urgent'], sifflet:['avertisseur'], alarme:['avertisseur'],
+  autonomie:['debit','consommation'], air:['autonomie','bouteille'], corde:['lspcc'], lspcc:['corde','harnais','triangle'],
+  controleur:['enregistrement','tgp'], securite:['binome'], echelle:['mea','coulisse'], mea:['echelle','panier'],
+  co:['monoxyde'], monoxyde:['co','ppm'], evacuation:['repli','itineraire'], repli:['itineraire'], facade:['abcd'],
+  rapace:['controle','croise'], aides:['acceder','isoler'], nodule:['ligne','guide'], harnais:['lspcc','syndrome']
+};
+let IDX = [];
+function countMap(arr){ const m=new Map(); arr.forEach(t => m.set(t,(m.get(t)||0)+1)); return m; }
+function buildIndex(){
+  IDX = [];
+  THEMES.forEach(t => {
+    t.fiches.forEach(f => IDX.push({type:'fiche', ref:f, theme:t, title:f.titre, extra:f.tags||'', body:f.contenu}));
+    t.questions.forEach(q => IDX.push({type:'q', ref:q, theme:t, title:q.q, extra:'', body:q.choix[q.r]+' '+(q.ex||'')}));
+  });
+  IDX.forEach(d => { d.tt = countMap(tokens(d.title+' '+d.extra)); d.bt = countMap(tokens(d.body)); });
+}
+function queryTokens(q){
+  const base = [...new Set(tokens(q).filter(t => !STOP.has(t)))];
+  const out = base.map(t => ({t, w:1}));
+  base.forEach(t => (SYN[t]||[]).forEach(s => { s = stem(s); if(!out.some(o => o.t===s)) out.push({t:s, w:0.45}); }));
+  return out;
+}
+function matchMap(map, t){
+  if(map.has(t)) return [map.get(t), 1];
+  if(t.length >= 4 && !/^\d+$/.test(t)){
+    let c = 0; for(const [k,v] of map){ if(k.length>=4 && (k.startsWith(t) || t.startsWith(k))) c += v; }
+    if(c) return [c, 0.6];
+  }
+  return [0, 0];
+}
+function scoreDoc(d, qt){
+  let s=0, hit=0; const nOrig = qt.filter(q => q.w===1).length;
+  for(const q of qt){
+    const [ct,ft] = matchMap(d.tt, q.t), [cb,fb] = matchMap(d.bt, q.t);
+    let ss = 0; if(ct) ss += 6*ft; if(cb) ss += (2 + Math.min(cb,4)*0.5)*fb;
+    if(ss){ s += ss*q.w; if(q.w===1) hit++; }
+  }
+  if(!s) return 0;
+  s *= 0.35 + 0.65*hit/Math.max(1,nOrig);
+  if(d.type==='fiche') s *= 1.1;
+  return s;
+}
+function search(q){
+  const qt = queryTokens(q); if(!qt.length) return {qt, res:[]};
+  const res = IDX.map(d => ({d, s:scoreDoc(d, qt)})).filter(r => r.s > 0).sort((a,b) => b.s - a.s).slice(0, 40);
+  return {qt, res};
+}
+function hl(text, toks){
+  const n = normAligned(text); const rs = [];
+  toks.forEach(t => {
+    if(!t) return;
+    const re = new RegExp('(^|[^a-z0-9])(' + t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'g'); let m;
+    while((m = re.exec(n))){ const st = m.index + m[1].length; let en = st + m[2].length; while(en < n.length && /[a-z0-9]/.test(n[en])) en++; rs.push([st,en]); }
+  });
+  if(!rs.length) return esc(text);
+  rs.sort((a,b) => a[0]-b[0]); const mg = [];
+  rs.forEach(r => { const l = mg[mg.length-1]; if(l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else mg.push(r.slice()); });
+  let out='', p=0; mg.forEach(([a,b]) => { out += esc(text.slice(p,a)) + '<mark>' + esc(text.slice(a,b)) + '</mark>'; p=b; });
+  return out + esc(text.slice(p));
+}
+function highlightDom(el, toks){
+  if(!toks.length) return;
+  const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); const nodes = [];
+  while(w.nextNode()) nodes.push(w.currentNode);
+  nodes.forEach(nd => { const h = hl(nd.nodeValue, toks); if(h.includes('<mark>')){ const sp=document.createElement('span'); sp.innerHTML=h; nd.replaceWith(...sp.childNodes); } });
+}
+function bestLines(f, qt){
+  const orig = qt.map(q => q.t);
+  return f.contenu.split('\n').map((l,i) => ({l:plain(l.trim()), i, s: tokens(l).filter(t => orig.some(o => t===o || (o.length>=4 && t.startsWith(o)))).length}))
+    .filter(x => x.s>0 && x.l).sort((a,b) => b.s-a.s || a.i-b.i).slice(0,3).sort((a,b) => a.i-b.i);
+}
+
+/* =========================================================================
+   Vues
+   ========================================================================= */
+let QUIZ = null, TIMER = null, FLASH = null;
+
+function themeCard(t){
+  const m = mastery(t);
+  return `<a class="theme" href="#/theme/${t.id}" style="--c:${esc(t.couleur)}">
+    <div class="ti">${esc(t.icone)}</div>
+    <div style="flex:1;min-width:0"><b>${esc(t.nom)}</b><small>${t.fiches.length} fiches · ${t.questions.length} questions</small>
+    <div class="bar"><i style="width:${m}%"></i></div><small>${m} % maîtrisé</small></div></a>`;
+}
+
+function viewHome(){
+  const err = errors().length, due = dueCards().length, st = streak();
+  const favs = FAVS.map(id => FBYID[id]).filter(Boolean);
+  const sugg = ['Classes de feux','Rythme du massage cardiaque','Règle des 30','Code danger 33','Sifflet ARI','Composition d\'un GIFF','Que faire face à une hémorragie ?'];
+  app.innerHTML = `<div class="fade">
+  <section class="hero">
+    <h1>Salut ! Prêt à réviser ? 💪</h1>
+    <p>${st ? `🔥 Série de <b>${st} jour${st>1?'s':''}</b> de révision. Continue !` : 'Pose une question ou choisis un thème.'}</p>
+    <form class="search" id="homeSearch" role="search">
+      <span aria-hidden="true">🔍</span>
+      <input id="hq" type="search" placeholder="Ex. : combien de compressions par minute ?" autocomplete="off" aria-label="Rechercher">
+      <span class="kbd">/</span>
+    </form>
+    <div class="chips">${sugg.map(s => `<button class="chip" data-s="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+  </section>
+  <div class="actions">
+    <button class="action" id="aQuick"><span class="ic">⚡</span><b>Quiz rapide</b><span>10 questions au hasard</span></button>
+    <a class="action" href="#/exam"><span class="ic">📝</span><b>Examen blanc</b><span>Chronométré, tous thèmes</span></a>
+    <button class="action" id="aFlash"><span class="ic">🃏</span><b>Flashcards</b><span>${due ? due+' carte'+(due>1?'s':'')+' à revoir' : 'Mémorisation espacée'}</span></button>
+    <button class="action" id="aErr" ${err?'':'disabled style="opacity:.55"'}><span class="ic">🎯</span><b>Mes erreurs</b><span>${err ? err+' question'+(err>1?'s':'')+' à retravailler' : 'Aucune erreur pour l\'instant'}</span></button>
+  </div>
+  ${favs.length ? `<h2>⭐ Mes fiches favorites</h2><div class="list">${favs.map(f => ficheItem(f)).join('')}</div>` : ''}
+  <h2>🔴 Référentiels départementaux SDIS 34</h2>
+  <div class="themes">${THEMES.filter(t => t.source).map(themeCard).join('')}</div>
+  <h2>📚 Culture opérationnelle (doctrine nationale)</h2>
+  <div class="themes">${THEMES.filter(t => !t.source).map(themeCard).join('')}</div>
+  <p class="foot">Fiches SDIS 34 : synthèses de révision des référentiels RDEB, RDSMES et RDLSPCC. Autres thèmes : doctrine nationale (GDO/GTO, PSE, ADR).<br>En cas de doute, le référentiel officiel du SDIS 34 fait toujours foi. Tu peux importer tes propres fiches dans ⚙️ Réglages.</p>
+  </div>`;
+  $('#homeSearch').onsubmit = e => { e.preventDefault(); go('#/search?q='+encodeURIComponent($('#hq').value)); };
+  app.querySelectorAll('[data-s]').forEach(b => b.onclick = () => go('#/search?q='+encodeURIComponent(b.dataset.s)));
+  $('#aQuick').onclick = () => startQuiz(shuffle(allQuestions()).slice(0,10), {title:'Quiz rapide'});
+  $('#aFlash').onclick = () => startFlash(allQuestions(), 'Toutes les cartes');
+  $('#aErr').onclick = () => { const e = errors(); if(e.length) startQuiz(shuffle(e), {title:'Mes erreurs'}); };
+}
+
+function ficheItem(f){
+  const t = themeOf(f.theme); const fav = FAVS.includes(f.id);
+  return `<a class="item" href="#/fiche/${f.id}" style="--c:${esc(t.couleur)}"><span style="font-size:22px">${esc(t.icone)}</span>
+    <div class="t"><b>${esc(f.titre)}</b><small>${esc(t.nom)}</small></div>${fav?'<span aria-label="favori">⭐</span>':''}<span class="muted">›</span></a>`;
+}
+
+function viewTheme(id){
+  const t = themeOf(id); if(!t) return go('#/');
+  const m = mastery(t), err = errors(t.questions).length, due = dueCards(t.questions).length;
+  app.innerHTML = `<div class="fade">
+  <a class="back" href="#/">‹ Accueil</a>
+  <section class="thead" style="--c:${esc(t.couleur)}">
+    <div class="ti">${esc(t.icone)}</div><h1>${esc(t.nom)}</h1>
+    ${t.source ? `<div class="small" style="opacity:.9">📄 ${esc(t.source)}</div>` : ''}
+    <div>${t.fiches.length} fiches · ${t.questions.length} questions · ${m} % maîtrisé</div>
+    <div class="bar"><i style="width:${m}%"></i></div>
+  </section>
+  <div class="row">
+    <button class="btn primary" id="tq10">⚡ Quiz (10)</button>
+    <button class="btn" id="tqAll">📋 Toutes les questions (${t.questions.length})</button>
+    <button class="btn" id="tFlash">🃏 Flashcards${due?` (${due})`:''}</button>
+    ${err?`<button class="btn" id="tErr">🎯 Erreurs (${err})</button>`:''}
+  </div>
+  <h2>📖 Fiches de cours</h2>
+  <div class="list">${t.fiches.map(f => ficheItem(f)).join('') || '<p class="muted">Aucune fiche.</p>'}</div>
+  </div>`;
+  $('#tq10').onclick = () => startQuiz(shuffle(t.questions).slice(0,10), {title:t.nom});
+  $('#tqAll').onclick = () => startQuiz(shuffle(t.questions), {title:t.nom});
+  $('#tFlash').onclick = () => startFlash(t.questions, t.nom);
+  if(err) $('#tErr').onclick = () => startQuiz(shuffle(errors(t.questions)), {title:t.nom+' · erreurs'});
+}
+
+function viewFiche(id, params){
+  const f = FBYID[id]; if(!f) return go('#/');
+  const t = themeOf(f.theme); const i = t.fiches.indexOf(f);
+  const prev = t.fiches[i-1], next = t.fiches[i+1];
+  const fav = FAVS.includes(f.id);
+  app.innerHTML = `<div class="fade">
+  <a class="back" href="#/theme/${t.id}">‹ ${esc(t.nom)}</a>
+  <article class="card fiche">
+    <div class="row"><span class="tag" style="--c:${esc(t.couleur)}">${esc(t.icone)} ${esc(t.nom)}</span><span class="spacer"></span>
+    <button class="star" id="fav" aria-label="${fav?'Retirer des favoris':'Ajouter aux favoris'}" title="Favori">${fav?'★':'☆'}</button></div>
+    <h1>${esc(f.titre)}</h1>
+    ${t.source ? `<p class="small muted" style="margin-top:-6px">📄 Source : ${esc(t.source)}</p>` : ''}
+    <div id="fc">${md(f.contenu)}</div>
+  </article>
+  <div class="row" style="margin-top:14px">
+    ${prev?`<a class="btn" href="#/fiche/${prev.id}">‹ Précédente</a>`:''}
+    <span class="spacer"></span>
+    ${next?`<a class="btn" href="#/fiche/${next.id}">Suivante ›</a>`:''}
+  </div>
+  <button class="btn primary block" style="margin-top:12px" id="fq">⚡ M'entraîner sur « ${esc(t.nom)} »</button>
+  </div>`;
+  $('#fav').onclick = () => { FAVS = fav ? FAVS.filter(x => x!==f.id) : [...FAVS, f.id]; store.set('favs', FAVS); toast(fav?'Retirée des favoris':'Ajoutée aux favoris ⭐'); viewFiche(id, params); };
+  $('#fq').onclick = () => startQuiz(shuffle(t.questions).slice(0,10), {title:t.nom});
+  const h = (params.get('h')||'').split(',').filter(Boolean);
+  if(h.length){ highlightDom($('#fc'), h); const mk = app.querySelector('#fc mark'); if(mk) setTimeout(() => mk.scrollIntoView({block:'center', behavior:'smooth'}), 60); }
+}
+
+function viewSearch(params){
+  const q0 = params.get('q') || '';
+  app.innerHTML = `<div class="fade search-page">
+  <h1>🔍 Recherche rapide</h1>
+  <form class="search" id="sf" role="search"><span aria-hidden="true">🔍</span>
+    <input id="sq" type="search" value="${esc(q0)}" placeholder="Pose ta question : « que signifie 33 sur une plaque orange ? »" autocomplete="off" aria-label="Rechercher"></form>
+  <div id="sr" style="margin-top:14px"></div></div>`;
+  const inp = $('#sq'), out = $('#sr');
+  const run = () => {
+    const v = inp.value.trim();
+    history.replaceState(null, '', '#/search' + (v ? '?q='+encodeURIComponent(v) : ''));
+    if(!v){ out.innerHTML = `<div class="empty"><div class="e">💬</div><p>Tape un mot-clé ou une question complète.<br><span class="small">Exemples : « classe F », « garrot », « pression LDV », « alphabet W », « GIFF »</span></p></div>`; return; }
+    const {qt, res} = search(v);
+    if(!res.length){ out.innerHTML = `<div class="empty"><div class="e">🤔</div><p>Aucun résultat pour « ${esc(v)} ».<br><span class="small">Essaie un mot plus simple ou un sigle (ARI, PLS, TMD…).</span></p></div>`; return; }
+    const toks = qt.filter(x => x.w===1).map(x => x.t); const all = qt.map(x => x.t);
+    // Réponse rapide : la meilleure question (réponse directe) + la meilleure fiche (extrait)
+    const bestQ = res.find(r => r.d.type==='q' && r.s >= res[0].s*0.55);
+    const bestF = res.find(r => r.d.type==='fiche');
+    let ans = '<div class="answer"><div class="lbl">⚡ Réponse rapide</div>';
+    if(bestQ){
+      const q = bestQ.d.ref;
+      ans += `<div class="muted small">${hl(q.q, all)}</div><div class="rep">✅ ${hl(q.choix[q.r], all)}</div>${q.ex?`<p style="margin:4px 0">${hl(q.ex, all)}</p>`:''}
+        <div class="small muted" style="margin-bottom:8px">${esc(bestQ.d.theme.icone)} ${esc(bestQ.d.theme.nom)}</div>`;
+    }
+    if(bestF && (!bestQ || bestF.s >= bestQ.s*0.5)){
+      const f = bestF.d.ref, lines = bestLines(f, qt);
+      ans += `${bestQ?'<hr style="border:0;border-top:1px solid var(--line);margin:10px 0">':''}<b style="font-size:17px">📖 ${hl(f.titre, all)}</b>
+        <div class="small muted">${esc(bestF.d.theme.nom)}</div>
+        ${lines.length ? `<ul style="margin:8px 0;padding-left:20px">${lines.map(x => `<li>${hl(x.l, all)}</li>`).join('')}</ul>` : ''}
+        <a class="btn navy" href="#/fiche/${f.id}?h=${encodeURIComponent(all.join(','))}">Ouvrir la fiche</a>`;
+    }
+    ans += '</div>';
+    const shown = new Set([bestQ && bestQ.d, bestF && (!bestQ || bestF.s >= bestQ.s*0.5) && bestF.d]);
+    const rest = res.filter(r => !shown.has(r.d)).slice(0, 25).map(({d}) => {
+      if(d.type==='fiche') return `<a class="res" href="#/fiche/${d.ref.id}?h=${encodeURIComponent(all.join(','))}"><div class="meta"><span class="tag" style="--c:${esc(d.theme.couleur)}">📖 Fiche</span><span class="small muted">${esc(d.theme.nom)}</span></div><b>${hl(d.ref.titre, all)}</b>${bestLines(d.ref, qt).slice(0,1).map(x => `<p>${hl(x.l, all)}</p>`).join('')}</a>`;
+      const q = d.ref;
+      return `<div class="res"><div class="meta"><span class="tag" style="--c:${esc(d.theme.couleur)}">❓ Question</span><span class="small muted">${esc(d.theme.nom)}</span></div><b>${hl(q.q, all)}</b><p>✅ <strong>${hl(q.choix[q.r], all)}</strong>${q.ex?' — '+hl(q.ex, all):''}</p></div>`;
+    }).join('');
+    out.innerHTML = ans + (rest ? `<h2>Autres résultats</h2><div class="list">${rest}</div>` : '');
+  };
+  let tm; inp.oninput = () => { clearTimeout(tm); tm = setTimeout(run, 120); };
+  $('#sf').onsubmit = e => { e.preventDefault(); run(); inp.blur(); };
+  run(); setTimeout(() => { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }, 30);
+}
+
+/* ---------- Quiz ---------- */
+function startQuiz(qs, {mode='train', title='Quiz', minutes=0} = {}){
+  if(!qs.length){ toast('Aucune question disponible'); return; }
+  QUIZ = { items: qs.map(q => ({q, order: shuffle(q.choix.map((_,i) => i)), pick:null, rec:false})), i:0, mode, title, end: minutes ? Date.now()+minutes*60000 : 0, done:false };
+  go('#/quiz');
+}
+function fmt(ms){ const s = Math.max(0, Math.round(ms/1000)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function tick(){
+  if(!QUIZ || !QUIZ.end || QUIZ.done) return;
+  const r = QUIZ.end - Date.now(); const el = $('#timer');
+  if(el){ el.textContent = '⏱ '+fmt(r); el.classList.toggle('low', r < 60000); }
+  if(r <= 0){ toast('Temps écoulé !'); finishQuiz(); }
+}
+function viewQuiz(){
+  if(!QUIZ) return go('#/');
+  if(QUIZ.done) return viewResults();
+  const Z = QUIZ, it = Z.items[Z.i], q = it.q, n = Z.items.length, train = Z.mode==='train';
+  const answered = it.pick !== null, t = themeOf(q.theme);
+  const L = 'ABCDEF';
+  const choices = it.order.map((ci, k) => {
+    let cls = '';
+    if(train && answered){ if(ci===q.r) cls='ok'; else if(ci===it.pick) cls='ko'; }
+    else if(!train && it.pick===ci) cls='sel';
+    return `<button class="choice ${cls}" data-c="${ci}" ${train&&answered?'disabled':''}><span class="k">${L[k]}</span><span>${esc(q.choix[ci])}</span></button>`;
+  }).join('');
+  let fb = '';
+  if(train && answered){
+    const ok = it.pick===q.r;
+    fb = `<div class="feedback ${ok?'ok':'ko'}"><b>${ok?'✅ Bonne réponse !':'❌ Raté. Réponse : '+esc(q.choix[q.r])}</b>${q.ex?`<p style="margin:6px 0 0">${esc(q.ex)}</p>`:''}</div>`;
+  }
+  const doneCount = Z.items.filter(x => x.pick!==null).length;
+  app.innerHTML = `<div class="fade">
+  <div class="qhead"><button class="back" id="qquit" style="margin:0">✕</button>
+    <div class="bar" style="--c:var(--red)"><i style="width:${pct(train?Z.i+(answered?1:0):doneCount, n)}%"></i></div>
+    <b class="small">${Z.i+1}/${n}</b>${Z.end?`<span class="timer" id="timer">⏱ ${fmt(Z.end-Date.now())}</span>`:''}</div>
+  <div class="card">
+    <div class="row"><span class="tag" style="--c:${esc(t.couleur)}">${esc(t.icone)} ${esc(t.nom)}</span><span class="spacer"></span><span class="small muted">${esc(Z.title)}</span></div>
+    <div class="question">${esc(q.q)}</div>
+    <div class="choices">${choices}</div>${fb}
+    <div class="qnav">
+      ${!train && Z.i>0 ? '<button class="btn" id="qprev">‹ Précédente</button>' : ''}
+      ${train ? (answered ? `<button class="btn primary" id="qnext">${Z.i<n-1?'Suivante ›':'Voir mes résultats'}</button>` : '')
+              : (Z.i<n-1 ? '<button class="btn primary" id="qnext">Suivante ›</button>' : '<button class="btn primary" id="qend">Terminer l\'examen</button>')}
+    </div>
+    ${!train ? `<div class="dots">${Z.items.map((x,k) => `<button data-g="${k}" class="${x.pick!==null?'done':''} ${k===Z.i?'cur':''}">${k+1}</button>`).join('')}</div>` : ''}
+  </div>
+  <p class="small muted" style="text-align:center">Astuce clavier : touches 1-4 pour répondre, Entrée pour continuer.</p></div>`;
+  app.querySelectorAll('.choice').forEach(b => b.onclick = () => pick(+b.dataset.c));
+  const nx = $('#qnext'); if(nx) nx.onclick = next;
+  const pv = $('#qprev'); if(pv) pv.onclick = () => { Z.i--; viewQuiz(); };
+  const en = $('#qend'); if(en) en.onclick = () => { const left = Z.items.filter(x => x.pick===null).length; if(!left || confirm(left+' question(s) sans réponse. Terminer quand même ?')) finishQuiz(); };
+  app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { Z.i = +b.dataset.g; viewQuiz(); });
+  $('#qquit').onclick = () => { if(confirm('Quitter ce quiz ?')){ QUIZ = null; go('#/'); } };
+  if(Z.end && !TIMER) TIMER = setInterval(tick, 1000);
+}
+function pick(ci){
+  const Z = QUIZ, it = Z.items[Z.i];
+  if(Z.mode==='train'){ if(it.pick!==null) return; it.pick = ci; record(it.q, ci===it.q.r); it.rec = true; }
+  else it.pick = ci;
+  viewQuiz();
+}
+function next(){ const Z = QUIZ; if(Z.i < Z.items.length-1){ Z.i++; viewQuiz(); window.scrollTo(0,0); } else finishQuiz(); }
+function finishQuiz(){
+  const Z = QUIZ; if(!Z || Z.done) return;
+  Z.done = true; clearInterval(TIMER); TIMER = null;
+  Z.items.forEach(it => { if(!it.rec){ record(it.q, it.pick===it.q.r); it.rec = true; } });
+  viewResults(); window.scrollTo(0,0);
+}
+function viewResults(){
+  const Z = QUIZ, n = Z.items.length, good = Z.items.filter(x => x.pick===x.q.r).length, p = pct(good, n);
+  const msg = p>=90 ? '🏆 Excellent, tu maîtrises !' : p>=70 ? '👏 Très bien, encore un effort !' : p>=50 ? '💪 Pas mal, continue à réviser.' : '📚 Reprends les fiches et recommence.';
+  const wrong = Z.items.filter(x => x.pick!==x.q.r);
+  app.innerHTML = `<div class="fade">
+  <div class="card" style="text-align:center">
+    <div class="small muted">${esc(Z.title)}</div>
+    <div class="ring" style="--p:${p};--c:${p>=70?'var(--ok)':p>=50?'#f9a825':'var(--ko)'};margin-top:10px"><div><b>${p}%</b><small>${good}/${n}</small></div></div>
+    <h2 style="justify-content:center">${msg}</h2>
+    <div class="row" style="justify-content:center">
+      ${wrong.length?'<button class="btn primary" id="rErr">🎯 Refaire mes erreurs</button>':''}
+      <button class="btn" id="rAgain">🔁 Recommencer</button><a class="btn" href="#/">🏠 Accueil</a>
+    </div>
+  </div>
+  ${wrong.length?`<h2>❌ À revoir (${wrong.length})</h2>`:''}
+  <div class="list">${wrong.map(x => `<div class="review"><b>${esc(x.q.q)}</b>
+    <p>${x.pick===null?'<span class="muted">Sans réponse</span>':'Ta réponse : <span style="color:var(--ko)">'+esc(x.q.choix[x.pick])+'</span>'}</p>
+    <p>✅ <strong>${esc(x.q.choix[x.q.r])}</strong></p>${x.q.ex?`<p class="small muted">${esc(x.q.ex)}</p>`:''}</div>`).join('')}</div>
+  </div>`;
+  const e = $('#rErr'); if(e) e.onclick = () => startQuiz(shuffle(wrong.map(x => x.q)), {title:Z.title+' · erreurs'});
+  $('#rAgain').onclick = () => startQuiz(shuffle(Z.items.map(x => x.q)), {mode:Z.mode, title:Z.title, minutes: Z.mode==='exam' && Z.end ? Math.ceil(n*0.75) : 0});
+}
+
+/* ---------- Examen blanc ---------- */
+let EXAM_SEL = null;
+function viewExam(){
+  if(!EXAM_SEL) EXAM_SEL = new Set(THEMES.map(t => t.id));
+  const cfg = store.get('examcfg', {n:20, timer:true});
+  const avail = THEMES.filter(t => EXAM_SEL.has(t.id)).reduce((a,t) => a+t.questions.length, 0);
+  app.innerHTML = `<div class="fade">
+  <h1>📝 Examen blanc</h1>
+  <p class="muted">Correction à la fin, comme le jour J. Les questions sont tirées au hasard dans les thèmes choisis.</p>
+  <div class="card">
+    <b>Thèmes</b>
+    <div class="chips">${THEMES.map(t => `<button class="chip ${EXAM_SEL.has(t.id)?'on':''}" data-t="${t.id}">${esc(t.icone)} ${esc(t.nom)}</button>`).join('')}</div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="eAll">Tout sélectionner</button><button class="btn" id="eNone">Tout désélectionner</button></div>
+    <div style="margin-top:16px"><b>Nombre de questions</b></div>
+    <div class="seg" style="margin-top:8px">${[10,20,40,60].map(k => `<button data-n="${k}" class="${cfg.n===k?'on':''}">${k}</button>`).join('')}</div>
+    <div style="margin-top:16px"><label class="row"><input type="checkbox" id="eT" ${cfg.timer?'checked':''} style="width:20px;height:20px"> <span>Chronomètre (45 s par question)</span></label></div>
+    <p class="small muted">${avail} questions disponibles dans la sélection.</p>
+    <button class="btn primary block" id="eGo" ${avail?'':'disabled'}>🚀 Lancer l'examen</button>
+  </div></div>`;
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { const id=b.dataset.t; EXAM_SEL.has(id)?EXAM_SEL.delete(id):EXAM_SEL.add(id); viewExam(); });
+  app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { cfg.n = +b.dataset.n; store.set('examcfg', cfg); viewExam(); });
+  $('#eT').onchange = e => { cfg.timer = e.target.checked; store.set('examcfg', cfg); };
+  $('#eAll').onclick = () => { EXAM_SEL = new Set(THEMES.map(t => t.id)); viewExam(); };
+  $('#eNone').onclick = () => { EXAM_SEL = new Set(); viewExam(); };
+  $('#eGo').onclick = () => {
+    const pool = shuffle(THEMES.filter(t => EXAM_SEL.has(t.id)).flatMap(t => t.questions)).slice(0, cfg.n);
+    startQuiz(pool, {mode:'exam', title:'Examen blanc', minutes: cfg.timer ? Math.ceil(pool.length*0.75) : 0});
+  };
+}
+
+/* ---------- Flashcards ---------- */
+const INTERVALS = [0, 1, 2, 4, 8, 16, 32];
+function startFlash(qs, title){
+  if(!qs.length){ toast('Aucune carte'); return; }
+  const now = Date.now();
+  const due = qs.filter(q => LEIT[q.id] && LEIT[q.id].due <= now);
+  const fresh = qs.filter(q => !LEIT[q.id]);
+  let deck = [...shuffle(due), ...shuffle(fresh)].slice(0, 20);
+  if(!deck.length) deck = shuffle(qs).slice(0, 20);
+  FLASH = {deck, i:0, flipped:false, title, known:0};
+  go('#/flash');
+}
+function viewFlash(){
+  if(!FLASH) return go('#/');
+  const F = FLASH;
+  if(F.i >= F.deck.length){
+    app.innerHTML = `<div class="fade card" style="text-align:center"><div style="font-size:48px">🎉</div><h2 style="justify-content:center">Session terminée !</h2>
+      <p>${F.known} / ${F.deck.length} cartes sues.</p><div class="row" style="justify-content:center"><a class="btn primary" href="#/">🏠 Accueil</a><a class="btn" href="#/progress">📈 Mes progrès</a></div></div>`;
+    return;
+  }
+  const q = F.deck[F.i], t = themeOf(q.theme), box = LEIT[q.id] ? LEIT[q.id].box : 0;
+  app.innerHTML = `<div class="fade">
+  <div class="qhead"><a class="back" href="#/" style="margin:0">✕</a><div class="bar" style="--c:var(--navy2)"><i style="width:${pct(F.i, F.deck.length)}%"></i></div><b class="small">${F.i+1}/${F.deck.length}</b></div>
+  <div class="row"><span class="tag" style="--c:${esc(t.couleur)}">${esc(t.icone)} ${esc(t.nom)}</span><span class="spacer"></span><span class="small muted">Boîte ${box}/6</span></div>
+  <div class="flash ${F.flipped?'flipped':''}" id="card" role="button" tabindex="0" aria-label="Retourner la carte">
+    <div class="flash-in">
+      <div class="face"><div class="lbl">Question</div><div class="big">${esc(q.q)}</div><p class="small muted" style="margin-top:16px">Touche la carte pour voir la réponse</p></div>
+      <div class="face back"><div class="lbl">Réponse</div><div class="ans">✅ ${esc(q.choix[q.r])}</div>${q.ex?`<p>${esc(q.ex)}</p>`:''}</div>
+    </div>
+  </div>
+  <div class="qnav" ${F.flipped?'':'style="visibility:hidden"'}>
+    <button class="btn" id="fNo" style="border-color:var(--ko);color:var(--ko)">🔁 À revoir</button>
+    <button class="btn primary" id="fYes" style="background:var(--ok);border-color:var(--ok)">✅ Je savais</button>
+  </div></div>`;
+  const flip = () => { F.flipped = !F.flipped; viewFlash(); };
+  $('#card').onclick = flip; $('#card').onkeydown = e => { if(e.key===' '||e.key==='Enter'){ e.preventDefault(); flip(); } };
+  $('#fNo').onclick = () => rate(false); $('#fYes').onclick = () => rate(true);
+}
+function rate(ok){
+  const F = FLASH, q = F.deck[F.i]; const e = LEIT[q.id] || {box:0};
+  e.box = ok ? Math.min(6, e.box+1) : 1;
+  e.due = Date.now() + INTERVALS[e.box]*86400000;
+  LEIT[q.id] = e; store.set('leitner', LEIT); markDay();
+  if(ok) F.known++;
+  F.i++; F.flipped = false; viewFlash();
+}
+
+/* ---------- Progrès ---------- */
+function viewProgress(){
+  const all = allQuestions(); const seen = all.filter(q => STATS[q.id]);
+  const ok = seen.reduce((a,q) => a+STATS[q.id].ok, 0), tot = seen.reduce((a,q) => a+STATS[q.id].ok+STATS[q.id].ko, 0);
+  const mast = pct(all.filter(q => STATS[q.id] && STATS[q.id].last===1).length, all.length);
+  const learned = all.filter(q => LEIT[q.id] && LEIT[q.id].box>=4).length;
+  const err = errors().length;
+  app.innerHTML = `<div class="fade">
+  <h1>📈 Mes progrès</h1>
+  <div class="card" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    <div class="ring" style="--p:${mast};margin:0"><div><b>${mast}%</b><small>maîtrisé</small></div></div>
+    <div style="flex:1;min-width:180px"><b>Niveau global</b><p class="muted small" style="margin:4px 0">Part des questions dont ta dernière réponse est juste.</p>
+      ${err?`<button class="btn primary" id="pErr">🎯 Retravailler mes ${err} erreur${err>1?'s':''}</button>`:''}</div>
+  </div>
+  <div class="kpis" style="margin-top:12px">
+    <div class="kpi"><b>${seen.length}/${all.length}</b><span>questions vues</span></div>
+    <div class="kpi"><b>${pct(ok,tot)} %</b><span>taux de réussite</span></div>
+    <div class="kpi"><b>🔥 ${streak()}</b><span>jour(s) de suite</span></div>
+    <div class="kpi"><b>${learned}</b><span>cartes mémorisées</span></div>
+  </div>
+  <h2>Par thème</h2>
+  <div class="list">${THEMES.map(t => { const m = mastery(t), e = errors(t.questions).length; return `<a class="item" href="#/theme/${t.id}" style="--c:${esc(t.couleur)}"><span style="font-size:22px">${esc(t.icone)}</span>
+    <div class="t"><b>${esc(t.nom)}</b><div class="bar"><i style="width:${m}%"></i></div><small>${m} % maîtrisé${e?' · '+e+' erreur'+(e>1?'s':''):''}</small></div><span class="muted">›</span></a>`; }).join('')}</div>
+  </div>`;
+  const pe = $('#pErr'); if(pe) pe.onclick = () => startQuiz(shuffle(errors()), {title:'Mes erreurs'});
+}
+
+/* ---------- Réglages ---------- */
+const TEMPLATE = {
+  themes:[
+    { id:'fdf', nom:'(thème existant : les fiches et questions sont ajoutées)', fiches:[
+      { titre:'Ordre d\'opération FDF du SDIS 34', tags:'mots clés pour la recherche', contenu:'## Titre de section\n- Point clé **en gras**\n- Autre point\n> Astuce\n! Attention\n| Colonne 1 | Colonne 2 |\n| valeur | valeur |' } ],
+      questions:[ { q:'Ta question ?', choix:['Bonne réponse','Mauvaise 1','Mauvaise 2','Mauvaise 3'], r:0, ex:'Explication affichée après la réponse' } ] },
+    { id:'mon-theme', nom:'Nouveau thème', icone:'📘', couleur:'#546e7a', fiches:[], questions:[] }
+  ]
+};
+function download(name, obj){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'})); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function validateImport(data){
+  const themes = Array.isArray(data) ? data : data && data.themes;
+  if(!Array.isArray(themes)) throw new Error('Le fichier doit contenir une liste "themes".');
+  return themes.map((t, i) => {
+    if(!t || typeof t.id !== 'string' || !t.id.trim()) throw new Error('Thème n°'+(i+1)+' : "id" manquant.');
+    const fiches = (t.fiches||[]).map((f, j) => { if(!f.titre || typeof f.contenu !== 'string') throw new Error('Thème "'+t.id+'", fiche n°'+(j+1)+' : "titre" et "contenu" requis.'); return {titre:String(f.titre), tags:String(f.tags||''), contenu:f.contenu}; });
+    const questions = (t.questions||[]).map((q, j) => {
+      if(!q.q || !Array.isArray(q.choix) || q.choix.length<2 || q.choix.length>6 || !Number.isInteger(q.r) || q.r<0 || q.r>=q.choix.length) throw new Error('Thème "'+t.id+'", question n°'+(j+1)+' invalide (q, choix[2 à 6], r).');
+      return {q:String(q.q), choix:q.choix.map(String), r:q.r, ex:String(q.ex||'')};
+    });
+    return {id:t.id.trim(), nom:t.nom?String(t.nom):undefined, icone:t.icone?String(t.icone):undefined, couleur:/^#[0-9a-f]{3,8}$/i.test(t.couleur||'')?t.couleur:undefined, fiches, questions};
+  });
+}
+function viewMore(){
+  const th = store.get('theme', 'auto'); const custom = store.get('custom', []);
+  const nF = custom.reduce((a,t) => a+t.fiches.length, 0), nQ = custom.reduce((a,t) => a+t.questions.length, 0);
+  app.innerHTML = `<div class="fade">
+  <h1>⚙️ Réglages</h1>
+  <div class="card"><b>Apparence</b><div style="margin-top:8px" class="seg">
+    ${[['auto','🌗 Auto'],['light','☀️ Clair'],['dark','🌙 Sombre']].map(([k,l]) => `<button data-th="${k}" class="${th===k?'on':''}">${l}</button>`).join('')}</div></div>
+  <div class="card" style="margin-top:12px">
+    <b>📥 Ajouter le contenu de ton référentiel (SDIS 34)</b>
+    <p class="small muted">Importe un fichier JSON contenant tes fiches et questions. Si l'<code>id</code> d'un thème existe déjà (org, inc, secu, ope, sap, sr, fdf, risq, div, trans), le contenu y est ajouté ; sinon un nouveau thème est créé. Tout reste stocké sur ton appareil.</p>
+    <p class="small">Contenu importé : <b>${custom.length}</b> thème(s), <b>${nF}</b> fiche(s), <b>${nQ}</b> question(s).</p>
+    <div class="row">
+      <label class="btn primary">📂 Importer un JSON<input type="file" id="imp" accept=".json,application/json" hidden></label>
+      <button class="btn" id="tpl">📄 Télécharger le modèle</button>
+      ${custom.length?'<button class="btn" id="exp">💾 Exporter mes imports</button><button class="btn" id="clr">🗑️ Retirer les imports</button>':''}
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px"><b>Progression</b>
+    <p class="small muted">Statistiques, flashcards, favoris et série sont enregistrés dans ce navigateur.</p>
+    <button class="btn" id="rst" style="color:var(--ko)">♻️ Réinitialiser ma progression</button></div>
+  <div class="card" style="margin-top:12px"><b>À propos</b>
+    <p class="small muted">Contenu de base : ${THEMES.reduce((a,t) => a+t.fiches.length, 0)} fiches et ${allQuestions().length} questions, construites à partir des référentiels départementaux du SDIS 34 (RDEB v2, RDSMES v2, RDLSPCC v1), de la doctrine nationale (GDO/GTO, référentiel PSE, ADR) et des risques de l'Hérault. Cette application est une aide à la révision : en cas de différence, <b>les référentiels, le règlement opérationnel et les notes de service du SDIS 34 font foi</b>.</p></div>
+  </div>`;
+  app.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { store.set('theme', b.dataset.th); applyTheme(); viewMore(); });
+  $('#tpl').onclick = () => download('modele-revision-sdis34.json', TEMPLATE);
+  $('#imp').onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try{
+        const themes = validateImport(JSON.parse(rd.result));
+        const cur = store.get('custom', []);
+        themes.forEach(t => { const ex = cur.find(c => c.id===t.id); if(ex){ ex.fiches.push(...t.fiches); ex.questions.push(...t.questions); Object.assign(ex, {nom:t.nom||ex.nom, icone:t.icone||ex.icone, couleur:t.couleur||ex.couleur}); } else cur.push(t); });
+        store.set('custom', cur); buildThemes();
+        toast('Import réussi : '+themes.reduce((a,t)=>a+t.fiches.length,0)+' fiche(s), '+themes.reduce((a,t)=>a+t.questions.length,0)+' question(s)'); viewMore();
+      }catch(err){ alert('Import impossible : '+err.message); }
+    };
+    rd.readAsText(file);
+  };
+  const ex = $('#exp'); if(ex) ex.onclick = () => download('mes-fiches-sdis34.json', {themes:store.get('custom', [])});
+  const cl = $('#clr'); if(cl) cl.onclick = () => { if(confirm('Retirer tout le contenu importé ? (ta progression sur ces questions sera conservée mais inutilisée)')){ store.set('custom', []); buildThemes(); viewMore(); toast('Imports retirés'); } };
+  $('#rst').onclick = () => { if(confirm('Effacer toute ta progression ?')){ STATS={}; LEIT={}; FAVS=[]; ['stats','leitner','favs','days'].forEach(k => store.set(k, k==='stats'||k==='leitner'?{}:[])); toast('Progression réinitialisée'); viewMore(); } };
+}
+function applyTheme(){
+  const th = store.get('theme', 'auto');
+  if(th==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', th);
+}
+
+/* ---------- Routeur ---------- */
+function render(){
+  const h = location.hash.slice(1) || '/';
+  const [path, qs] = h.split('?'); const params = new URLSearchParams(qs||'');
+  const parts = path.split('/').filter(Boolean);
+  const r = parts[0] || 'home';
+  if(r !== 'quiz' && TIMER){ clearInterval(TIMER); TIMER = null; }
+  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.dataset.r === (['theme','fiche','quiz','flash'].includes(r) ? 'home' : r)));
+  window.scrollTo(0,0);
+  switch(r){
+    case 'theme': return viewTheme(parts[1]);
+    case 'fiche': return viewFiche(parts[1], params);
+    case 'search': return viewSearch(params);
+    case 'quiz': return viewQuiz();
+    case 'flash': return viewFlash();
+    case 'exam': return viewExam();
+    case 'progress': return viewProgress();
+    case 'more': return viewMore();
+    default: return viewHome();
+  }
+}
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName||'').toLowerCase(); const typing = tag==='input' || tag==='textarea';
+  if(e.key==='/' && !typing){ e.preventDefault(); if(location.hash.startsWith('#/search')) $('#sq').focus(); else go('#/search'); return; }
+  if(typing) return;
+  if(location.hash==='#/quiz' && QUIZ && !QUIZ.done){
+    const it = QUIZ.items[QUIZ.i];
+    if(/^[1-6]$/.test(e.key)){ const k = +e.key-1; if(k < it.order.length) pick(it.order[k]); }
+    else if(e.key==='Enter'){ const b = $('#qnext') || $('#qend'); if(b) b.click(); }
+  }
+  if(location.hash==='#/flash' && FLASH && FLASH.i < FLASH.deck.length){
+    if(e.key===' '){ e.preventDefault(); FLASH.flipped = !FLASH.flipped; viewFlash(); }
+    else if(FLASH.flipped && (e.key==='1' || e.key==='ArrowLeft')) rate(false);
+    else if(FLASH.flipped && (e.key==='2' || e.key==='ArrowRight')) rate(true);
+  }
+});
+$('#btnSearch').onclick = () => go('#/search');
+window.addEventListener('hashchange', render);
+applyTheme(); buildThemes(); render();
+</script>
+</body>
+</html>
