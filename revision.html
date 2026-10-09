@@ -833,6 +833,275 @@ Facteur = **hauteur de chute ÷ longueur de corde** qui amortit la chute.
   Q("En formation, qui joue la victime suspendue ?",["Un mannequin, obligatoirement","Le plus léger du groupe","Le formateur","Un volontaire"],0,"Pour éviter tout accident.")
   ]},
 
+{ id:'rdmi', nom:'RDMI · Manœuvres incendie', icone:'🧯', couleur:'#d84315', source:'SDIS 34 · RDMI v6 (avril 2026)',
+  fiches:[
+  { titre:'La MGO : 11 critères', tags:'mgo marche générale opérations critères reconnaissances placement engins sauvetages établissements attaque protection ventilation déblai surveillance traces indices remise condition',
+    contenu:`Au SDIS 34, la **marche générale des opérations** repose sur **11 critères**, **sans ordre imposé** : le COS les met en œuvre selon la situation et la tactique choisie.
+- **Reconnaissances**
+- **Placement des engins**
+- **Sauvetages et mises en sécurité**
+- **Établissements**
+- **Attaque**
+- **Protection**
+- **Ventilation** (incendies de structure)
+- **Déblai**
+- **Surveillance**
+- **Préservation des traces et indices**
+- **Remise en condition** des intervenants et reconditionnement des matériels` },
+  { titre:'DECI : poteaux, bouches et besoins en eau', tags:'deci pei poteau bouche incendie couleur rouge bleu jaune vert noir aspiration surpressé borne puisage pi 80 100 150 débit tours risque courant faible ordinaire important particulier 450 m3 signalisation plaque réseau maillé étoilé',
+    contenu:`## Couleurs
+| Appareil | Couleur |
+| Poteau sous pression, poteau relais | Rouge |
+| Poteau d'eau brute (non potable) | Rouge avec cerclage vert de 20 cm |
+| Poteau ou bouche d'aspiration | Bleu |
+| Poteau ou bouche surpressé / prémélange (statique > 8 bar) | Jaune |
+| Borne de puisage (hors DECI, **interdite** aux SP) | Vert |
+| Bouche sous pression | Rouge ou noire |
+## Poteaux et bouches sous pression
+| Conduite | Prises | Débit | Ouverture |
+| PI Ø80 | 1 × 65 (+ 2 × 40) | 30 m³/h · 500 l/min | 13 tours |
+| PI Ø100 | 1 × 100 + 2 × 65 | 60 m³/h · 1 000 l/min | 13 tours |
+| PI Ø150 | 1 × 65 + 2 × 100 | 120 m³/h · 2 000 l/min | 17 tours |
+| BI Ø100 | Douille de 100 | 60 m³/h · 1 000 l/min | 17 tours |
+- Pression dynamique : **1 bar minimum**, 16 bar maximum ; ouverture dans le sens **inverse** des aiguilles d'une montre
+- Coffre : partie grise = PI 100, partie jaune = PI 150
+- PEI **surpressé** : précautions pour ne pas abîmer les garnitures de la pompe
+## Besoins en eau
+| Risque | Quantité minimale |
+| Courant faible (habitation isolée) | 30 m³ en 1 h |
+| Courant ordinaire (lotissement, collectif) | 60 m³ (60 m³/h 1 h ou 30 m³/h 2 h) |
+| Courant important (quartier dense, historique) | 120 m³ en 2 h |
+| Particulier (ERP, industrie, patrimoine) | Étude spécifique |
+- Limite opérationnelle du SDIS 34 : **450 m³/h** simultanés, soit 900 m³ en 2 h
+- Réseau **maillé** (eau dans tous les sens) ou **étoilé** (un seul sens, un incident condamne un secteur)
+## Signalisation
+- Plaque rouge à flèche blanche : en haut le **type** de PEI, dans le rond le diamètre, le volume ou le débit, en bas la **distance** (linéaire au-dessus du trait, latérale à côté)
+- Cartographie : PI, PR (relais), BI, PA (aspiration), BA (borne agricole), CI-RI (citerne, réserve)` },
+  { titre:'Hydraulique : pressions et pertes de charge', tags:'hydraulique pression statique dynamique perte charge tuyau 25 45 70 110 débit bar dénivelé pièce jonction ldv lance canon injecteur 6 bar 10 bar 500 l/min taux extinction',
+    contenu:`## Pressions
+- **Statique** : lances fermées ; **dynamique** : eau en mouvement
+- Le **conducteur** est le conseiller technique hydraulique du chef d'agrès : il doit connaître le débit aux lances, la longueur, le dénivelé ou la colonne sèche, et le nombre de pièces de jonction
+## Pertes de charge
+- Proportionnelles à la **longueur** et au **carré du débit**
+- Plus le **diamètre** est grand, plus elles sont faibles
+- Indépendantes de la pression : seul le débit compte
+- **± 1 bar par 10 m** de dénivelé ; **+ 1 bar par pièce** de jonction
+| Tuyau de 20 m | Débit | Perte |
+| Ø25 | 150 l/min | 2,2 bar |
+| Ø45 | 250 l/min / 500 l/min | 0,3 bar / 1,2 bar |
+| Ø70 | 500 / 1 000 / 2 000 l/min | 0,1 / 0,4 / 1,8 bar |
+| Ø110 | 1 000 / 2 000 l/min | 0,1 / 0,2 bar |
+## Pressions de fonctionnement
+- **6 bar** : LDV, lance rideau mobile, lance canon
+- **10 bar** : injecteur proportionneur
+## Règles du SDIS 34
+- Débit de référence pour un binôme sur feu de structure : **500 l/min**
+- Au maximum **3 tuyaux Ø45/20 m** après la prise d'eau
+- Plusieurs lances : calculer pour la **plus défavorisée** ; lance sur MEA : ne pas dépasser sa pression de référence
+> Exemple : LDV 40 à 500 l/min, 3 tuyaux Ø45 et une division, à plat : 6 + 3 × 1,2 + 1 ≈ 10,6 bar à la pompe.
+## Taux d'extinction réflexe
+| Surface | Risque classique | Risque important |
+| Moins de 300 m² | 1 L/min/m² | 2 L/min/m² |
+| 300 m² et plus | 2,4 L/min/m² | 3 L/min/m² |
+- Défense linéaire : 500 L/min pour 15 m` },
+  { titre:"Familles d'habitation et parkings", tags:'famille habitation 1re 2e 3e a b 4e immeuble moyenne hauteur colonne sèche escalier encloisonné 28 m 50 m r+9 r+17 parc stationnement',
+    contenu:`| Famille | Caractéristiques |
+| 1re | Maisons individuelles R+1 max, isolées ou jumelées ; maisons en bande en RDC |
+| 2e | Maisons de plus de R+1 ; collectifs **R+3 max** (porte palière à 10 m max de l'escalier) |
+| 3e A | Collectifs **R+7 max**, 10 m max jusqu'à l'escalier, escaliers accessibles par la voie échelles |
+| 3e B | Collectifs **R+9 max** (plancher bas ≤ 28 m), **colonne sèche**, escalier protégé |
+| 4e / IMH | Plancher bas ≤ **50 m** (≈ R+17), colonne sèche, escalier protégé |
+- Escaliers **encloisonnés** dès que le plancher bas du logement le plus haut est à plus de 8 m
+- 3e B et 4e : 15 m max jusqu'à l'escalier s'il est à l'abri des fumées, 25 m s'il est à l'air libre ; accès aux escaliers à moins de 50 m d'une voie engins
+- Colonne sèche : PEI à 60 m maximum ; à chaque niveau, **1 prise Ø65 + 2 prises Ø40**
+## Parcs de stationnement
+- En habitation (plus de 100 m²) : colonne sèche dès **R+5 / R-4** ; 40 m max vers une issue (25 m si un seul escalier ou cul-de-sac)
+- En ERP : colonne sèche et extinction automatique dès **R+3 / R-3** (sauf parc largement ventilé)` },
+  { titre:'Binômes, conducteur et additifs', tags:'binôme organique circonstance 1er 2e conducteur missions additif eau dopée moussante mousse m51 pictogramme concentration 0,1 1 % autonomie',
+    contenu:`## Le binôme
+- Un **chef d'équipe** + un **équipier** ; **organique** (armement de l'engin) ou **de circonstance** (personnels d'autres engins)
+- **1er binôme** : en général l'attaque ; **2e binôme** : la prise d'eau et/ou l'alimentation
+- Il exécute les ordres, rend compte, contrôle les EPI de l'autre, reste dans l'engin sans mission, entre **toujours en binôme** en zone d'exclusion
+## Le conducteur
+- Cale l'engin en pente, sécurise la zone, met en place un parc matériel
+- Alimente une prise d'eau à moins de **60 m**, alimente l'engin seul ou aidé
+- Reste attentif à la radio (demande d'ouverture de l'eau), assure le reconditionnement
+## Les additifs
+- **Eau dopée** : 0,1 à 0,4 % (mouillant, pénètre mieux)
+- **Moussante** : 0,5 à 1 % (isole aussi les vapeurs)
+- **À mousse** : 1 % avec adaptateur (petits feux d'hydrocarbures)
+| Pictogramme | Taux | Utilisation |
+| 1 | 0,1 % | Cartons |
+| 2 | 0,2 % | Bois |
+| 3 | 0,3 % | Pneus, solides liquéfiables |
+| 4 | 0,4 % | Habitation, industrie |
+| 5 | 0,5 % | Véhicules |
+| 6 | 1 % | Petites flaques d'hydrocarbure |
+- Le M51+ monte à 3 %, mais la référence départementale est **1 % maximum**
+- À 1 % et 500 l/min : environ 16 min (lot INC CCFU, 80 L), 32 min (FPTL, 160 L), 40 min (FPT/FPTGP, 200 L)` },
+  { titre:'Conduite des opérations : départ, transit, reconnaissance', tags:'avant départ transit statut ber 01 02 opensis radio n5 n3/4 gte gto 613 634 653 674 reconnaissance réactions immédiates message ambiance crid vrob chef agrès',
+    contenu:`## Avant le départ
+- Exploiter la feuille de départ : nature, moyens engagés, victimes, risques, requérant, adresse précise
+- Cartographie : plan, itinéraire, **PEI** (papier ou opensis)
+- Matériel complémentaire : caméra thermique, détecteur multigaz, plan ETARE…
+- EPI pour tous, **gilet haute visibilité** pour le conducteur
+- Radios : tactique **N5** (603, 624, 643, 664) pour CA, conducteur et chefs d'équipe ; tactique **N3/4** (GTE 613-634, GTO 653-674) ; chef d'agrès : N5 à gauche, N3/4 à droite
+- Statut **01** (départ) sur le BER
+## Pendant le transit
+- Informer le conducteur (itinéraire) et le personnel (ordre de mission)
+- **1er et 2e binômes capellent** l'ARI-CO
+- Le binôme d'alimentation repère **deux PEI** proches du sinistre
+- Statut **02** à l'arrivée sur les lieux
+## La reconnaissance
+- Sauvetages et mises en sécurité ; plan d'intervention s'il existe
+- Configuration du bâtiment, emplacement, surface et nature du feu, risques de propagation
+- **Couper les énergies, barrer les fluides**, ramener l'ascenseur au RDC
+- Choisir le moyen d'extinction ; appui possible de la CRID ou du VROB
+## Réactions immédiates
+- Du domaine de l'**action** (sauvetages), du **renseignement** et de l'**information** (message d'ambiance)
+- Face à un péril imminent, chacun fait les actions conservatoires nécessaires et rend compte` },
+  { titre:'Raisonnement tactique et ordres (SMES)', tags:'smes situation mission exécution sécurité raisonnement tactique ordre initial conduite préparatoire exécution établissez à vos rangs analyse systémique source flux cible balance bénéfice risque',
+    contenu:`## SMES : ordre initial et ordre de conduite
+| Lettre | Question | Contenu |
+| S · Situation | Quoi ? Où, par où ? | Description de la situation |
+| M · Mission | Quoi faire ? | Objectifs à atteindre |
+| E · Exécution | Comment, avec qui ? | Les ordres |
+| S · Sécurité | Quelles règles ? | Protections individuelles et collectives |
+- Compléments : **analyse systémique** (source, flux, cible) et **balance bénéfice/risque** (la prise de risque en vaut-elle la peine ?)
+## Ordre préparatoire
+- Sans matériel : « **1er binôme, en reconnaissance !** » (EPI seuls)
+- Avec matériel : « 1er binôme, pour l'établissement d'une LDV 40, en reconnaissance ! »
+- « **À vos rangs !** » : binômes et conducteur se placent **à l'arrière de l'engin**
+## Ordre d'exécution
+- C'est le **E** du SMES ; il indique au minimum le **point d'attaque** et la **prise d'eau**
+- Il se termine par « **Établissez !** » ; les restrictions (à sec, engagement sur ordre) sont données avant
+> Exemple : « Feu d'appartement au R+5. 1er binôme : extinction, ligne d'attaque, point d'attaque ici. 2e binôme : prise d'eau. Contrôle croisé avant l'engagement. Établissez ! »` },
+  { titre:'Groupe incendie et placement des engins', tags:'groupe incendie 19 fptl fptgp mea vsav vlcg rang appel engin attaque appui renforcement placement 4 ldv 40 2 ldv 65',
+    contenu:`## Le groupe incendie
+- Capacité : **4 LDV 40** ou **2 LDV 65**, et prise en charge des premières victimes
+- **19 sapeurs-pompiers** : 4 binômes organiques + 1 binôme de circonstance
+| Rang d'appel | Engin |
+| 1er | FPT(L) |
+| 2e | MEA |
+| 3e | FPT(L) |
+| 4e | VSAV |
+| 5e | VLCG |
+- Même CIS : en général **FPTL** (engin d'attaque, ≈ 2 000 L d'eau, moins volumineux) puis **MEA** puis **FPTGP** (engin d'appui)
+## L'engin d'attaque (1er engin-pompe)
+- **Dépasse l'adresse** pour laisser l'accès aux autres moyens
+- Se place à l'abri : chutes de matériaux, rayonnement, explosion, fumées
+- Reconnaissance, réactions immédiates, attaque ; s'alimente sur un PEI si possible
+## Le MEA
+- Contacte le premier COS ; se place sur la façade des sauvetages, de préférence **aux angles**
+- Peut servir d'itinéraire de secours ; laisse la place à un 2e MEA
+## L'engin d'appui (2e engin-pompe)
+- Complète l'engin d'attaque (personnel, matériel, eau)
+- Alimente l'engin d'attaque **avec le matériel de celui-ci** pour ne pas se désarmer
+- S'alimente sur un PEI pour un relais ou un établissement de manœuvre ; ne gêne pas les MEA
+## L'engin de renforcement
+- Prend contact avec le premier COS` },
+  { titre:'Tuyaux et établissements : généralités', tags:'tuyau alimentation manœuvre attaque conditionnement écheveau z o dévidoir mobile couronne caisse appellation lance à disposition en cours à sec en attente en manœuvre vertical rampant étages commande',
+    contenu:`## Trois types d'établissement
+- **Alimentation** : alimente la pompe (Ø110, Ø70)
+- **Manœuvre** : alimente une prise d'eau (Ø110/40, Ø70)
+- **Attaque** : alimente une lance (Ø70, Ø45, Ø25)
+## Conditionnement
+| Tuyau | Conditionnement |
+| Ø25/20 m | Dévidoir tournant |
+| Ø45/20 m | Dévidoir de 45, écheveau Z ou O |
+| Ø70/20 m | Écheveau Z |
+| Ø70/40 m | Dévidoir mobile |
+| Ø110/20 m | Couronne double |
+| Ø110/40 m | Écheveau Z |
+- Dispositifs de maintien : **rouges** pour le Ø45, **noirs** pour le Ø70
+- **Écheveau O** : Ø45/20 m avec LDV 40 pré-raccordée ; réserve de 20 m au point d'attaque, effet ressort
+- **Caisse** : 2 tuyaux Ø70/20 m, **40 kg max**, permet au conducteur d'établir jusqu'à **40 m**
+## Estimer le nombre de tuyaux
+- Établissement **vertical** : 1 tuyau ≈ **4 étages**
+- Établissement **rampant** (dans l'escalier) : 1 tuyau ≈ **2 étages**
+## Appellation d'une lance
+| Appellation | État |
+| À disposition | Tuyaux près de la prise d'eau et des intervenants |
+| En cours d'établissement | Ordonné mais pas terminé |
+| À sec | Établie et raccordée, mais pas en eau |
+| En attente | En eau, prête à fonctionner |
+| En manœuvre | En fonctionnement |
+## Sécurité
+- Ne pas établir dans l'**axe de l'ouvrant**, attention aux aplombs
+- Avoir un moyen hydraulique **avant** d'entrer en zone d'exclusion
+- Sur la voie publique : baliser, établir au bord des voies, protéger les traversées de chaussée` },
+  { titre:"Tableau d'aide aux établissements", tags:'tableau aide établissements colonne sèche en charge ligne attaque ldt ldv 40 ldv 65 commande échelle coulisse r+1 r+2 r+4 r+6 r+8 r+12 r+17 dévidoir 110 alimentation 20 m 60 m 200 m',
+    contenu:`| Établissement | Jusqu'au |
+| LDV 40 sur colonne en charge | Selon le bâtiment |
+| LDV 40 sur colonne sèche | R+17 |
+| Ligne d'attaque rampante avec 1 LDV 40 | R+12 |
+| Ligne d'attaque rampante avec 2 LDV 40, ou vertical de haut en bas | R+8 |
+| LDT, LDV 40 ou ligne d'attaque avec la commande | R+6 |
+| LDV 40 rampante, ou avec échelle à coulisse 3 plans | R+4 |
+| LDV 40 avec échelle à coulisse 2 plans grand modèle | R+2 |
+| LDT ou LDV 40 rampante avec le dévidoir auxiliaire | R+1 |
+- Une **colonne sèche** présente est **à privilégier**
+- Valeurs théoriques : elles varient selon l'engin, le bâtiment et le PEI
+## Repères par établissement
+- **LDT** : lance de premiers secours, feu de **faible intensité**, longueur limitée à **40 m**
+- **LDV 40 rampante** : au-delà du R+4, la **ligne d'attaque est obligatoire**
+- À partir du **R+5** (commande, vertical) : **2 tuyaux Ø45/20 m**
+- Tuyau amarré sur une partie résistante (jamais sur l'échelle à coulisse) ; sans amarrage, le poids du tuyau en O suffit jusqu'au R+2
+## Alimentation de l'engin-pompe
+- PEI à moins de 20 m : un **tuyau Ø110/20 m** ; division **Ø100/2×65** pour profiter de toute la capacité du poteau
+- Établissement de manœuvre par le conducteur : jusqu'à **60 m**
+- Tuyaux Ø70 de l'engin : jusqu'à **200 m** ; au-delà, 2 dévidoirs mobiles
+## Sur MEA
+- Une lance sur structure extensible a **3 amarrages** ; chaque MEA a **6 ligatures** (2 LDV 40)` }
+  ],
+  questions:[
+  Q("Combien de critères compte la MGO dans le RDMI du SDIS 34 ?",["11","7","5","15"],0,"Ils sont mis en œuvre sans ordre imposé, selon la situation."),
+  Q("Lequel de ces critères fait partie de la MGO du RDMI ?",["La préservation des traces et indices","La rédaction du rapport","Le repas des intervenants","L'appel des renforts au CTA"],0,"Ainsi que la ventilation et la remise en condition."),
+  Q("Un poteau d'incendie jaune est :",["Surpressé ou en prémélange (pression statique > 8 bar)","Un poteau d'aspiration","Une borne de puisage","Hors service"],0,"Précautions pour ne pas abîmer les garnitures de la pompe."),
+  Q("Un poteau d'incendie bleu est :",["Un poteau d'aspiration (sans pression permanente)","Un poteau sous pression","Un poteau d'eau brute","Un poteau surpressé"],0,"Il nécessite une mise en aspiration."),
+  Q("Une borne de couleur verte :",["Borne de puisage, hors DECI, interdite aux sapeurs-pompiers","Poteau d'aspiration","Poteau sous pression","Bouche d'incendie"],0,"Elle a un trop faible débit."),
+  Q("Poteau rouge avec un cerclage vert :",["Eau brute, non potable, sous pression","Poteau d'aspiration","Poteau hors service","Poteau surpressé"],0,"Le cerclage vert mesure 20 cm."),
+  Q("Débit nominal d'un poteau d'incendie Ø100 :",["60 m³/h, soit 1 000 l/min","30 m³/h","120 m³/h","10 m³/h"],0,"PI Ø80 : 30 m³/h ; PI Ø150 : 120 m³/h."),
+  Q("Combien de tours faut-il pour ouvrir un poteau Ø100 ?",["13 tours","5 tours","17 tours","25 tours"],0,"Le PI Ø150 et la bouche Ø100 : 17 tours."),
+  Q("Pression dynamique minimale d'un PEI sous pression :",["1 bar","6 bar","0,5 bar","16 bar"],0,"Et 16 bar au maximum."),
+  Q("Besoin en eau minimal pour un risque courant ordinaire :",["60 m³","30 m³","120 m³","10 m³"],0,"Faible : 30 m³ ; important : 120 m³ en 2 h."),
+  Q("Limite opérationnelle de débit simultané du SDIS 34 :",["450 m³/h","120 m³/h","1 000 m³/h","60 m³/h"],0,"Soit 900 m³ pour deux heures."),
+  Q("Les pertes de charge sont proportionnelles :",["Au carré du débit","À la pression","À la couleur du tuyau","Au poids de la lance"],0,"Et à la longueur ; elles diminuent quand le diamètre augmente."),
+  Q("Combien ajoute une pièce de jonction aux pertes de charge ?",["Environ 1 bar","0,1 bar","5 bar","Rien"],0,"Le dénivelé ajoute ± 1 bar par 10 m."),
+  Q("Perte de charge d'un tuyau Ø45/20 m à 500 l/min :",["1,2 bar","0,1 bar","2,2 bar","5 bar"],0,"À 250 l/min : 0,3 bar."),
+  Q("Perte de charge d'un tuyau Ø70/20 m à 1 000 l/min :",["0,4 bar","1,2 bar","1,8 bar","0,1 bar"],0,"À 2 000 l/min : 1,8 bar."),
+  Q("Pression de fonctionnement d'un injecteur proportionneur :",["10 bar","6 bar","3 bar","16 bar"],0,"LDV, lance rideau et lance canon : 6 bar."),
+  Q("Débit de référence pour un binôme sur un feu de structure :",["500 l/min","150 l/min","1 000 l/min","250 l/min"],0,"Il sécurise les intervenants."),
+  Q("Combien de tuyaux Ø45/20 m au maximum après la prise d'eau ?",["3","1","5","8"],0,"À cause des pertes de charge."),
+  Q("Taux d'extinction réflexe, surface < 300 m², risque classique :",["1 L/min/m²","3 L/min/m²","10 L/min/m²","0,1 L/min/m²"],0,"Risque important : 2 L/min/m²."),
+  Q("Hauteur maximale d'une habitation de 3e famille B :",["R+9 (plancher bas à 28 m)","R+3","R+17","R+1"],0,"3e famille A : R+7 au maximum."),
+  Q("Une habitation de 4e famille va jusqu'à :",["50 m, soit environ R+17","28 m","8 m","100 m"],0,"Elle est équipée d'une colonne sèche."),
+  Q("Prises d'une colonne sèche à chaque niveau :",["1 prise Ø65 et 2 prises Ø40","1 prise Ø100","2 prises Ø110","1 prise Ø25"],0,"Le PEI qui l'alimente est à 60 m maximum."),
+  Q("Concentration d'additif pour une lance « en eau dopée » :",["0,1 à 0,4 %","1 à 3 %","5 %","10 %"],0,"Moussante : 0,5 à 1 % ; à mousse : 1 %."),
+  Q("Concentration maximale de référence pour l'additif au SDIS 34 :",["1 %","3 %","0,1 %","6 %"],0,"Le M51+ peut monter à 3 %, mais la référence est 1 %."),
+  Q("Pictogramme 5 du système d'injection fixe :",["0,5 % · feux de véhicule","0,1 % · cartons","1 % · hydrocarbures","0,3 % · pneus"],0,"4 = 0,4 % habitation ; 6 = 1 % petites flaques d'hydrocarbure."),
+  Q("Dans le SMES, que signifie le « M » ?",["Mission : quoi faire ?","Moyens","Message","Matériel"],0,"Situation, Mission, Exécution, Sécurité."),
+  Q("Quel ordre déclenche l'établissement ?",["« Établissez ! »","« À vos rangs ! »","« En reconnaissance ! »","« Ouvrez ! »"],0,"Les restrictions (à sec, sur ordre) sont données avant."),
+  Q("À l'ordre « À vos rangs ! », binômes et conducteur se placent :",["À l'arrière de l'engin","Devant la cabine","Au point d'attaque","Au PEI"],0,"Le chef d'agrès décrit alors la situation."),
+  Q("Que doit indiquer au minimum un ordre d'exécution ?",["Le point d'attaque et la prise d'eau","Le nom des binômes","Le nombre de tuyaux","Le débit exact"],0,"Le nombre de tuyaux et le débit sont laissés aux chefs d'équipe."),
+  Q("Effectif d'un groupe incendie :",["19 sapeurs-pompiers","12 sapeurs-pompiers","25 sapeurs-pompiers","8 sapeurs-pompiers"],0,"4 binômes organiques + 1 binôme de circonstance."),
+  Q("Capacité d'un groupe incendie :",["4 LDV 40 ou 2 LDV 65","1 LDV 40","10 LDV 40","2 lances canon"],0,"Et la prise en charge des premières victimes."),
+  Q("Quel engin a le 2e rang d'appel dans le groupe incendie ?",["Le MEA","Le VSAV","Le 2e FPT","La VLCG"],0,"Ordre : FPT(L), MEA, FPT(L), VSAV, VLCG."),
+  Q("En arrivant, l'engin d'attaque doit :",["Dépasser l'adresse pour laisser l'accès aux autres moyens","S'arrêter devant la porte","Attendre le chef de groupe","Bloquer la rue"],0,"Il se place aussi à l'abri des chutes et du rayonnement."),
+  Q("L'engin d'appui alimente l'engin d'attaque :",["Avec le matériel de l'engin d'attaque","Avec son propre matériel","Jamais","Avec le matériel du MEA"],0,"Pour ne pas désarmer l'engin d'appui."),
+  Q("Statut BER à valider au départ :",["01","02","10","99"],0,"02 à l'arrivée sur les lieux."),
+  Q("Une lance « en attente » est :",["Établie, raccordée, en eau et prête à fonctionner","Pas encore établie","Établie mais pas en eau","En fonctionnement"],0,"« À sec » : établie et raccordée mais pas en eau."),
+  Q("Établissement vertical : un tuyau de 20 m couvre environ",["4 étages","1 étage","2 étages","8 étages"],0,"En rampant dans l'escalier : environ 2 étages."),
+  Q("Longueur maximale d'une LDT :",["40 m","20 m","60 m","100 m"],0,"C'est une lance de premiers secours, pour un feu de faible intensité."),
+  Q("LDV 40 en établissement rampant : au-delà de quel étage la ligne d'attaque est-elle obligatoire ?",["R+4","R+1","R+8","R+12"],0,"Avec une ligne d'attaque rampante : jusqu'au R+12."),
+  Q("Établissement avec la commande : limite",["R+6","R+2","R+10","R+17"],0,"À cause de la longueur de la commande."),
+  Q("Jusqu'où peut-on établir une LDV 40 sur colonne sèche ?",["R+17","R+4","R+8","R+1"],0,"Une colonne sèche présente est à privilégier."),
+  Q("Poids maximal de la caisse d'alimentation :",["40 kg","20 kg","60 kg","80 kg"],0,"Elle contient 2 tuyaux Ø70/20 m."),
+  Q("Couleur des dispositifs de maintien d'un tuyau Ø70 :",["Noir","Rouge","Bleu","Jaune"],0,"Rouge pour le Ø45."),
+  Q("Quelle réserve offre l'écheveau O au point d'attaque ?",["20 m","5 m","40 m","Aucune"],0,"C'est un Ø45/20 m avec une LDV 40 pré-raccordée."),
+  Q("Alimentation de l'engin-pompe sur un PEI à moins de 20 m :",["Un tuyau Ø110/20 m","Trois tuyaux Ø45","Un tuyau Ø25","Le dévidoir tournant"],0,"Le conducteur n'a qu'un établissement d'alimentation à connaître.")
+  ]},
+
 /* ---------------- Doctrine nationale ---------------- */
 { id:'org', nom:'Organisation & culture SP', icone:'🏛️', couleur:'#3949ab',
   fiches:[
@@ -1040,7 +1309,8 @@ Vaporisation explosive d'un réservoir de **gaz liquéfié** chauffé (ex. citer
 - **Protection** : éviter la propagation, protéger les biens
 - **Déblai** : dégarnir, éteindre les foyers cachés
 - **Surveillance** : éviter toute reprise
-> Ces actions peuvent être simultanées. Les sauvetages restent la priorité absolue.` },
+> Ces actions peuvent être simultanées. Les sauvetages restent la priorité absolue.
+> Au SDIS 34, le RDMI détaille 11 critères (placement des engins, ventilation, préservation des traces…) : voir le thème « RDMI ».` },
   { titre:'Message radio et ordre initial (SOIEC)', tags:'message renseignement je suis je vois je prévois je fais je demande soiec ordre initial',
     contenu:`## Message de renseignements
 - **Je suis** : localisation, engin
@@ -1078,7 +1348,7 @@ Vaporisation explosive d'un réservoir de **gaz liquéfié** chauffé (ex. citer
 - Référence : un poteau d'incendie doit fournir **60 m³/h sous 1 bar pendant 2 h**, soit 120 m³` }
   ],
   questions:[
-  Q("Quel est l'ordre de la marche générale des opérations ?",["Reconnaissances, sauvetages, établissements, attaque, protection, déblai, surveillance","Attaque, reconnaissances, sauvetages, déblai, protection, surveillance, établissements","Établissements, attaque, sauvetages, reconnaissances, surveillance, déblai, protection","Sauvetages, attaque, déblai, établissements, reconnaissances, protection, surveillance"],0,"Ces actions peuvent être simultanées ; les sauvetages restent prioritaires."),
+  Q("Quel est l'ordre de la marche générale des opérations ?",["Reconnaissances, sauvetages, établissements, attaque, protection, déblai, surveillance","Attaque, reconnaissances, sauvetages, déblai, protection, surveillance, établissements","Établissements, attaque, sauvetages, reconnaissances, surveillance, déblai, protection","Sauvetages, attaque, déblai, établissements, reconnaissances, protection, surveillance"],0,"C'est l'ordre classique. Au SDIS 34, le RDMI liste 11 critères sans ordre imposé (voir le thème RDMI)."),
   Q("Quelle est la priorité absolue en intervention ?",["Le sauvetage des personnes","La protection des biens","L'extinction","La ventilation"],0,"Les personnes d'abord, toujours."),
   Q("Par quoi se termine un message de renseignements ?",["Je demande","Je suis","Je vois","Je prévois"],0,"Je suis, je vois, je prévois, je fais, je demande."),
   Q("Dans SOIEC, que signifie le « O » ?",["Objectifs","Ordres","Opérations","Observation"],0,"Situation, Objectifs, Idées de manœuvre, Exécution, Commandement."),
@@ -1620,7 +1890,7 @@ function viewHome(){
   <div class="themes">${THEMES.filter(t => t.source).map(themeCard).join('')}</div>
   <h2>📚 Culture opérationnelle (doctrine nationale)</h2>
   <div class="themes">${THEMES.filter(t => !t.source).map(themeCard).join('')}</div>
-  <p class="foot">Fiches SDIS 34 : synthèses de révision des référentiels RDEB, RDSMES et RDLSPCC. Autres thèmes : doctrine nationale (GDO/GTO, PSE, ADR).<br>En cas de doute, le référentiel officiel du SDIS 34 fait toujours foi. Tu peux importer tes propres fiches dans ⚙️ Réglages.</p>
+  <p class="foot">Fiches SDIS 34 : synthèses de révision des référentiels RDMI, RDEB, RDSMES et RDLSPCC. Autres thèmes : doctrine nationale (GDO/GTO, PSE, ADR).<br>En cas de doute, le référentiel officiel du SDIS 34 fait toujours foi. Tu peux importer tes propres fiches dans ⚙️ Réglages.</p>
   </div>`;
   $('#homeSearch').onsubmit = e => { e.preventDefault(); go('#/search?q='+encodeURIComponent($('#hq').value)); };
   app.querySelectorAll('[data-s]').forEach(b => b.onclick = () => go('#/search?q='+encodeURIComponent(b.dataset.s)));
@@ -1975,7 +2245,7 @@ function viewMore(){
     <p class="small muted">Statistiques, flashcards, favoris et série sont enregistrés dans ce navigateur.</p>
     <button class="btn" id="rst" style="color:var(--ko)">♻️ Réinitialiser ma progression</button></div>
   <div class="card" style="margin-top:12px"><b>À propos</b>
-    <p class="small muted">Contenu de base : ${THEMES.reduce((a,t) => a+t.fiches.length, 0)} fiches et ${allQuestions().length} questions, construites à partir des référentiels départementaux du SDIS 34 (RDEB v2, RDSMES v2, RDLSPCC v1), de la doctrine nationale (GDO/GTO, référentiel PSE, ADR) et des risques de l'Hérault. Cette application est une aide à la révision : en cas de différence, <b>les référentiels, le règlement opérationnel et les notes de service du SDIS 34 font foi</b>.</p></div>
+    <p class="small muted">Contenu de base : ${THEMES.reduce((a,t) => a+t.fiches.length, 0)} fiches et ${allQuestions().length} questions, construites à partir des référentiels départementaux du SDIS 34 (RDMI v6, RDEB v2, RDSMES v2, RDLSPCC v1), de la doctrine nationale (GDO/GTO, référentiel PSE, ADR) et des risques de l'Hérault. Cette application est une aide à la révision : en cas de différence, <b>les référentiels, le règlement opérationnel et les notes de service du SDIS 34 font foi</b>.</p></div>
   </div>`;
   app.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { store.set('theme', b.dataset.th); applyTheme(); viewMore(); });
   $('#tpl').onclick = () => download('modele-revision-sdis34.json', TEMPLATE);
