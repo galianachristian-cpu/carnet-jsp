@@ -31,7 +31,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 mark{background:var(--mark);color:var(--marktext);border-radius:3px;padding:0 1px}
 
 /* Header */
-.top{position:sticky;top:0;z-index:20;background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(10,15,25,.55);display:grid;place-items:center;padding:16px}
+.modal-box{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;width:100%;max-width:460px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .top::after{content:"";display:block;height:3px;background:linear-gradient(90deg,var(--red),#ff7043,var(--red))}
 .top-in{max-width:920px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
 .logo{width:36px;height:36px;border-radius:10px;background:var(--red);display:grid;place-items:center;font-size:20px;flex:none}
@@ -2171,9 +2173,9 @@ function viewQuiz(){
   app.querySelectorAll('.choice').forEach(b => b.onclick = () => pick(+b.dataset.c));
   const nx = $('#qnext'); if(nx) nx.onclick = next;
   const pv = $('#qprev'); if(pv) pv.onclick = () => { Z.i--; viewQuiz(); };
-  const en = $('#qend'); if(en) en.onclick = () => { const left = Z.items.filter(x => x.pick===null).length; if(!left || confirm(left+' question(s) sans réponse. Terminer quand même ?')) finishQuiz(); };
+  const en = $('#qend'); if(en) en.onclick = () => { const left = Z.items.filter(x => x.pick===null).length; if(!left) finishQuiz(); else ask(left+' question(s) sans réponse. Terminer quand même ?', 'Terminer', finishQuiz); };
   app.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { Z.i = +b.dataset.g; viewQuiz(); });
-  $('#qquit').onclick = () => { if(confirm('Quitter ce quiz ?')){ QUIZ = null; go('#/'); } };
+  $('#qquit').onclick = () => ask('Quitter ce quiz ? Les réponses déjà données restent comptées.', 'Quitter', () => { clearInterval(TIMER); TIMER = null; QUIZ = null; go('#/'); });
   if(Z.end && !TIMER) TIMER = setInterval(tick, 1000);
 }
 function pick(ci){
@@ -2325,9 +2327,40 @@ const TEMPLATE = {
     { id:'mon-theme', nom:'Nouveau thème', icone:'📘', couleur:'#546e7a', fiches:[], questions:[] }
   ]
 };
-function download(name, obj){
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'})); a.download = name;
-  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+/* Fenêtres intégrées (les boîtes confirm/alert et les téléchargements ne fonctionnent pas partout) */
+function modal(html, onReady){
+  const d = document.createElement('div'); d.className = 'modal';
+  d.innerHTML = `<div class="modal-box" role="dialog" aria-modal="true">${html}</div>`;
+  const close = () => { d.remove(); document.removeEventListener('keydown', esc_); };
+  const esc_ = e => { if(e.key==='Escape') close(); };
+  d.addEventListener('click', e => { if(e.target===d || (e.target.closest && e.target.closest('[data-close]'))) close(); });
+  document.addEventListener('keydown', esc_);
+  document.body.appendChild(d); if(onReady) onReady(d, close); return close;
+}
+function ask(msg, yesLabel, onYes){
+  modal(`<p style="margin:0 0 14px">${esc(msg)}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-close>Annuler</button><button class="btn primary" id="askYes">${esc(yesLabel)}</button></div>`,
+    (d, close) => { const y = d.querySelector('#askYes'); y.focus(); y.onclick = () => { close(); onYes(); }; });
+}
+function showJson(title, obj){
+  const txt = JSON.stringify(obj, null, 2);
+  modal(`<b>${esc(title)}</b><p class="small muted" style="margin:6px 0">Copie ce texte et enregistre-le dans un fichier .json.</p>
+    <textarea id="jsonOut" readonly rows="12" style="width:100%;font:12px/1.4 ui-monospace,monospace;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--card2);color:var(--text)"></textarea>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-close>Fermer</button><button class="btn primary" id="jsonCopy">Copier</button></div>`,
+    d => { const ta = d.querySelector('#jsonOut'); ta.value = txt;
+      d.querySelector('#jsonCopy').onclick = () => {
+        const sel = () => { ta.focus(); ta.select(); toast('Texte sélectionné : fais Copier'); };
+        try{ navigator.clipboard.writeText(txt).then(() => toast('Copié ✔'), sel); }catch(e){ sel(); }
+      }; });
+}
+function importText(text){
+  try{
+    const themes = validateImport(JSON.parse(text));
+    const cur = store.get('custom', []);
+    themes.forEach(t => { const ex = cur.find(c => c.id===t.id); if(ex){ ex.fiches.push(...t.fiches); ex.questions.push(...t.questions); Object.assign(ex, {nom:t.nom||ex.nom, icone:t.icone||ex.icone, couleur:t.couleur||ex.couleur}); } else cur.push(t); });
+    store.set('custom', cur); buildThemes();
+    toast('Import réussi : '+themes.reduce((a,t)=>a+t.fiches.length,0)+' fiche(s), '+themes.reduce((a,t)=>a+t.questions.length,0)+' question(s)');
+    return true;
+  }catch(err){ toast('Import impossible : '+err.message); return false; }
 }
 function validateImport(data){
   const themes = Array.isArray(data) ? data : data && data.themes;
@@ -2355,7 +2388,8 @@ function viewMore(){
     <p class="small">Contenu importé : <b>${custom.length}</b> thème(s), <b>${nF}</b> fiche(s), <b>${nQ}</b> question(s).</p>
     <div class="row">
       <label class="btn primary">📂 Importer un JSON<input type="file" id="imp" accept=".json,application/json" hidden></label>
-      <button class="btn" id="tpl">📄 Télécharger le modèle</button>
+      <button class="btn" id="paste">📋 Coller un JSON</button>
+      <button class="btn" id="tpl">📄 Voir le modèle</button>
       ${custom.length?'<button class="btn" id="exp">💾 Exporter mes imports</button><button class="btn" id="clr">🗑️ Retirer les imports</button>':''}
     </div>
   </div>
@@ -2366,24 +2400,20 @@ function viewMore(){
     <p class="small muted">Contenu de base : ${THEMES.reduce((a,t) => a+t.fiches.length, 0)} fiches et ${allQuestions().length} questions, construites à partir des référentiels départementaux du SDIS 34 (RDMI v6, RDEB v2, RDSMES v2, RDLSPCC v1), de la doctrine nationale (GDO/GTO, référentiel PSE, ADR) et des risques de l'Hérault. Cette application est une aide à la révision : en cas de différence, <b>les référentiels, le règlement opérationnel et les notes de service du SDIS 34 font foi</b>.</p></div>
   </div>`;
   app.querySelectorAll('[data-th]').forEach(b => b.onclick = () => { store.set('theme', b.dataset.th); applyTheme(); viewMore(); });
-  $('#tpl').onclick = () => download('modele-revision-sdis34.json', TEMPLATE);
+  $('#tpl').onclick = () => showJson('Modèle de fichier JSON', TEMPLATE);
   $('#imp').onchange = e => {
     const file = e.target.files[0]; if(!file) return;
     const rd = new FileReader();
-    rd.onload = () => {
-      try{
-        const themes = validateImport(JSON.parse(rd.result));
-        const cur = store.get('custom', []);
-        themes.forEach(t => { const ex = cur.find(c => c.id===t.id); if(ex){ ex.fiches.push(...t.fiches); ex.questions.push(...t.questions); Object.assign(ex, {nom:t.nom||ex.nom, icone:t.icone||ex.icone, couleur:t.couleur||ex.couleur}); } else cur.push(t); });
-        store.set('custom', cur); buildThemes();
-        toast('Import réussi : '+themes.reduce((a,t)=>a+t.fiches.length,0)+' fiche(s), '+themes.reduce((a,t)=>a+t.questions.length,0)+' question(s)'); viewMore();
-      }catch(err){ alert('Import impossible : '+err.message); }
-    };
+    rd.onload = () => { if(importText(rd.result)) viewMore(); };
     rd.readAsText(file);
   };
-  const ex = $('#exp'); if(ex) ex.onclick = () => download('mes-fiches-sdis34.json', {themes:store.get('custom', [])});
-  const cl = $('#clr'); if(cl) cl.onclick = () => { if(confirm('Retirer tout le contenu importé ? (ta progression sur ces questions sera conservée mais inutilisée)')){ store.set('custom', []); buildThemes(); viewMore(); toast('Imports retirés'); } };
-  $('#rst').onclick = () => { if(confirm('Effacer toute ta progression ?')){ STATS={}; LEIT={}; FAVS=[]; ['stats','leitner','favs','days'].forEach(k => store.set(k, k==='stats'||k==='leitner'?{}:[])); toast('Progression réinitialisée'); viewMore(); } };
+  $('#paste').onclick = () => modal(`<b>Coller un JSON</b>
+    <textarea id="jsonIn" rows="10" placeholder='{"themes":[ ... ]}' style="width:100%;margin-top:8px;font:12px/1.4 ui-monospace,monospace;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--card2);color:var(--text)"></textarea>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-close>Annuler</button><button class="btn primary" id="jsonGo">Importer</button></div>`,
+    (d, close) => { d.querySelector('#jsonIn').focus(); d.querySelector('#jsonGo').onclick = () => { if(importText(d.querySelector('#jsonIn').value)){ close(); viewMore(); } }; });
+  const ex = $('#exp'); if(ex) ex.onclick = () => showJson('Mes imports', {themes:store.get('custom', [])});
+  const cl = $('#clr'); if(cl) cl.onclick = () => ask('Retirer tout le contenu importé ?', 'Retirer', () => { store.set('custom', []); buildThemes(); viewMore(); toast('Imports retirés'); });
+  $('#rst').onclick = () => ask('Effacer toute ta progression (statistiques, flashcards, favoris) ?', 'Effacer', () => { STATS={}; LEIT={}; FAVS=[]; ['stats','leitner','favs','days'].forEach(k => store.set(k, k==='stats'||k==='leitner'?{}:[])); toast('Progression réinitialisée'); viewMore(); });
 }
 function applyTheme(){
   const th = store.get('theme', 'auto');
