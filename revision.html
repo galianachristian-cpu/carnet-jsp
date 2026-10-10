@@ -263,6 +263,8 @@ tr:last-child td{border-bottom:0}
   .form-grid,h2{display:none!important}
   details{display:block}details>p{display:block!important}
 }
+.vid{display:flex;gap:8px;align-items:center}.vid .item{flex:1;min-width:0}
+.btn.small{padding:6px 10px;font-size:13px}
 </style>
 </head>
 <body>
@@ -5239,7 +5241,7 @@ function viewFiche(id, params){
     <span class="spacer"></span>
     ${next?`<a class="btn" href="#/fiche/${next.id}">Suivante ›</a>`:''}
   </div>
-  <div class="row" style="margin-top:8px"><button class="btn" id="fPrint">🖨️ Imprimer</button><button class="btn" id="fA4">📄 Fiche A4</button></div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="fPrint">🖨️ Imprimer</button><button class="btn" id="fA4">📄 Fiche A4</button><a class="btn" href="${ytSearch((t.source && t.groupe !== 'jsp' ? 'SDIS 34 ' : 'sapeurs-pompiers ') + f.titre)}" target="_blank" rel="noopener">🎬 Vidéos</a></div>
   <button class="btn primary block" style="margin-top:12px" id="fq">⚡ M'entraîner sur « ${esc(t.nom)} »</button>
   </div>`;
   $('#fav').onclick = () => { FAVS = fav ? FAVS.filter(x => x!==f.id) : [...FAVS, f.id]; store.set('favs', FAVS); toast(fav?'Retirée des favoris':'Ajoutée aux favoris ⭐'); viewFiche(id, params); };
@@ -5597,7 +5599,7 @@ function applyTheme(){
    MODULE MANŒUVRES : générateur, mises en situation, planning et suivi
    ========================================================================= */
 const CAP = { ready:false, db:null, user:null, sample:null, downloads:null, uid:null, canWrite:null };
-let SEANCES = [], FICHES_EQ = [], VALIDS = [], SHARED = false, EDITING = false;
+let SEANCES = [], FICHES_EQ = [], VALIDS = [], VIDS = [], SHARED = false, EDITING = false;
 const GEN = {};            // contexte du générateur par manœuvre
 let SIT = null;            // mise en situation en cours
 let MAN_FILTER = { ref:'tous', pub:'tous' };
@@ -5605,7 +5607,7 @@ const RES = { A:{l:'Acquis', c:'ok'}, R:{l:'À revoir', c:'warn'}, N:{l:'Non acq
 const FEUX = { appartement:'feu d’appartement', cave:'feu de cave', parking:'feu de parking couvert', local:'feu de local poubelles', pavillon:'feu de pavillon', toiture:'feu de toiture' };
 const niv = e => +e === 0 ? 'RDC' : 'R+' + e;
 
-function loadLocal(){ SEANCES = store.get('seances_local', []); FICHES_EQ = store.get('fiches_local', []); VALIDS = store.get('valid_local', []); }
+function loadLocal(){ SEANCES = store.get('seances_local', []); FICHES_EQ = store.get('fiches_local', []); VALIDS = store.get('valid_local', []); VIDS = store.get('videos_local', []); if(typeof refreshVideos === 'function') refreshVideos(); }
 async function initCaps(){
   const finish = () => { CAP.ready = true; onDataChange(true); };
   if(!(window.claude && typeof window.claude.use === 'function')){ loadLocal(); return finish(); }
@@ -5619,6 +5621,7 @@ async function initCaps(){
         () => toast('Le planning partagé est momentanément indisponible.'));
       db.collection('fiches').onSnapshot(s => { FICHES_EQ = s.docs.map(d => Object.assign({id:d.id}, JSON.parse(JSON.stringify(d.data())))); onDataChange(); }, () => {});
       db.collection('valid').onSnapshot(s => { VALIDS = s.docs.map(d => Object.assign({id:d.id}, JSON.parse(JSON.stringify(d.data())))); onDataChange(); }, () => {});
+      db.collection('videos').onSnapshot(s => { VIDS = s.docs.map(d => Object.assign({id:d.id}, JSON.parse(JSON.stringify(d.data())))); refreshVideos(); }, () => {});
     } else loadLocal();
   }catch(e){ loadLocal(); }
   finish();
@@ -5780,6 +5783,7 @@ function viewManFiche(id, params){
     <h1 style="margin-top:8px">${esc(m.titre)}</h1>
     <p class="muted" style="margin:0">${esc(m.objectif)}</p>
   </div>
+  <div id="vidBox" data-mid="${esc(m.id)}">${videosHtml(m)}</div>
   <h2>⚙️ Adapter la situation</h2>
   <div class="card form-grid">
     <label>Public ${sel('public', [['SP','Sapeurs-pompiers'],['JSP','JSP']])}</label>
@@ -5795,6 +5799,7 @@ function viewManFiche(id, params){
   </div>
   <div id="ficheOut"></div>
   </div>`;
+  bindVideos(m);
   const out = () => {
     const f = buildFiche(m, c);
     $('#ficheOut').innerHTML = `
@@ -6347,6 +6352,40 @@ function exportA4(title, el){
   clone.querySelectorAll('details').forEach(d => d.setAttribute('open', ''));
   clone.querySelectorAll('input[type=checkbox]').forEach(c => c.removeAttribute('checked'));
   saveFile(title.replace(/[^\wÀ-ÿ-]+/g, '_').slice(0, 60) + '.html', printHtml(title, clone.innerHTML));
+}
+/* ---------- Vidéos (YouTube) ---------- */
+const VIDEOS_BASE = {};   // { idManœuvre: [{url, titre}] } vidéos de référence
+function ytId(u){ const m = String(u || '').match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/); return m ? m[1] : null; }
+function ytSearch(q){ return 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q); }
+function videosFor(mid){ return [...(VIDEOS_BASE[mid] || []).map(v => Object.assign({ base:true }, v)), ...VIDS.filter(v => v.mid === mid).sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0))]; }
+function videosHtml(m){
+  const vs = videosFor(m.id);
+  const q = m.ref === 'SUAP' ? `SDIS 34 ${m.titre}` : `SDIS 34 ${m.ref} ${m.code}`;
+  return `<h2>🎬 Vidéos</h2><div class="card">
+    ${vs.length ? `<div class="list">${vs.map(v => `<div class="vid"><a class="item" href="https://www.youtube.com/watch?v=${esc(ytId(v.url))}" target="_blank" rel="noopener"><span style="font-size:22px">▶️</span><div class="t"><b>${esc(v.titre || 'Vidéo')}</b><small>${v.base ? 'Vidéo de référence' : (v.updatedBy ? `ajoutée par <span data-uid="${esc(v.updatedBy)}">…</span>` : 'ajoutée par un formateur')}</small></div><span class="muted">↗</span></a>${!v.base && canWrite() ? `<button class="btn small" data-vdel="${esc(v.id)}" aria-label="Retirer la vidéo">🗑️</button>` : ''}</div>`).join('')}</div>`
+      : '<p class="small muted" style="margin:0 0 10px">Aucune vidéo liée à cette manœuvre pour l’instant.</p>'}
+    <div class="row" style="margin-top:10px"><a class="btn" href="${ytSearch(q)}" target="_blank" rel="noopener">🔎 Chercher sur YouTube</a>${canWrite() ? '<button class="btn" id="vAdd">➕ Ajouter une vidéo</button>' : ''}</div>
+    <p class="small muted" style="margin:8px 0 0">Ajoute les vidéos du SDIS 34 qui montrent cette manœuvre : elles apparaîtront pour toute l’équipe.</p></div>`;
+}
+function bindVideos(m){
+  const box = $('#vidBox'); if(!box) return;
+  box.querySelectorAll('[data-vdel]').forEach(b => b.onclick = () => ask('Retirer cette vidéo ?', 'Retirer', async () => { await deleteDoc('videos', b.dataset.vdel); refreshVideos(); }));
+  const add = box.querySelector('#vAdd'); if(add) add.onclick = () => modal(`<b>Ajouter une vidéo</b>
+    <p class="small muted" style="margin:6px 0">Colle le lien YouTube (bouton Partager → Copier le lien).</p>
+    <div class="form-grid one"><label>Lien YouTube<input id="vUrl" type="url" placeholder="https://youtu.be/…" style="width:100%"></label>
+    <label>Titre<input id="vTit" type="text" placeholder="Ex. : ETB 3.2 · LDV 40 (SDIS 34)" style="width:100%"></label></div>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-close>Annuler</button><button class="btn primary" id="vGo">Ajouter</button></div>`,
+    (d, close) => { d.querySelector('#vUrl').focus(); d.querySelector('#vGo').onclick = async () => {
+      const url = d.querySelector('#vUrl').value.trim(), titre = d.querySelector('#vTit').value.trim();
+      if(!ytId(url)){ toast('Ce lien ne ressemble pas à une vidéo YouTube.'); return; }
+      const id = await saveDoc('videos', { mid: m.id, url, titre: titre || m.code + ' · ' + m.titre });
+      if(id){ close(); toast('Vidéo ajoutée ✔'); refreshVideos(); }
+    }; });
+  fillNames(box);
+}
+function refreshVideos(){
+  const box = $('#vidBox'); if(!box) return; const m = MAN_BY[box.dataset.mid]; if(!m) return;
+  box.innerHTML = videosHtml(m); bindVideos(m);
 }
 let LAST_HASH = null;
 function render(keep){
