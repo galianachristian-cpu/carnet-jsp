@@ -250,6 +250,19 @@ tr:last-child td{border-bottom:0}
   .theme{flex-direction:column;gap:8px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+.schema{margin:12px 0;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.schema svg{display:block;width:100%;max-width:440px;height:auto;margin:0 auto}
+.schema figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+.qdj{margin-top:14px;border-left:4px solid var(--red)}
+.val.done{opacity:.75}.val.done b{text-decoration:line-through}
+@media print{
+  header.top,nav.nav,.back,.tabs,.btn,.row .btn,#fq,.toast{display:none!important}
+  body{background:#fff!important;color:#000!important}
+  #app{padding:0!important;max-width:none!important}
+  .card{box-shadow:none!important;border:1px solid #ccc!important;background:#fff!important}
+  .form-grid,h2{display:none!important}
+  details{display:block}details>p{display:block!important}
+}
 </style>
 </head>
 <body>
@@ -1107,6 +1120,7 @@ Facteur = **hauteur de chute ÷ longueur de corde** qui amortit la chute.
 ## Cas particuliers
 - **Débit insuffisant** aux lances : un binôme vérifie les **prises de refoulement à chaque étage** (vérification des colonnes sèches par le propriétaire **au moins une fois par an**)
 - Colonne sèche avec une **prise unique de Ø65** : le chef d'équipe emporte la **division d'attaque**
+@schema colonne-seche
 > Une colonne sèche en état est toujours à privilégier : LDV 40 jusqu'au R+17.` },
   { titre:"La ligne d'attaque (ETB 3.7 à 3.9)", tags:'ligne attaque division attaque division alimentation 65 2x40 ldv 40 r+4 r+8 r+12 trois binômes quatre tuyaux 70 commande vertical haut bas raccordez ouvrez',
     contenu:`## Vocabulaire
@@ -1119,6 +1133,7 @@ Facteur = **hauteur de chute ÷ longueur de corde** qui amortit la chute.
 - **Doubler** les moyens hydrauliques (risque de phénomène thermique, propagation, lance pour le binôme de sécurité)
 - **Obligatoire au-delà du R+4** en rampant (laissée au choix du chef d'agrès en dessous)
 - Placer la division au plus près du sinistre ou au niveau N-1
+@schema ligne-attaque
 - Couper l'eau à la division pour prolonger ou remplacer un tuyau, réduire les pertes de charge et les coups de bélier
 ## Matériel et rôles
 - 1er binôme : 1 tuyau Ø45 en O + LDV 40 (chef d'équipe), 2 tuyaux Ø45 en Z (équipier)
@@ -1429,7 +1444,7 @@ Facteur = **hauteur de chute ÷ longueur de corde** qui amortit la chute.
 
 { id:'suap-vital', nom:'SUAP · Urgences vitales', icone:'❤️', couleur:'#c2185b', source:'SDIS 34 · RT SUAP 2025 (chapitre 05)',
   fiches:[
-  { titre:'Arrêt cardiaque de l’adulte', tags:'acr arrêt cardiaque adulte rcp 30 2 compressions 100 120 5 cm 6 cm dae défibrillateur relais 2 minutes insufflation oxygène guedel pouls carotidien',
+  { titre:'Arrêt cardiaque de l’adulte', tags:'acr arrêt cardiaque adulte rcp massage cardiaque fréquence rythme par minute 30 2 compressions 100 120 5 cm 6 cm dae défibrillateur relais 2 minutes insufflation oxygène guedel pouls carotidien',
     contenu:`## Conduite à tenir
 - RCP immédiate : **30 compressions / 2 insufflations**
 - **DAE** le plus tôt possible ; électrodes posées **sans interrompre** la RCP ; reprendre la RCP **aussitôt** après le choc (ou l’absence de choc)
@@ -1446,7 +1461,7 @@ Facteur = **hauteur de chute ÷ longueur de corde** qui amortit la chute.
 - Pouls perçu mais respiration absente ou ≤ 6/min : arrêter les compressions, **10 insufflations / min**, contrôler le pouls en continu
 - Respiration normale, mouvements, yeux ouverts : arrêter la RCP, garder la victime **sur le dos**, surveiller, prêt à reprendre (récidive fréquente)
 > Les gants sont souhaitables mais ne doivent jamais retarder la RCP.` },
-  { titre:'ACR de l’enfant, du nourrisson et du nouveau-né', tags:'acr enfant nourrisson nouveau-né juste-né 5 insufflations 15 2 3 1 40 insufflations 1 minute fréquence cardiaque 60 100 noyade dae',
+  { titre:'ACR de l’enfant, du nourrisson et du nouveau-né', tags:'acr enfant nourrisson nouveau-né juste-né rcp pédiatrique 5 insufflations 15 2 3 1 40 insufflations 1 minute fréquence cardiaque 60 100 noyade dae',
     contenu:`## Tableau SDIS 34
 | | Juste-né / nouveau-né | Nourrisson | Enfant | Adulte |
 | Début | 40 insufflations à l’air en 1 min | 5 insufflations | 5 insufflations | Compressions (sauf **noyade** : 5 insufflations) |
@@ -1483,6 +1498,7 @@ Facteur = **hauteur de chute ÷ longueur de corde** qui amortit la chute.
 - Serrer jusqu’à l’arrêt du saignement, **noter l’heure** (garrot, fiche, front si nombreuses victimes)
 - **Desserré seulement sur ordre d’un médecin**
 - Saignement qui persiste : resserrer, puis **2e garrot** entre le 1er et la racine du membre
+@schema garrot
 ## Points de compression à distance (SDIS 34)
 - En attendant le garrot ou le pansement compressif
 - **Pli de l’aine** (fémoral) : poing, bras tendu à la verticale
@@ -1667,7 +1683,8 @@ Facteur = **hauteur de chute ÷ longueur de corde** qui amortit la chute.
 | Assise ou demi-assise | Détresse ou gêne respiratoire, traumatisme du thorax |
 | Sur le côté | Vomissements, femme enceinte en fin de grossesse |
 | Cuisses fléchies, jambes repliées | Contusion ou plaie de l’abdomen, douleur abdominale violente |
-| PLS | Inconscient qui respire (sans traumatisme) |` }
+| PLS | Inconscient qui respire (sans traumatisme) |
+@schema positions` }
   ],
   questions:[
   Q("Position d’une victime consciente avec des signes d’AVC :",["Strictement à plat (PLS si vomissements)","Assise","Jambes surélevées","Debout"],0,"Faire aussi une glycémie."),
@@ -5020,6 +5037,7 @@ function md(src){
     }
     close();
     if(!l) continue;
+    if(l.startsWith('@schema ')){ const fn = SCHEMAS[l.slice(8).trim()]; if(fn) html += fn(); continue; }
     if(l.startsWith('## ')) html+='<h3>'+inline(l.slice(3))+'</h3>';
     else if(l.startsWith('> ')) html+='<div class="callout">'+inline(l.slice(2))+'</div>';
     else if(l.startsWith('! ')) html+='<div class="callout warn">'+inline(l.slice(2))+'</div>';
@@ -5027,7 +5045,7 @@ function md(src){
   }
   close(); return html;
 }
-function plain(line){ return line.replace(/^(##|-|>|!)\s+/,'').replace(/^\||\|$/g,'').split('|').map(s=>s.trim()).filter(Boolean).join(' · ').replace(/\*\*/g,''); }
+function plain(line){ if(line.startsWith('@schema')) return ''; return line.replace(/^(##|-|>|!)\s+/,'').replace(/^\||\|$/g,'').split('|').map(s=>s.trim()).filter(Boolean).join(' · ').replace(/\*\*/g,''); }
 
 /* ---------- Recherche ---------- */
 const STOP = new Set(('le la les de du des un une et ou a au aux en pour par sur dans que qui quoi quel quelle quels quelles comment est sont ce cet cette ces se sa son ses on il elle ils elles faut doit dois combien pourquoi quand avec pas ne plus moins tres je tu nous vous mon ma mes ton ta tes leur leurs y d l c qu s n t m j c est quoi signifie veut dire definition').split(' ').map(stem));
@@ -5085,6 +5103,7 @@ function scoreDoc(d, qt){
   if(!s) return 0;
   s *= 0.35 + 0.65*hit/Math.max(1,nOrig);
   if(d.type==='fiche') s *= 1.1;
+  if(d.theme.source) s *= d.theme.groupe === 'jsp' ? 1.08 : 1.25;
   return s;
 }
 function search(q){
@@ -5151,6 +5170,7 @@ function viewHome(){
     <button class="action" id="aFlash"><span class="ic">🃏</span><b>Flashcards</b><span>${due ? due+' carte'+(due>1?'s':'')+' à revoir' : 'Mémorisation espacée'}</span></button>
     <button class="action" id="aErr" ${err?'':'disabled style="opacity:.55"'}><span class="ic">🎯</span><b>Mes erreurs</b><span>${err ? err+' question'+(err>1?'s':'')+' à retravailler' : 'Aucune erreur pour l\'instant'}</span></button>
   </div>
+  ${qdjCard()}
   ${favs.length ? `<h2>⭐ Mes fiches favorites</h2><div class="list">${favs.map(f => ficheItem(f)).join('')}</div>` : ''}
   <h2>🔴 Référentiels départementaux SDIS 34</h2>
   <div class="themes">${THEMES.filter(t => t.source && t.groupe !== 'jsp').map(themeCard).join('')}</div>
@@ -5165,6 +5185,7 @@ function viewHome(){
   $('#aQuick').onclick = () => startQuiz(shuffle(allQuestions()).slice(0,10), {title:'Quiz rapide'});
   $('#aFlash').onclick = () => startFlash(allQuestions(), 'Toutes les cartes');
   $('#aErr').onclick = () => { const e = errors(); if(e.length) startQuiz(shuffle(e), {title:'Mes erreurs'}); };
+  bindQdj();
 }
 
 function ficheItem(f){
@@ -5218,10 +5239,13 @@ function viewFiche(id, params){
     <span class="spacer"></span>
     ${next?`<a class="btn" href="#/fiche/${next.id}">Suivante ›</a>`:''}
   </div>
+  <div class="row" style="margin-top:8px"><button class="btn" id="fPrint">🖨️ Imprimer</button><button class="btn" id="fA4">📄 Fiche A4</button></div>
   <button class="btn primary block" style="margin-top:12px" id="fq">⚡ M'entraîner sur « ${esc(t.nom)} »</button>
   </div>`;
   $('#fav').onclick = () => { FAVS = fav ? FAVS.filter(x => x!==f.id) : [...FAVS, f.id]; store.set('favs', FAVS); toast(fav?'Retirée des favoris':'Ajoutée aux favoris ⭐'); viewFiche(id, params); };
   $('#fq').onclick = () => startQuiz(shuffle(t.questions).slice(0,10), {title:t.nom});
+  $('#fPrint').onclick = printNow;
+  $('#fA4').onclick = () => exportA4(f.titre, $('#fc'));
   const h = (params.get('h')||'').split(',').filter(Boolean);
   if(h.length){ highlightDom($('#fc'), h); const mk = app.querySelector('#fc mark'); if(mk) setTimeout(() => mk.scrollIntoView({block:'center', behavior:'smooth'}), 60); }
 }
@@ -5541,6 +5565,7 @@ function viewMore(){
       ${custom.length?'<button class="btn" id="exp">💾 Exporter mes imports</button><button class="btn" id="clr">🗑️ Retirer les imports</button>':''}
     </div>
   </div>
+  <a class="card" href="#/valider" style="margin-top:12px;display:block;text-decoration:none;color:inherit"><b>✅ Points à valider (formateurs)</b><p class="small muted" style="margin:4px 0 0">${VALIDER.filter(v => (VALIDS.find(x => x.id === v.id) || {}).ok).length} / ${VALIDER.length} vérifiés · infos des cours JSP à confirmer localement ›</p></a>
   <div class="card" style="margin-top:12px"><b>Progression</b>
     <p class="small muted">Statistiques, flashcards, favoris et série sont enregistrés dans ce navigateur.</p>
     <button class="btn" id="rst" style="color:var(--ko)">♻️ Réinitialiser ma progression</button></div>
@@ -5572,7 +5597,7 @@ function applyTheme(){
    MODULE MANŒUVRES : générateur, mises en situation, planning et suivi
    ========================================================================= */
 const CAP = { ready:false, db:null, user:null, sample:null, downloads:null, uid:null, canWrite:null };
-let SEANCES = [], FICHES_EQ = [], SHARED = false, EDITING = false;
+let SEANCES = [], FICHES_EQ = [], VALIDS = [], SHARED = false, EDITING = false;
 const GEN = {};            // contexte du générateur par manœuvre
 let SIT = null;            // mise en situation en cours
 let MAN_FILTER = { ref:'tous', pub:'tous' };
@@ -5580,7 +5605,7 @@ const RES = { A:{l:'Acquis', c:'ok'}, R:{l:'À revoir', c:'warn'}, N:{l:'Non acq
 const FEUX = { appartement:'feu d’appartement', cave:'feu de cave', parking:'feu de parking couvert', local:'feu de local poubelles', pavillon:'feu de pavillon', toiture:'feu de toiture' };
 const niv = e => +e === 0 ? 'RDC' : 'R+' + e;
 
-function loadLocal(){ SEANCES = store.get('seances_local', []); FICHES_EQ = store.get('fiches_local', []); }
+function loadLocal(){ SEANCES = store.get('seances_local', []); FICHES_EQ = store.get('fiches_local', []); VALIDS = store.get('valid_local', []); }
 async function initCaps(){
   const finish = () => { CAP.ready = true; onDataChange(true); };
   if(!(window.claude && typeof window.claude.use === 'function')){ loadLocal(); return finish(); }
@@ -5593,6 +5618,7 @@ async function initCaps(){
       db.collection('seances').onSnapshot(s => { SEANCES = s.docs.map(d => Object.assign({id:d.id}, JSON.parse(JSON.stringify(d.data())))); onDataChange(); },
         () => toast('Le planning partagé est momentanément indisponible.'));
       db.collection('fiches').onSnapshot(s => { FICHES_EQ = s.docs.map(d => Object.assign({id:d.id}, JSON.parse(JSON.stringify(d.data())))); onDataChange(); }, () => {});
+      db.collection('valid').onSnapshot(s => { VALIDS = s.docs.map(d => Object.assign({id:d.id}, JSON.parse(JSON.stringify(d.data())))); onDataChange(); }, () => {});
     } else loadLocal();
   }catch(e){ loadLocal(); }
   finish();
@@ -5600,7 +5626,7 @@ async function initCaps(){
 function onDataChange(force){
   if(EDITING && !force) return;
   const h = location.hash;
-  if(h === '#/man' || h === '#/man/suivi' || /^#\/man\/plan(\/[^/]+)?$/.test(h)) render(true);
+  if(h === '#/man' || h === '#/man/suivi' || h === '#/valider' || /^#\/man\/plan(\/[^/]+)?$/.test(h)) render(true);
 }
 function dbErr(e){
   const code = e && e.code;
@@ -5614,12 +5640,12 @@ async function saveDoc(col, obj){
   if(SHARED){
     try{ await CAP.db.collection(col).doc(id).set(body); return id; }catch(e){ dbErr(e); return null; }
   }
-  const key = col === 'seances' ? 'seances_local' : 'fiches_local';
+  const key = col + '_local';
   const list = store.get(key, []).filter(x => x.id !== id); list.push(Object.assign({id}, body)); store.set(key, list); loadLocal(); return id;
 }
 async function deleteDoc(col, id){
   if(SHARED){ try{ await CAP.db.collection(col).doc(id).delete(); return true; }catch(e){ dbErr(e); return false; } }
-  const key = col === 'seances' ? 'seances_local' : 'fiches_local';
+  const key = col + '_local';
   store.set(key, store.get(key, []).filter(x => x.id !== id)); loadLocal(); return true;
 }
 const canWrite = () => !SHARED || CAP.canWrite !== false;
@@ -5795,10 +5821,12 @@ function viewManFiche(id, params){
       <p class="small muted" style="margin-top:12px">Source : SDIS 34 · ${esc(m.ref === 'SUAP' ? 'RT SUAP 2025' : m.ref)} · ${esc(m.code)}. Le référentiel officiel fait foi.</p>
     </div>
     <div class="row" style="margin-top:12px">
-      <button class="btn" id="fCopy">📋 Copier la fiche</button>
+      <button class="btn" id="fCopy">📋 Copier la fiche</button><button class="btn" id="fPrint">🖨️ Imprimer</button><button class="btn" id="fA4">📄 Fiche A4</button>
       ${canWrite() ? '<button class="btn primary" id="fSave">💾 Enregistrer la fiche</button><button class="btn navy" id="fPlan">📅 Planifier une séance</button>' : ''}
     </div>`;
     $('#fCopy').onclick = () => copyText(ficheText(m, c, f));
+    $('#fPrint').onclick = printNow;
+    $('#fA4').onclick = () => exportA4(`${m.code} · ${m.titre}`, app.querySelector('#ficheOut .fiche'));
     const fs = $('#fSave'); if(fs) fs.onclick = async () => {
       fs.disabled = true;
       const id2 = await saveDoc('fiches', { id: fid || undefined, mid: m.id, ctx: Object.assign({}, c), titre: `${m.titre} · ${f.lieu} · ${c.public}` });
@@ -5862,11 +5890,17 @@ function viewManSit(){
     app.innerHTML = `<div class="fade"><h1>🧯 Manœuvres</h1>${manTabs('sit')}
     <div class="card"><h2 style="margin-top:0">🎯 Mise en situation</h2>
     <p class="muted">L’application tire une situation au hasard. Le stagiaire choisit l’établissement d’attaque et l’alimentation, puis rédige son ordre initial SMES. La correction s’appuie sur le RDMI.</p>
-    <div class="row"><button class="btn primary" id="sSP">🚒 Situation sapeur-pompier</button><button class="btn" id="sJSP">🧒 Situation JSP</button></div></div></div>`;
+    <div class="row"><button class="btn primary" id="sSP">🚒 Situation sapeur-pompier</button><button class="btn" id="sJSP">🧒 Situation JSP</button></div></div>
+    <div class="card" style="margin-top:12px"><h2 style="margin-top:0">🩺 Mise en situation SUAP</h2>
+    <p class="muted">Une victime tirée au hasard (arrêt cardiaque, hémorragie, obstruction, AVC, brûlure…) : trouve les bons gestes dans l’ordre, puis rédige ta transmission de bilan. La correction s’appuie sur le RT SUAP 2025.</p>
+    <div class="row"><button class="btn primary" id="uSP">🩺 SUAP sapeur-pompier</button><button class="btn" id="uJSP">🧒 SUAP JSP</button></div></div></div>`;
     $('#sSP').onclick = () => { SIT = newSituation('SP'); viewManSit(); };
     $('#sJSP').onclick = () => { SIT = newSituation('JSP'); viewManSit(); };
+    $('#uSP').onclick = () => { SIT = newSuapSituation('SP'); viewManSit(); };
+    $('#uJSP').onclick = () => { SIT = newSuapSituation('JSP'); viewManSit(); };
     return;
   }
+  if(SIT.type === 'suap') return viewSuapSit();
   const S = SIT, c = S.c;
   const q3 = c.victime !== 'non'
     ? { q:'Quelle est ta priorité à l’arrivée ?', opts:{ v:'Le sauvetage ou la mise en sécurité de la victime', a:'L’alimentation de l’engin', z:'Le zonage de l’intervention', d:'Le déblai' }, ok:'v', why:'Les sauvetages et mises en sécurité passent avant tout : MEA, échelles ou recherche primaire selon la situation.' }
@@ -5903,7 +5937,8 @@ function viewManSit(){
     <div class="card sit"><div class="row"><span class="pill">${c.public === 'JSP' ? '🧒 JSP' : '🚒 SP'}</span><span class="spacer"></span>${S.step >= 3 ? `<b>${good}/3</b>` : ''}</div>
     <p style="font-size:17px;margin:10px 0 0"><b>📟 Départ :</b> ${esc(sitText(c))}</p></div>
     ${body}
-    <div class="row" style="margin-top:14px"><button class="btn" id="sNew">🔄 Nouvelle situation</button><a class="btn" href="#/man/m/${S.att[0] === 'etb-3-6' ? 'etb-3-2' : S.att[0]}">📋 Fiche de l’établissement</a></div></div>`;
+    <div class="row" style="margin-top:14px"><button class="btn" id="sNew">🔄 Nouvelle situation</button><button class="btn" id="sBack">↩️ Autre type</button><a class="btn" href="#/man/m/${S.att[0]}">📋 Fiche de l’établissement</a></div></div>`;
+  $('#sBack').onclick = () => { SIT = null; viewManSit(); };
   app.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { const st = steps[+b.dataset.st]; S.answers[st.k] = b.dataset.v; S.step = Math.max(S.step, +b.dataset.st + 1); viewManSit(); });
   $('#sNew').onclick = () => { SIT = newSituation(c.public); viewManSit(); };
   ['s','m','e','x'].forEach(k => { const t = $('#sm_' + k); if(t) t.oninput = () => { S.smes[k] = t.value; }; });
@@ -6056,6 +6091,263 @@ function viewMan(parts, params){
 }
 
 /* ---------- Routeur ---------- */
+/* ---------- Schémas (SVG, couleurs du thème) ---------- */
+const SVGT = (vb, label, inner) => `<figure class="schema"><svg viewBox="${vb}" role="img" aria-label="${label}" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,sans-serif">${inner}</svg><figcaption>${label}</figcaption></figure>`;
+function sBuilding(x, y, w, h, n, lbl){
+  let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--card2)" stroke="var(--muted)" stroke-width="2"/>`;
+  const fh = h / n;
+  for(let i = 1; i < n; i++) s += `<line x1="${x}" y1="${y + i*fh}" x2="${x+w}" y2="${y + i*fh}" stroke="var(--line)" stroke-width="2"/>`;
+  for(let i = 0; i < n; i++) s += `<text x="${x+w+6}" y="${y + h - i*fh - fh/2 + 4}" font-size="11" fill="var(--muted)">${i === 0 ? 'RDC' : 'R+' + i}</text>`;
+  return s + (lbl ? `<text x="${x + w/2}" y="${y - 8}" font-size="12" text-anchor="middle" fill="var(--muted)">${lbl}</text>` : '');
+}
+const sEngin = (x, y) => `<rect x="${x}" y="${y}" width="62" height="28" rx="5" fill="#d32f2f"/><rect x="${x+44}" y="${y+5}" width="14" height="10" rx="2" fill="#fff" opacity=".85"/><circle cx="${x+14}" cy="${y+30}" r="6" fill="var(--text)"/><circle cx="${x+48}" cy="${y+30}" r="6" fill="var(--text)"/><text x="${x+31}" y="${y+48}" font-size="11" text-anchor="middle" fill="var(--text)">Engin-pompe</text>`;
+const sFeu = (x, y) => `<path d="M${x} ${y} c-9 -10 -4 -18 0 -26 c2 8 9 10 9 18 c0 6 -4 8 -9 8z" fill="#ff7043"/><path d="M${x} ${y} c-4 -5 -2 -9 0 -13 c1 4 4 5 4 9 c0 3 -2 4 -4 4z" fill="#ffca28"/>`;
+const sDot = (x, y, c, t, anchor) => `<circle cx="${x}" cy="${y}" r="6" fill="${c}" stroke="var(--card)" stroke-width="2"/>${t ? `<text x="${anchor === 'end' ? x-10 : x+10}" y="${y+4}" font-size="11" text-anchor="${anchor||'start'}" fill="var(--text)">${t}</text>` : ''}`;
+const SCHEMAS = {
+  'ligne-attaque': () => SVGT('0 0 360 300', 'Ligne d’attaque : division d’attaque au N-1, LDV 40 vers le feu',
+    sBuilding(170, 30, 130, 240, 6, '') +
+    sEngin(8, 236) +
+    `<path d="M70 252 H120" stroke="#1e88e5" stroke-width="5" fill="none"/>` + sDot(120, 252, '#1e88e5') +
+    `<text x="96" y="232" font-size="10" text-anchor="middle" fill="var(--text)">Division</text><text x="96" y="244" font-size="10" text-anchor="middle" fill="var(--text)">d’alimentation</text>` +
+    `<path d="M120 252 H182 V110" stroke="#1e88e5" stroke-width="5" fill="none"/>` +
+    `<text x="140" y="190" font-size="11" fill="#1e88e5" transform="rotate(-90 140 190)">Tuyaux Ø70</text>` +
+    sDot(182, 110, '#1e88e5') + `<text x="190" y="104" font-size="10" fill="var(--text)">Div. d’attaque (N-1)</text>` +
+    `<path d="M182 110 C200 100 196 78 220 72 H262" stroke="#ef6c00" stroke-width="3.5" fill="none"/>` +
+    `<text x="226" y="66" font-size="10" fill="#ef6c00">LDV 40 (Ø45)</text>` + sFeu(280, 82) +
+    `<text x="10" y="20" font-size="11" fill="var(--muted)">Obligatoire au-delà du R+4 en rampant</text>`),
+  'colonne-seche': () => SVGT('0 0 360 300', 'LDV 40 sur colonne sèche : raccord sur la prise de Ø40 au N-1',
+    sBuilding(170, 30, 130, 240, 6, '') +
+    sEngin(8, 236) +
+    `<path d="M70 252 H178" stroke="#1e88e5" stroke-width="5" fill="none"/><text x="110" y="244" font-size="11" fill="#1e88e5">Ø70/20 m</text>` +
+    `<rect x="176" y="40" width="7" height="216" fill="#c62828"/>` +
+    [0,1,2,3,4,5].map(i => `<circle cx="187" cy="${250 - i*40}" r="3.5" fill="#c62828"/>`).join('') +
+    `<text x="150" y="268" font-size="10" text-anchor="end" fill="var(--muted)">Raccord pied</text>` +
+    sDot(187, 90, '#c62828') + `<text x="194" y="104" font-size="10" fill="var(--text)">Prise Ø40 (N-1)</text>` +
+    `<path d="M187 90 C205 80 200 62 222 58 H262" stroke="#ef6c00" stroke-width="3.5" fill="none"/>` +
+    `<text x="226" y="52" font-size="10" fill="#ef6c00">LDV 40</text>` + sFeu(280, 66) +
+    `<text x="10" y="20" font-size="11" fill="var(--muted)">Par niveau : 1 prise Ø65 + 2 prises Ø40</text>`),
+  'garrot': () => SVGT('0 0 360 180', 'Pose du garrot : 5 à 7 cm au-dessus de la plaie, jamais sur une articulation',
+    `<path d="M20 70 H300 Q330 70 334 88 Q330 106 300 106 H20 Z" fill="var(--card2)" stroke="var(--muted)" stroke-width="2"/>` +
+    `<text x="22" y="62" font-size="11" fill="var(--muted)">Racine du membre</text><text x="318" y="128" font-size="11" text-anchor="end" fill="var(--muted)">Main</text>` +
+    `<circle cx="150" cy="88" r="7" fill="none" stroke="var(--muted)" stroke-dasharray="3 3"/><text x="150" y="128" font-size="10" text-anchor="middle" fill="var(--muted)">Coude : jamais ici</text>` +
+    `<path d="M248 80 l6 8 l-6 8 l6 8" stroke="#c62828" stroke-width="3" fill="none"/><text x="252" y="62" font-size="11" text-anchor="middle" fill="#c62828">Plaie</text>` +
+    `<rect x="196" y="64" width="12" height="48" rx="3" fill="#ef6c00"/><text x="202" y="150" font-size="11" text-anchor="middle" fill="var(--text)">1er garrot</text>` +
+    `<path d="M208 140 H248" stroke="var(--text)" stroke-width="1.5" marker-start="url(#ar)" marker-end="url(#ar)"/><text x="228" y="166" font-size="11" text-anchor="middle" fill="var(--text)">5 à 7 cm</text>` +
+    `<rect x="84" y="64" width="12" height="48" rx="3" fill="none" stroke="#ef6c00" stroke-width="2.5" stroke-dasharray="4 3"/><text x="90" y="150" font-size="10" text-anchor="middle" fill="var(--text)">2e garrot si besoin</text>` +
+    `<defs><marker id="ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="var(--text)"/></marker></defs>` +
+    `<text x="20" y="22" font-size="11" fill="var(--muted)">Serrer jusqu’à l’arrêt du saignement · noter l’heure</text>`),
+  'positions': () => {
+    const head = (x, y) => `<circle cx="${x}" cy="${y}" r="7" fill="none" stroke="var(--text)" stroke-width="2.5"/>`;
+    const L = d => `<path d="${d}" stroke="var(--text)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const ground = (x) => `<line x1="${x}" y1="72" x2="${x+150}" y2="72" stroke="var(--line)" stroke-width="2"/>`;
+    const lab = (x, t, u) => `<text x="${x+75}" y="92" font-size="11" text-anchor="middle" fill="var(--text)" font-weight="600">${t}</text><text x="${x+75}" y="106" font-size="10" text-anchor="middle" fill="var(--muted)">${u}</text>`;
+    return SVGT('0 0 340 250', 'Positions d’attente',
+      ground(10) + head(30, 60) + L('M38 63 H100 M100 63 L140 64 M70 63 L74 52') + lab(10, 'À plat dos', 'Détresse circulatoire, RCP, AVC') +
+      ground(180) + L('M200 72 Q206 52 214 48 M226 72 H246 M214 48 L226 70 L300 70') + head(208, 34) + L('M212 52 L232 58') + lab(180, 'Demi-assise', 'Détresse respiratoire, thorax') +
+      `<g transform="translate(0 130)">` + ground(10) + head(28, 62) + L('M36 64 H100 M100 64 L118 52 L140 66 M70 64 L64 52') + lab(10, 'PLS', 'Inconscient qui respire') +
+      ground(180) + head(198, 64) + L('M206 66 H256 M256 66 L276 44 L300 66') + lab(180, 'Jambes fléchies', 'Abdomen (plaie, douleur)') + `</g>`);
+  }
+};
+/* ---------- Mises en situation SUAP (RT SUAP 2025) ---------- */
+const SUAP_CAS = [
+  { id:'acr', titre:'Arrêt cardiaque', ages:['adulte','enfant'], man:'suap-acr',
+    depart:'{victime} s’est effondré {lieu}. Un proche dit que c’est arrivé il y a 3 minutes.',
+    scene:'La victime est au sol, ne répond pas, ne respire pas normalement (quelques gasps).',
+    steps:[
+      { q:'Que fais-tu en premier ?', opts:{ a:'RCP immédiate et DAE le plus tôt possible', b:'Mise en PLS et surveillance', c:'Bilan complet avec prise de tension', d:'Attendre le SMUR sans toucher la victime' }, ok:'a', why:'Gasps = arrêt cardiaque : compressions immédiates, DAE posé sans interrompre la RCP, renfort médical demandé au CODIS.' },
+      { q:'Quel rythme de RCP chez l’adulte ?', opts:{ a:'30 compressions / 2 insufflations, 100 à 120 / min', b:'15 / 2 à 80 / min', c:'5 insufflations puis 3 / 1', d:'Compressions seules à 60 / min' }, ok:'a', why:'Adulte : 30/2, 100 à 120 compressions par minute, environ 5 cm sans dépasser 6 cm. (Enfant : 5 insufflations puis 15/2.)' },
+      { q:'Règle SDIS 34 pour la canule de Guedel ?', opts:{ a:'Posée systématiquement sur tout ACR, quel que soit l’âge', b:'Seulement sur avis du médecin régulateur', c:'Jamais chez l’enfant', d:'Uniquement si la victime vomit' }, ok:'a', why:'Note SSSM 2025-01 : Guedel systématique sur tout ACR. Relais toutes les 2 minutes pendant l’analyse du DAE.' }],
+    bilan:'Demande de moyen médical : ACR {victime_court} {lieu}, RCP et DAE en cours depuis l’arrivée, X chocs délivrés, Guedel posée, O2 15 l/min au BAVU. Témoin : effondrement il y a 3 minutes, massage par un proche.' },
+  { id:'hemo', titre:'Hémorragie de membre', ages:['adulte','enfant'], man:'suap-hemo',
+    depart:'{victime} s’est blessé avec une vitre {lieu}.',
+    scene:'Plaie de l’avant-bras qui saigne abondamment, les linges sont imbibés. La victime est pâle et consciente.',
+    steps:[
+      { q:'Ton premier geste ?', opts:{ a:'Compression manuelle directe sur la plaie (avec gants)', b:'Garrot d’emblée à la racine du membre', c:'Désinfecter la plaie à la Bétadine', d:'Surélever le bras et attendre' }, ok:'a', why:'Compression manuelle d’abord ; si elle est efficace, pansement compressif.' },
+      { q:'La compression ne suffit pas. Où poses-tu le garrot ?', opts:{ a:'À 5 à 7 cm au-dessus de la plaie, jamais sur une articulation', b:'Directement sur la plaie', c:'Sur le coude pour mieux serrer', d:'Au poignet, sous la plaie' }, ok:'a', why:'Entre la plaie et la racine du membre, à 5 à 7 cm, hors articulation ; noter l’heure.' },
+      { q:'Le saignement continue malgré le garrot serré ?', opts:{ a:'Resserrer, puis 2e garrot entre le 1er et la racine du membre', b:'Desserrer le garrot pour soulager', c:'Mettre une gaze hémostatique', d:'Retirer le garrot et comprimer' }, ok:'a', why:'SDIS 34 : 2e garrot ; pas de gaze hémostatique ; desserrage uniquement sur ordre médical.' }],
+    bilan:'Demande de moyen médical : {victime_court}, plaie de l’avant-bras avec hémorragie non contrôlée par la compression, garrot posé à HH:MM, victime consciente, pâle, pouls radial à X / min, couverte et allongée.' },
+  { id:'ova', titre:'Obstruction des voies aériennes', ages:['adulte','enfant','nourrisson'], man:'suap-ova',
+    depart:'{victime} s’étouffe pendant le repas {lieu}.',
+    scene:'La victime ne peut plus parler ni tousser, porte les mains à la gorge.',
+    steps:[
+      { q:'Obstruction complète, victime consciente : premier geste ?', opts:{ a:'1 à 5 claques vigoureuses dans le dos', b:'Faire boire un verre d’eau', c:'Allonger en PLS', d:'Encourager à tousser sans rien faire d’autre' }, ok:'a', why:'Claques dans le dos d’abord, la victime penchée en avant (ou sur l’avant-bras pour un nourrisson).' },
+      { q:'Les claques n’ont pas suffi. Ensuite ?', opts:{ a:'1 à 5 compressions (abdominales ; thoraciques pour nourrisson, obèse, femme enceinte)', b:'Insufflations au BAVU', c:'Aspiration avec la sonde de Yankauer', d:'Retirer le corps étranger au doigt à l’aveugle' }, ok:'a', why:'Alterner claques et compressions jusqu’à la désobstruction.' },
+      { q:'Après la désobstruction ?', opts:{ a:'Position de confort, surveillance et avis médical systématique', b:'Laisser repartir la victime', c:'PLS obligatoire', d:'Faire vomir la victime' }, ok:'a', why:'Avis médical systématique après une désobstruction par compressions.' }],
+    bilan:'Bilan : {victime_court}, obstruction complète des voies aériennes désobstruée après X claques et X compressions, consciente, respire normalement, FR X / min, SpO2 X %. Demande d’avis médical.' },
+  { id:'pls', titre:'Perte de connaissance', ages:['adulte','enfant'], man:'suap-pls',
+    depart:'{victime} est trouvé allongé au sol {lieu}.',
+    scene:'Ne répond pas, respire normalement, aucun traumatisme suspecté (pas de chute, pas de choc).',
+    steps:[
+      { q:'Quelle position ?', opts:{ a:'PLS', b:'Assise contre un mur', c:'Sur le dos, jambes surélevées', d:'Debout pour la réveiller' }, ok:'a', why:'Inconscient qui respire, sans traumatisme : PLS (côté gauche si femme enceinte).' },
+      { q:'Et si un traumatisme était suspecté ?', opts:{ a:'Sur le dos, maintien de la tête à deux mains, voies aériennes libres', b:'PLS quand même, seul', c:'Assise', d:'Sur le ventre' }, ok:'a', why:'Traumatisé : sur le dos ; PLS à deux seulement sur indication médicale.' },
+      { q:'Que surveilles-tu en priorité ?', opts:{ a:'La respiration en continu (prêt à débuter la RCP)', b:'La température toutes les heures', c:'La glycémie uniquement', d:'Rien, la victime est stable' }, ok:'a', why:'Respiration absente ou anormale → conduite de l’arrêt cardiaque.' }],
+    bilan:'Bilan : {victime_court} {lieu}, inconscient (A sur EVDA), respire, FR X / min, pouls X / min, SpO2 X %, glycémie X g/l, en PLS, pas de traumatisme. Demande d’avis médical.' },
+  { id:'hypo', titre:'Hypoglycémie', ages:['adulte'], man:'suap-bilan',
+    depart:'{victime}, diabétique, fait un malaise {lieu}.',
+    scene:'Il est en sueur, confus mais réveillé et capable d’avaler. Glycémie mesurée : 0,45 g/l.',
+    steps:[
+      { q:'Que fais-tu ?', opts:{ a:'Donner du sucre : 4 morceaux (ou cuillères)', b:'Rien, 0,45 g/l est normal', c:'Injecter de l’insuline', d:'Le mettre en PLS sans rien donner' }, ok:'a', why:'Glycémie < 0,6 g/l et victime réveillée qui avale : sucre ; adulte 4 morceaux, enfant 2 à 3.' },
+      { q:'Au bout de combien de temps réévalues-tu ?', opts:{ a:'10 à 15 minutes, 2e dose si pas d’amélioration', b:'1 minute', c:'1 heure', d:'Jamais' }, ok:'a', why:'L’effet du sucre apparaît en 10 à 15 minutes.' },
+      { q:'Et s’il ne pouvait plus avaler ?', opts:{ a:'Pas de sucre par la bouche : position adaptée et avis médical', b:'Forcer avec un verre de jus', c:'Mettre du sucre sous la langue en le maintenant sur le dos', d:'Le faire marcher' }, ok:'a', why:'Risque de fausse route : rien par la bouche si la victime ne peut pas avaler.' }],
+    bilan:'Bilan : {victime_court}, diabétique, malaise avec sueurs et confusion, glycémie 0,45 g/l, resucré par 4 morceaux de sucre à HH:MM, glycémie de contrôle X g/l à 15 min. Demande d’avis médical.' },
+  { id:'brul', titre:'Brûlure', ages:['adulte','enfant','nourrisson'], man:'suap-brulure',
+    depart:'{victime} s’est renversé de l’eau bouillante {lieu}, il y a 10 minutes.',
+    scene:'Cloques sur le thorax, environ la surface de 3 mains de la victime. Consciente, pas de détresse.',
+    steps:[
+      { q:'Surface brûlée estimée ?', opts:{ a:'Environ 3 % (main de la victime = 1 %)', b:'Environ 30 %', c:'Environ 9 %', d:'Impossible à estimer' }, ok:'a', why:'Paume + doigts de la victime = 1 % de sa surface corporelle.' },
+      { q:'Refroidis-tu ?', opts:{ a:'Oui, eau tempérée qui ruisselle, 10 min minimum (idéalement 20)', b:'Non, jamais sur une brûlure grave', c:'Oui, avec de la glace directement', d:'Oui, 1 heure sous l’eau froide' }, ok:'a', why:'Brûlure < 30 min, sans contre-indication : refroidir ; arrêter si la victime a froid.' },
+      { q:'Les cloques ?', opts:{ a:'Ne pas les percer ; protéger (champ stérile ou film plastique)', b:'Les percer pour soulager', c:'Retirer la peau décollée', d:'Mettre de la crème grasse' }, ok:'a', why:'Ne jamais percer les cloques ; retirer seulement les vêtements non collés.' }],
+    bilan:'Bilan : {victime_court}, brûlure par eau bouillante du thorax, environ 3 %, cloques (brûlure grave), refroidie 20 minutes à l’eau tempérée, consciente, EVS X, pas de détresse. Demande d’avis médical.' },
+  { id:'avc', titre:'Suspicion d’AVC', ages:['adulte'], man:'suap-bilan',
+    depart:'{victime} parle bizarrement depuis 30 minutes {lieu}, d’après sa famille.',
+    scene:'Bouche déviée, bras droit qui retombe, parole difficile. Conscient.',
+    steps:[
+      { q:'Quelle position ?', opts:{ a:'Strictement à plat (PLS si nausées ou vomissements)', b:'Assis, tête haute', c:'Jambes surélevées', d:'Debout pour tester la marche' }, ok:'a', why:'AVC conscient : strictement à plat ; 2/3 ont des troubles de la déglutition.' },
+      { q:'Quel paramètre mesures-tu absolument ?', opts:{ a:'La glycémie', b:'La température auriculaire uniquement', c:'Le poids', d:'Aucun, on part tout de suite' }, ok:'a', why:'Une hypoglycémie peut imiter un AVC : glycémie systématique.' },
+      { q:'Quelle information est capitale pour le médecin ?', opts:{ a:'L’heure de début des signes', b:'Le nom de son médecin traitant', c:'Ce qu’il a mangé hier', d:'Sa taille' }, ok:'a', why:'L’heure de début conditionne le traitement en unité neuro-vasculaire.' }],
+    bilan:'Bilan : {victime_court}, signes d’AVC (déviation de la bouche, déficit du bras droit, trouble de la parole) depuis HH:MM, conscient, glycémie X g/l, PA X, allongé à plat. Demande d’avis médical, orientation unité neuro-vasculaire.' },
+  { id:'thorax', titre:'Douleur thoracique', ages:['adulte'], man:'suap-bilan',
+    depart:'{victime} se plaint d’une douleur dans la poitrine depuis 20 minutes {lieu}.',
+    scene:'Douleur en barre qui serre, irradie dans le bras gauche. Conscient, sueurs, pas de détresse respiratoire.',
+    steps:[
+      { q:'Ta première mesure ?', opts:{ a:'Repos immédiat, position de confort', b:'Le faire marcher jusqu’au VSAV', c:'Lui donner à boire', d:'Le mettre en PLS' }, ok:'a', why:'Douleur thoracique sans détresse : repos strict, position de confort, O2 si besoin.' },
+      { q:'Comment prends-tu la pression artérielle ?', opts:{ a:'Aux deux bras', b:'Au bras gauche seulement', c:'À la cheville', d:'On ne la prend pas' }, ok:'a', why:'SDIS 34 : PA aux deux bras devant une douleur thoracique.' },
+      { q:'Fais-tu un ECG de ta propre initiative ?', opts:{ a:'Non, seulement sur prescription du médecin régulateur', b:'Oui, toujours', c:'Oui si la douleur dure plus de 10 min', d:'Oui, puis on l’envoie au CODIS' }, ok:'a', why:'Note SSSM : ECG uniquement sur prescription du médecin régulateur.' }],
+    bilan:'Bilan : {victime_court}, douleur thoracique constrictive irradiant au bras gauche depuis 20 min, EVS X, sueurs, PA X / X à droite et X / X à gauche, pouls X, SpO2 X %, au repos. Demande d’avis médical.' }
+];
+function newSuapSituation(pub){
+  const cas = rnd(SUAP_CAS); const age = rnd(cas.ages); const lieu = rnd(Object.keys(LIEUX));
+  const order = cas.steps.map(st => shuffle(Object.keys(st.opts)));
+  return { type:'suap', cas: cas.id, c:{ public: pub, age, lieu }, order, step:0, answers:{}, bilan:'', corr:'' };
+}
+function suapSub(s, S){
+  const v = AGES[S.c.age][1];
+  return s.replace(/\{victime\}/g, v).replace(/\{victime_court\}/g, v.replace(/^un /, '')).replace(/\{lieu\}/g, LIEUX[S.c.lieu][1]).replace(/^./, x => x.toUpperCase());
+}
+function viewSuapSit(){
+  const S = SIT, cas = SUAP_CAS.find(x => x.id === S.cas);
+  let body = '';
+  cas.steps.forEach((st, i) => {
+    if(i > S.step) return;
+    const ans = S.answers[i];
+    body += `<div class="card" style="margin-top:12px"><b>${i+1}. ${esc(st.q)}</b><div class="choices" style="margin-top:10px">${S.order[i].map(k => {
+      let cls = ''; if(ans){ if(k === st.ok) cls = 'ok'; else if(k === ans) cls = 'ko'; }
+      return `<button class="choice ${cls}" data-st="${i}" data-v="${k}" ${ans?'disabled':''}><span>${esc(st.opts[k])}</span></button>`; }).join('')}</div>
+      ${ans ? `<div class="feedback ${ans === st.ok ? 'ok' : 'ko'}"><b>${ans === st.ok ? '✅ Correct' : '❌ À revoir'}</b><p style="margin:6px 0 0">${esc(st.why)}</p></div>` : ''}</div>`;
+  });
+  if(S.step >= 3){
+    body += `<div class="card" style="margin-top:12px"><b>4. Rédige ta transmission de bilan</b>
+      <p class="small muted" style="margin:6px 0 0">Concise, structurée, chronologique, sans interpréter : motif, sexe et âge, détresse ou plainte, paramètres, gestes réalisés.</p>
+      <textarea id="sbBilan" rows="5" style="width:100%;margin-top:8px">${esc(S.bilan)}</textarea>
+      <div class="row" style="margin-top:10px"><button class="btn" id="sbShow">👀 Voir un exemple</button>${CAP.sample ? '<button class="btn primary" id="sbAi">🤖 Faire corriger par Claude</button>' : ''}</div>
+      <div id="sbModel" hidden><div class="callout" style="margin-top:10px"><b>Exemple :</b> ${esc(suapSub(cas.bilan, S))}</div></div>
+      <div id="sbAiOut" class="ai-out" ${S.corr ? '' : 'hidden'}>${esc(S.corr)}</div></div>`;
+  }
+  const good = cas.steps.filter((st, i) => S.answers[i] === st.ok).length;
+  app.innerHTML = `<div class="fade"><h1>🧯 Manœuvres</h1>${manTabs('sit')}
+    <div class="card sit"><div class="row"><span class="pill">🩺 SUAP · ${esc(cas.titre)}</span><span class="pill">${S.c.public === 'JSP' ? '🧒 JSP' : '🚒 SP'}</span><span class="spacer"></span>${S.step >= 3 ? `<b>${good}/3</b>` : ''}</div>
+    <p style="font-size:17px;margin:10px 0 0"><b>📟 Départ :</b> ${esc(suapSub(cas.depart, S))}</p>
+    <p style="margin:8px 0 0"><b>👀 Sur place :</b> ${esc(cas.scene)}</p>
+    ${S.c.public === 'JSP' ? '<p class="small muted" style="margin:8px 0 0">Séance JSP : les gestes se font sur mannequin.</p>' : ''}</div>
+    ${body}
+    <div class="row" style="margin-top:14px"><button class="btn" id="sNew">🔄 Nouvelle situation SUAP</button><button class="btn" id="sBack">↩️ Autre type</button><a class="btn" href="#/man/m/${cas.man}">📋 Fiche de manœuvre</a></div></div>`;
+  app.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { const i = +b.dataset.st; S.answers[i] = b.dataset.v; S.step = Math.max(S.step, i + 1); viewManSit(); });
+  $('#sNew').onclick = () => { SIT = newSuapSituation(S.c.public); viewManSit(); };
+  $('#sBack').onclick = () => { SIT = null; viewManSit(); };
+  const t = $('#sbBilan'); if(t) t.oninput = () => { S.bilan = t.value; };
+  const sh = $('#sbShow'); if(sh) sh.onclick = () => { $('#sbModel').hidden = false; };
+  const ai = $('#sbAi'); if(ai) ai.onclick = async () => {
+    const o = $('#sbAiOut'); o.hidden = false; o.textContent = 'Correction en cours…'; ai.disabled = true;
+    const prompt = `Tu es formateur secourisme au SDIS de l’Hérault. Corrige la transmission de bilan d’un ${S.c.public === 'JSP' ? 'jeune sapeur-pompier' : 'sapeur-pompier'} selon le référentiel technique SUAP 2025 du SDIS 34.
+Règles : transmission concise, complète, structurée, chronologique, sans interpréter. Détresse vitale : demande de moyen médical immédiate (nature, motif, sexe et âge) puis bilan complet. Sans détresse : motif réel, sexe et âge, plainte principale, résultats (paramètres : FR, pouls, SpO2, PA, glycémie, EVS 0-4, conscience EVDA) et gestes réalisés.
+Situation : ${suapSub(cas.depart, S)} ${cas.scene}
+Transmission du stagiaire : ${S.bilan || '(vide)'}
+Réponds en français, en 8 lignes au plus, sans titre : ce qui est juste, ce qui manque, puis une note sur 10.`;
+    try{ const r = await CAP.sample(prompt, { onText: ({text}) => { o.textContent = text; } }); S.corr = r.text; o.textContent = r.text; }
+    catch(e){ o.textContent = e && e.code === 'not_granted' ? 'La correction par Claude n’est pas autorisée pour cette page.' : e && e.code === 'rate_limited' ? 'Trop de demandes : réessaie dans un moment.' : 'La correction n’a pas pu aboutir. Réessaie plus tard.'; if(e && (e.code === 'not_granted' || e.code === 'sampling_disabled')) CAP.sample = null; }
+    ai.disabled = false;
+  };
+}
+/* ---------- Question du jour ---------- */
+function hashStr(s){ let h = 2166136261; for(const ch of s){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function seededShuffle(a, seed){ const r = a.slice(); let x = seed || 1; for(let i = r.length - 1; i > 0; i--){ x = (Math.imul(x, 1103515245) + 12345) >>> 0; const j = x % (i + 1); [r[i], r[j]] = [r[j], r[i]]; } return r; }
+function qdjQuestion(){
+  const all = BASE.flatMap(t => t.questions); const d = today();
+  return all.length ? all[hashStr('qdj' + d) % all.length] : null;
+}
+function qdjCard(){
+  const q = qdjQuestion(); if(!q) return '';
+  const st = store.get('qdj', {}); const done = st.d === today() && st.id === q.id;
+  const order = seededShuffle(q.choix.map((_, i) => i), hashStr(today()));
+  return `<section class="card qdj" id="qdj"><div class="row"><b>📅 Question du jour</b><span class="spacer"></span><span class="small muted">${esc((themeOf(q.theme) || {}).nom || '')}</span></div>
+    <p style="margin:8px 0 10px;font-weight:600">${esc(q.q)}</p>
+    <div class="choices">${order.map(i => { let cls = ''; if(done){ if(i === q.r) cls = 'ok'; else if(i === st.a) cls = 'ko'; }
+      return `<button class="choice ${cls}" data-qdj="${i}" ${done ? 'disabled' : ''}><span>${esc(q.choix[i])}</span></button>`; }).join('')}</div>
+    ${done ? `<div class="feedback ${st.a === q.r ? 'ok' : 'ko'}"><b>${st.a === q.r ? '✅ Bravo !' : '❌ Pas cette fois'}</b>${q.ex ? `<p style="margin:6px 0 0">${esc(q.ex)}</p>` : ''}<p class="small" style="margin:6px 0 0">🔥 Série : <b>${streak()} jour${streak() > 1 ? 's' : ''}</b>. Reviens demain pour une nouvelle question.</p></div>` : ''}</section>`;
+}
+function bindQdj(){
+  app.querySelectorAll('[data-qdj]').forEach(b => b.onclick = () => {
+    const q = qdjQuestion(); const a = +b.dataset.qdj;
+    record(q, a === q.r); store.set('qdj', { d: today(), id: q.id, a });
+    const el = $('#qdj'); el.outerHTML = qdjCard(); bindQdj();
+  });
+}
+
+/* ---------- Points à valider (formateurs) ---------- */
+const VALIDER = [
+  { id:'v-grades', th:'JSP 1 · Grades', t:'Galons des officiers', d:'La présentation donne 1 galon au lieutenant (normalement : sous-lieutenant 1, lieutenant 2). Vérifier aussi les galons de sergent et le liseré des adjudants.' },
+  { id:'v-secciv', th:'JSP 1 · Sécurité civile', t:'Chiffres nationaux et hélicoptère Dragon', d:'Effectifs et interventions 2024 à mettre à jour ; base de l’hélicoptère Dragon (Montpellier) notée « à vérifier ».' },
+  { id:'v-citoyen', th:'JSP 1 · Engagement citoyen', t:'Âges et dispositifs', d:'SPV 16 ans, service civique 16-25 ans, réserve opérationnelle 17 ans, équivalences du brevet : notés « à vérifier ».' },
+  { id:'v-ceremonies', th:'JSP 1 · Protocoles', t:'Cérémonies, dotations, casques F1/F2', d:'Aucun référentiel SDIS 34 cité : contenu à valider par le chef de section.' },
+  { id:'v-fumees', th:'JSP 2 / JSP 3 · Fumées', t:'Niveau « Je sais »', d:'Le cours d’hygiène de vie (pas d’exposition) et le RDEB (nettoyage superficiel) ne disent pas la même chose. L’application suit le RDEB.' },
+  { id:'v-echelles', th:'JSP 2 · Échelles', t:'Version du RDEP', d:'RDEP de juin 2023 cité : vérifier s’il existe une version plus récente ; valeurs 33 kg, 5 m et 9 m indiquées comme indicatives.' },
+  { id:'v-epuis', th:'JSP 2 / JSP 3 · Épuisement', t:'Débits des pompes', d:'Pompe du VSRTU « 15 ou 30 m³/h selon le modèle » ; motopompe, turbopompe et hydro-éjecteur à confirmer avec les notices du centre.' },
+  { id:'v-ccf', th:'JSP 2 · Engins', t:'Citerne du CCF', d:'Capacité non renseignée dans la présentation (« à compléter à l’engin »).' },
+  { id:'v-explo', th:'JSP 3 · Explosimétrie', t:'Limites d’explosivité et couleur d’ogive', d:'Propane 2-10 % / butane 1,5-8,5 % sur la diapo, 2,1-9,5 % / 1,8-8,4 % dans les notes. Ogive « inerte » : « vert » (diapo) ou « vert jaune » (RDEB).' },
+  { id:'v-hydro', th:'JSP 3 · Hydraulique', t:'Exemple de calcul', d:'Le 3e étage est compté à 10 m (+1 bar) alors que la diapo dit qu’un étage ≈ 3 m (≈ 9 m).' },
+  { id:'v-radio', th:'JSP 3 · Transmissions', t:'Procédure radio', d:'Décomposition des chiffres et procédure d’urgence à vérifier dans l’OBDSIC 34 ; statuts au-delà de 1 et 2 non donnés.' },
+  { id:'v-canon', th:'JSP 3 · Établissements', t:'Ordre pour la lance canon', d:'Les notes hésitent sur l’ordre de citation du point d’attaque et de la prise d’eau.' },
+  { id:'v-ascenseur', th:'JSP 4 · Ascenseurs', t:'Trappe de plafond', d:'La diapo dit « 8 personnes et plus », la FOD 14 citée parle de 1 000 kg (≈ 13 personnes). Vérifier aussi la version de la FOD 14.' },
+  { id:'v-thermique', th:'JSP 4 · Phénomènes thermiques', t:'Contenus de doctrine nationale', d:'EGE, explosion de fumées, FGI, techniques de lance, bâchage, autoprotection : marqués « à valider par le formateur ».' },
+  { id:'v-noyade', th:'JSP 4 · Sauvetage', t:'Stades de la noyade et brancardage', d:'Classification en 4 stades et sens de brancardage dans les escaliers à confirmer par le formateur PSE ; lieux de recherche prioritaires « à confirmer ».' },
+  { id:'v-forcement', th:'JSP 4 · Forcement', t:'Règles d’ouverture de porte', d:'Pas de fiche dans le référentiel national : à valider par le chef de centre.' },
+  { id:'v-tractions', th:'JSP 4 · Condition physique', t:'Tractions et épreuves ICP', d:'Mains en supination (brevet) ou en pronation (ICP) ; liste des épreuves ICP différente de celle du RNF.' },
+  { id:'v-formation', th:'JSP 4 · Intégration en CIS', t:'Durée « caisson et risques locaux »', d:'2 jours sur la diapo, mais 1 j caisson + 1 j inondation / risques locaux dans les notes.' },
+  { id:'v-vipere', th:'JSP 4 · Risques locaux', t:'Vipère et caténaire', d:'Vipère « plutôt en montagne » discutable dans l’Hérault (aspic en basse altitude) ; caténaire 25 000 V, mais certaines lignes en 1 500 V continu.' },
+  { id:'v-local', th:'JSP 4 · Divers', t:'Pratiques locales', d:'Politique SDIS 34 sur les nids d’hyménoptères, pression minimale ARI dans le cours, organisation de la garde : à valider localement.' }
+];
+function viewValider(){
+  const map = Object.fromEntries(VALIDS.map(v => [v.id, v]));
+  const n = VALIDER.filter(v => map[v.id] && map[v.id].ok).length;
+  app.innerHTML = `<div class="fade">
+  <a class="back" href="#/more">‹ Réglages</a>
+  <h1>✅ Points à valider ${modeBadge()}</h1>
+  <p class="muted small">Infos repérées dans les cours JSP qui se contredisent ou demandent une vérification locale. Coche quand c’est vérifié (avec le chef de centre, le SSSM ou un préventionniste) et note la bonne valeur si besoin.</p>
+  <div class="card"><b>${n} / ${VALIDER.length}</b> points vérifiés<div class="bar" style="margin-top:8px"><i style="width:${pct(n, VALIDER.length)}%"></i></div></div>
+  <div class="list" style="margin-top:12px">${VALIDER.map(v => { const s = map[v.id] || {};
+    return `<div class="card val ${s.ok ? 'done' : ''}"><label class="check"><input type="checkbox" data-vid="${v.id}" ${s.ok ? 'checked' : ''} ${canWrite() ? '' : 'disabled'}> <b>${esc(v.t)}</b></label>
+      <div class="small muted">${esc(v.th)}</div><p class="small" style="margin:6px 0">${esc(v.d)}</p>
+      <input type="text" data-vnote="${v.id}" value="${esc(s.note || '')}" placeholder="Valeur retenue, remarque…" ${canWrite() ? '' : 'disabled'} style="width:100%">
+      ${s.updatedAt ? `<div class="small muted" style="margin-top:4px">${s.ok ? 'Vérifié' : 'Modifié'} le ${new Date(s.updatedAt).toLocaleDateString('fr-FR')}${s.updatedBy ? ` par <span data-uid="${esc(s.updatedBy)}">…</span>` : ''}</div>` : ''}</div>`; }).join('')}</div>
+  </div>`;
+  const save = async (id, patch) => { const cur = map[id] || {}; await saveDoc('valid', Object.assign({ id, ok: !!cur.ok, note: cur.note || '' }, patch)); if(!SHARED) viewValider(); };
+  app.querySelectorAll('[data-vid]').forEach(c => c.onchange = () => save(c.dataset.vid, { ok: c.checked }));
+  app.querySelectorAll('[data-vnote]').forEach(i => { i.onfocus = () => { EDITING = true; }; i.onblur = () => { EDITING = false; const cur = map[i.dataset.vnote] || {}; if((cur.note || '') !== i.value) save(i.dataset.vnote, { note: i.value }); }; });
+  fillNames(app);
+}
+
+/* ---------- Impression / export A4 ---------- */
+const PRINT_CSS = 'body{font:13px/1.45 system-ui,sans-serif;color:#1b2230;max-width:760px;margin:24px auto;padding:0 16px}h1{font-size:20px;margin:0 0 4px}h3{font-size:14px;margin:14px 0 6px;color:#1a3c6e;border-bottom:1px solid #e2e7f0;padding-bottom:3px}table{border-collapse:collapse;width:100%;margin:6px 0}th,td{border:1px solid #cfd6e2;padding:4px 6px;text-align:left;vertical-align:top}th{background:#f3f5fa}.callout,.alert{border-left:4px solid #1a3c6e;background:#f3f5fa;padding:6px 10px;margin:6px 0;border-radius:4px}.alert.ko,.alert.warn,.callout.warn{border-color:#c62828;background:#fdecea}details{margin:4px 0}details>p{margin:2px 0 0 14px}summary{font-weight:600}input[type=checkbox]{margin-right:6px}.crit{display:block;margin:3px 0}figure{margin:8px 0}svg{max-width:420px}figcaption{font-size:11px;color:#5d6b82}.src{font-size:11px;color:#5d6b82;margin-top:16px}';
+function printHtml(title, inner){
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${esc(title)}</title><style>:root{--text:#1b2230;--muted:#5d6b82;--line:#e2e7f0;--card:#fff;--card2:#f3f5fa}${PRINT_CSS}</style></head><body><h1>${esc(title)}</h1>${inner}<p class="src">Révision Pompiers 34 · imprimé le ${new Date().toLocaleDateString('fr-FR')} · Le référentiel officiel du SDIS 34 fait foi.</p></body></html>`;
+}
+function printNow(){ try{ window.print(); }catch(e){ toast('Impression indisponible ici : utilise « Fiche A4 ».'); } }
+function exportA4(title, el){
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('details').forEach(d => d.setAttribute('open', ''));
+  clone.querySelectorAll('input[type=checkbox]').forEach(c => c.removeAttribute('checked'));
+  saveFile(title.replace(/[^\wÀ-ÿ-]+/g, '_').slice(0, 60) + '.html', printHtml(title, clone.innerHTML));
+}
 let LAST_HASH = null;
 function render(keep){
   const h = location.hash.slice(1) || '/';
@@ -6064,7 +6356,7 @@ function render(keep){
   const r = parts[0] || 'home';
   if(r !== 'quiz' && TIMER){ clearInterval(TIMER); TIMER = null; }
   if(keep !== true) EDITING = false;
-  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.dataset.r === (['theme','fiche','quiz','flash'].includes(r) ? 'home' : r)));
+  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.dataset.r === (['theme','fiche','quiz','flash'].includes(r) ? 'home' : r === 'valider' ? 'more' : r)));
   if(location.hash !== LAST_HASH){ window.scrollTo(0,0); LAST_HASH = location.hash; }
   switch(r){
     case 'man': return viewMan(parts, params);
@@ -6076,6 +6368,7 @@ function render(keep){
     case 'exam': return viewExam();
     case 'progress': return viewProgress();
     case 'more': return viewMore();
+    case 'valider': return viewValider();
     default: return viewHome();
   }
 }
