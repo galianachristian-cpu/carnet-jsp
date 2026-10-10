@@ -10,18 +10,18 @@
 :root{
   --navy:#1a3c6e;--navy2:#244f8f;--red:#d32f2f;--red2:#b71c1c;
   --bg:#f3f5fa;--card:#ffffff;--card2:#f8f9fc;--text:#1b2230;--muted:#5d6b82;--line:#e2e7f0;
-  --ok:#2e7d32;--ko:#c62828;--okbg:#e8f5e9;--kobg:#fdecea;--mark:#ffe08a;--marktext:#1b2230;
+  --ok:#2e7d32;--ko:#c62828;--okbg:#e8f5e9;--kobg:#fdecea;--warn:#a15c00;--warnbg:#fff4e0;--mark:#ffe08a;--marktext:#1b2230;
   --shadow:0 2px 12px rgba(20,30,60,.08);--radius:16px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0d121b;--card:#161d2a;--card2:#1b2433;--text:#e8edf5;--muted:#9eabc0;--line:#283347;
-    --okbg:#14301a;--kobg:#3b1919;--mark:#8a6a00;--marktext:#fff;--shadow:0 2px 12px rgba(0,0,0,.35);
+    --okbg:#14301a;--kobg:#3b1919;--warn:#ffb74d;--warnbg:#3a2a10;--mark:#8a6a00;--marktext:#fff;--shadow:0 2px 12px rgba(0,0,0,.35);
   }
 }
 :root[data-theme="dark"]{
   --bg:#0d121b;--card:#161d2a;--card2:#1b2433;--text:#e8edf5;--muted:#9eabc0;--line:#283347;
-  --okbg:#14301a;--kobg:#3b1919;--mark:#8a6a00;--marktext:#fff;--shadow:0 2px 12px rgba(0,0,0,.35);
+  --okbg:#14301a;--kobg:#3b1919;--warn:#ffb74d;--warnbg:#3a2a10;--mark:#8a6a00;--marktext:#fff;--shadow:0 2px 12px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -72,7 +72,7 @@ h2{font-size:18px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
 .search-page .search{background:var(--card);color:var(--text);border:1px solid var(--line)}
 
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px}
+.chip{text-decoration:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px}
 .hero .chip{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.25);color:#fff}
 .chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
 
@@ -201,7 +201,38 @@ tr:last-child td{border-bottom:0}
 
 /* Bottom nav */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-.nav-in{max-width:620px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.nav-in{max-width:680px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
+/* Module manœuvres */
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:4px 0 14px;padding-bottom:2px}
+.tab{flex:none;text-decoration:none;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px}
+.tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.code{font:700 12px/1 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:6px 7px;white-space:nowrap;flex:none}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--card2);border:1px solid var(--line);white-space:nowrap}
+.pill.ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+.pill.warn{background:var(--warnbg);border-color:var(--warn);color:var(--warn)}
+.pill.ko{background:var(--kobg);border-color:var(--ko);color:var(--ko)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.form-grid.one{grid-template-columns:1fr}
+.form-grid label,.form-grid fieldset{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted);min-width:0}
+.form-grid .wide{grid-column:1/-1}
+.form-grid fieldset{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.form-grid legend{font-weight:700;color:var(--text);padding:0 4px}
+.form-grid label.check,.crit{flex-direction:row;align-items:center;gap:8px;font-weight:500;color:var(--text)}
+.form-grid input:not([type=checkbox]),.form-grid select,.form-grid textarea,.res-tbl select,.res-tbl input{font:inherit;font-size:15px;color:var(--text);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%;min-width:0}
+.res-tbl select,.res-tbl input{font-size:13px;padding:6px 8px;min-width:110px}
+.res-sel.ok{border-color:var(--ok);background:var(--okbg)} .res-sel.warn{border-color:var(--warn);background:var(--warnbg)} .res-sel.ko{border-color:var(--ko);background:var(--kobg)}
+.res-tbl td,.res-tbl th{white-space:nowrap}
+.num{font-variant-numeric:tabular-nums;text-align:center}
+.crit{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:var(--card)}
+.steps{padding-left:22px;margin:6px 0} .steps li{margin:6px 0}
+.alert{border-radius:10px;padding:9px 12px;margin:8px 0;font-size:14px;border:1px solid var(--line);background:var(--card2)}
+.alert.ko{border-color:var(--ko);background:var(--kobg)} .alert.warn{border-color:var(--warn);background:var(--warnbg)} .alert.info{border-color:var(--navy2)}
+.alert.ko::before{content:"⛔ "} .alert.warn::before{content:"⚠️ "} .alert.info::before{content:"ℹ️ "}
+.qa{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:6px 0} .qa summary{cursor:pointer;font-weight:600} .qa p{margin:6px 0 0}
+.ai-out{white-space:pre-wrap;margin-top:10px;border:1px solid var(--navy2);border-radius:12px;padding:12px;background:var(--card2)}
+.date-box{flex:none;width:46px;text-align:center;border-radius:10px;background:var(--navy);color:#fff;padding:5px 0;line-height:1.1}
+.date-box b{display:block;font-size:18px} .date-box small{font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.sit{border-left:5px solid var(--red)}
 .nav a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;text-decoration:none;font-size:11px;font-weight:600;color:var(--muted)}
 .nav a span{font-size:21px;line-height:1.1;filter:grayscale(1);opacity:.75}
 .nav a.on{color:var(--red)}
@@ -234,6 +265,7 @@ tr:last-child td{border-bottom:0}
   <div class="nav-in">
     <a href="#/" data-r="home"><span>🏠</span>Accueil</a>
     <a href="#/search" data-r="search"><span>🔍</span>Recherche</a>
+    <a href="#/man" data-r="man"><span>🧯</span>Manœuvres</a>
     <a href="#/exam" data-r="exam"><span>📝</span>Examen</a>
     <a href="#/progress" data-r="progress"><span>📈</span>Progrès</a>
     <a href="#/more" data-r="more"><span>⚙️</span>Réglages</a>
@@ -1800,6 +1832,289 @@ Risque très élevé quand : **température > 30 °C**, **humidité < 30 %**, **
 ];
 
 /* =========================================================================
+   MANŒUVRES — bibliothèque construite à partir des référentiels SDIS 34
+   etapes : [rôle, action] · exec : {point} {prise} {div} remplacés par le générateur
+   ========================================================================= */
+const MAN = [
+{ id:'etb-1-1', ref:'RDMI', code:'ETB 1.1', titre:'Établissement d’une LDT', jsp:true, duree:20, maxEtage:1,
+  objectif:'Établir rapidement une lance de premiers secours sur un feu de faible intensité.',
+  effectif:'1 binôme + conducteur',
+  materiel:[['Chef d’équipe (1er binôme)','1 tuyau Ø25/20 m sur dévidoir + LDV 150'],['Équipier (1er binôme)','1 tuyau Ø25/20 m sur dévidoir']],
+  prep:'1er binôme, pour l’établissement d’une LDT, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, « Établissez ! »',
+  etapes:[['Chef d’équipe','Déverrouille le dévidoir, se munit de la LDT et se rend au point d’attaque.'],['Équipier','Pose le raccord au pied du chef d’équipe.'],['Chef d’équipe','Maintient la LDT, règle le débit et le jet, attaque le feu.'],['Équipier','Vérifie visuellement l’établissement et vient doubler le porte-lance.']],
+  conducteur:['Ouvre l’eau et facilite le déroulement.','Sur ordre, sélectionne le pictogramme d’additif adapté ; ne pas fermer la lance avec l’injection fixe.'],
+  points:['Lance de premiers secours : feu de faible intensité seulement.','Longueur limitée à 40 m.','En établissement rampant : R+1 maximum.'],
+  criteres:['Ordre préparatoire et ordre d’exécution respectés','Raccord posé au pied du chef d’équipe','Débit et jet réglés avant l’attaque','Porte-lance doublé par l’équipier'],
+  questions:[['Longueur maximale d’une LDT ?','40 m.'],['Pour quel type de feu ?','Un feu de faible intensité.']] },
+{ id:'etb-2-2', ref:'RDMI', code:'ETB 2.2', titre:'Prise d’eau avec les tuyaux en écheveau Z', jsp:true, duree:25,
+  objectif:'Établir une division d’alimentation (ou alimenter un dispositif) avec des tuyaux Ø70/20 m en Z.',
+  effectif:'2e binôme + conducteur',
+  materiel:[['Chef d’équipe (2e binôme)','1 à 2 tuyaux Ø70/20 m en Z + division d’alimentation si nécessaire'],['Équipier (2e binôme)','1 à 2 tuyaux Ø70/20 m en Z']],
+  prep:'2e binôme, établissement d’une division d’alimentation avec X tuyaux en écheveaux, « En reconnaissance ! »',
+  exec:'2e binôme, emplacement de la division d’alimentation {div}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['Chef d’équipe','Raccorde et dépose la division d’alimentation, vérifie la fermeture des vannes.'],['Chef d’équipe','Tient la division (main ou pied) le temps que l’équipier parcoure quelques mètres.'],['Équipier','Raccorde et établit le nombre de tuyaux nécessaires.'],['Binôme','Donne le demi-raccord au conducteur, vérifie l’établissement, se met à disposition du chef d’agrès.']],
+  conducteur:['Raccorde le Ø70 sur l’engin-pompe en privilégiant le refoulement additif et ouvre l’eau.'],
+  points:['Pas de division d’alimentation sur une colonne sèche, un engin-pompe ou une vanne pied d’échelle.','Les tuyaux Ø70 d’un engin-pompe permettent jusqu’à 200 m.','Le conducteur peut établir seul jusqu’à 60 m.'],
+  criteres:['Vannes de la division vérifiées fermées','Division maintenue au départ','Tuyaux établis sans plis ni nœuds','Demi-raccord remis au conducteur'],
+  questions:[['Distance maximale avec les tuyaux Ø70 de l’engin ?','200 m.'],['Où ne pose-t-on pas de division d’alimentation ?','Sur une colonne sèche, un engin-pompe ou une vanne pied d’échelle.']] },
+{ id:'etb-2-3', ref:'RDMI', code:'ETB 2.3', titre:'Prise d’eau avec le dévidoir mobile', jsp:true, duree:25,
+  objectif:'Établir une division d’alimentation à distance avec le dévidoir mobile.',
+  effectif:'2e binôme + conducteur',
+  materiel:[['2e binôme','1 dévidoir mobile + division d’alimentation si nécessaire']],
+  prep:'2e binôme, établissement d’une division d’alimentation avec le dévidoir mobile, « En reconnaissance ! »',
+  exec:'2e binôme, emplacement de la prise d’eau {div}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['Équipier','Déverrouille le support et se munit du dévidoir mobile.'],['Chef d’équipe','Dépose la division d’alimentation et vérifie la fermeture des vannes ; la tient le temps que l’équipier démarre.'],['Équipier','Établit le nombre de tuyaux nécessaires.'],['Binôme','Donne le demi-raccord au conducteur, place le dévidoir prêt à l’emploi près de l’engin, se met à disposition.']],
+  conducteur:['Raccorde le Ø70 sur l’engin-pompe (refoulement additif) et ouvre l’eau.'],
+  points:['Derniers mètres inaccessibles au dévidoir : l’équipier le maintient, le chef d’équipe termine avec la division.','Prise d’eau à plus de 200 m : deux dévidoirs mobiles.'],
+  criteres:['Dévidoir déverrouillé et transporté en sécurité','Vannes vérifiées','Dévidoir remis prêt à l’emploi'],
+  questions:[['Prise d’eau à plus de 200 m ?','Le binôme emporte deux dévidoirs mobiles.']] },
+{ id:'etb-3-2', ref:'RDMI', code:'ETB 3.2', titre:'Établissement d’une LDV 40', jsp:true, duree:25, maxEtage:4,
+  objectif:'Établir une LDV 40 à partir d’un tuyau Ø45 en O pour attaquer le feu.',
+  effectif:'1er binôme + conducteur',
+  materiel:[['Chef d’équipe (1er binôme)','1 tuyau Ø45/20 m en O + 1 LDV 40'],['Équipier (1er binôme)','2 tuyaux Ø45/20 m en Z']],
+  prep:'1er binôme, établissement d’une LDV 40, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['Chef d’équipe','Pose le tuyau en O et le préforme.'],['Équipier','Pose ses tuyaux.'],['Chef d’équipe','Raccorde son tuyau en O à celui de l’équipier, se place à l’intérieur du tuyau et maintient la LDV 40.'],['Équipier','Établit les tuyaux nécessaires, donne le demi-raccord au conducteur (ou raccorde à la division) et ouvre l’eau.'],['Binôme','Vérifie l’établissement ; le chef d’équipe règle débit et jet et attaque, l’équipier le double.']],
+  conducteur:['Raccorde le Ø45 sur l’engin-pompe (refoulement additif) et ouvre l’eau.','Sur ordre, sélectionne le pictogramme d’additif.'],
+  points:['Rampant : R+4 maximum, au-delà ligne d’attaque obligatoire.','3 tuyaux Ø45 maximum après la prise d’eau.','Du point d’eau vers le point d’attaque : l’ordre cite d’abord la prise d’eau, ouverture à « Raccordez - Ouvrez ! ».'],
+  criteres:['Tuyau en O préformé, porte-lance à l’intérieur','Pas d’établissement dans l’axe de l’ouvrant','Ouverture de l’eau coordonnée','Débit adapté (référence 500 l/min)','Porte-lance doublé'],
+  questions:[['Limite en établissement rampant ?','R+4.'],['Combien de tuyaux Ø45 au maximum après la prise d’eau ?','3.']] },
+{ id:'etb-3-3', ref:'RDMI', code:'ETB 3.3', titre:'LDV 40 avec une échelle à coulisse', jsp:false, duree:35, maxEtage:4,
+  objectif:'Établir une LDV 40 par l’extérieur à l’aide d’une échelle à coulisse.',
+  effectif:'1er et 2e binômes + conducteur',
+  materiel:[['Chef d’équipe (1er binôme)','1 tuyau Ø45/20 m en O + 1 LDV 40'],['Équipier (1er binôme)','2 tuyaux Ø45/20 m en Z'],['2e binôme','1 échelle à coulisse']],
+  prep:'1er binôme et 2e binôme, établissement d’une LDV 40 avec une échelle à coulisse, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, « Établissez ! » · 2e binôme, emplacement de l’échelle ici, point à atteindre {point}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['2e binôme','Place l’échelle et sécurise la montée du 1er binôme.'],['Chef d’équipe','Garde le tuyau en O sur l’épaule (lance devant), monte, pose et préforme le tuyau.'],['Équipier','Raccorde un tuyau à celui du chef d’équipe, facilite la progression du tuyau.'],['Chef d’équipe','Se place dans le tuyau, amarre le tuyau et ordonne « Raccordez - Ouvrez ! ».'],['2e binôme','Donne le demi-raccord au conducteur ou raccorde à la division et ouvre l’eau.']],
+  conducteur:['À « Raccordez - Ouvrez ! », raccorde le Ø45 et ouvre l’eau.'],
+  points:['Jusqu’au R+2 avec l’échelle 2 plans grand modèle, R+4 avec l’échelle 3 plans.','Tuyau amarré sur une partie résistante, jamais sur l’échelle.','Échelle d’itinéraire de repli : de préférence non amarrée.'],
+  criteres:['Échelle correctement placée et sécurisée','Tuyau centré avant la progression','Amarrage hors de l’échelle','Aucune descente du tuyau à la mise en eau'],
+  questions:[['Limite avec l’échelle à coulisse 2 plans grand modèle ?','R+2.'],['Peut-on amarrer le tuyau sur l’échelle ?','Non, sur une partie résistante du bâtiment.']] },
+{ id:'etb-3-4', ref:'RDMI', code:'ETB 3.4', titre:'LDV 40 avec la commande', jsp:false, duree:30, maxEtage:6,
+  objectif:'Hisser un établissement de LDV 40 quand l’accès avec les tuyaux sur l’épaule est difficile.',
+  effectif:'1er et 2e binômes + conducteur',
+  materiel:[['1er binôme','1 commande'],['2e binôme','1 tuyau Ø45/20 m en O + LDV 40, 2 tuyaux Ø45/20 m en Z']],
+  prep:'1er binôme et 2e binôme, établissement d’une LDV 40 avec la commande, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, « Établissez ! » · 2e binôme, emplacement de l’établissement à hisser ici, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['1er binôme','Se place, amarre ou maintient la commande, annonce « Pour envoyer la commande ! » et l’envoie.'],['2e binôme','Pose et raccorde les tuyaux, amarre le tuyau en O, crie « Hissez ! » et guide l’ascension.'],['1er binôme','Hisse, préforme le tuyau, se place dedans, amarre le tuyau et ordonne « Raccordez - Ouvrez ! ».'],['2e binôme','Remet le demi-raccord ou raccorde à la division et ouvre l’eau.']],
+  conducteur:['À « Raccordez - Ouvrez ! », raccorde le Ø45 et ouvre l’eau.'],
+  points:['Limitée au R+6 (longueur de la commande).','À partir du R+5 : deux tuyaux Ø45.','Commande amarrée ou tenue avant l’envoi.'],
+  criteres:['Annonce avant l’envoi de la commande','Amarrage du matériel (2 tours morts + 2 demi-nœuds)','Ascension guidée','Aucune descente du tuyau'],
+  questions:[['Limite de la manœuvre ?','R+6.'],['Annonce avant d’envoyer la commande ?','« Pour envoyer la commande ! »']] },
+{ id:'etb-3-7', ref:'RDMI', code:'ETB 3.7', titre:'Établissement d’une ligne d’attaque', jsp:false, duree:40, maxEtage:12,
+  objectif:'Établir une division d’attaque au plus près du sinistre et une LDV 40.',
+  effectif:'1er et 2e binômes + chef d’agrès + conducteur (3 binômes au-delà du R+8)',
+  materiel:[['Chef d’agrès','1 tuyau Ø45/20 m en O + LDV 40 (moyen hydraulique du 2e binôme)'],['1er binôme','1 tuyau Ø45 en O + LDV 40 (CE), 2 tuyaux Ø45 en Z (EQ)'],['2e binôme','Tuyaux Ø70/20 m en Z dont un avec la division d’attaque (4 par défaut)']],
+  prep:'1er binôme et 2e binôme, établissement d’une ligne d’attaque, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, prise d’eau à utiliser la division d’attaque, « Établissez ! » · 2e binôme, emplacement de la division d’attaque {div}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['1er binôme','Pose et préforme le tuyau en O, raccorde à la division d’attaque, maintient la LDV 40.'],['2e binôme','Dépose la division d’attaque, vérifie les vannes, la tient au départ.'],['2e binôme','Établit les tuyaux Ø70, remet le demi-raccord ou raccorde à la division d’alimentation, ouvre l’eau.'],['1er binôme','Ouvre l’eau à la division, vérifie, attaque ; l’équipier double le porte-lance.']],
+  conducteur:['À « Raccordez - Ouvrez ! », raccorde le Ø70 et ouvre l’eau.'],
+  points:['Obligatoire au-delà du R+4 en rampant ; jusqu’au R+12.','Au-delà du R+8 : trois binômes.','Division d’attaque au plus près du sinistre ou au N-1.','Permet de couper l’eau à la division pour prolonger ou remplacer un tuyau.'],
+  criteres:['Division d’attaque placée au bon niveau','Vannes vérifiées fermées avant mise en eau','Ordres « Raccordez - Ouvrez ! » respectés','Le 2e binôme dispose d’un moyen hydraulique'],
+  questions:[['Au-delà de quel étage faut-il 3 binômes ?','R+8.'],['Où placer la division d’attaque ?','Au plus près du sinistre ou au niveau N-1.']] },
+{ id:'etb-3-8', ref:'RDMI', code:'ETB 3.8', titre:'Ligne d’attaque avec la commande', jsp:false, duree:40, maxEtage:6,
+  objectif:'Hisser la division d’attaque à la commande pour établir une ligne d’attaque.',
+  effectif:'1er et 2e binômes + chef d’agrès + conducteur',
+  materiel:[['Chef d’agrès','1 tuyau Ø45 en O + LDV 40'],['1er binôme','1 tuyau Ø45 en O + LDV 40, 2 tuyaux Ø45 en Z, commande'],['2e binôme','2 tuyaux Ø70 en Z dont un avec la division d’attaque']],
+  prep:'1er binôme et 2e binôme, établissement d’une ligne d’attaque avec la commande, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, emplacement de la division d’attaque {div}, « Établissez ! » · 2e binôme, emplacement de l’établissement à hisser ici, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['1er binôme','Envoie la commande après l’annonce, hisse la division d’attaque, la pose et vérifie les vannes.'],['1er binôme','Amarre le tuyau et ordonne « Raccordez - Ouvrez ! ».'],['2e binôme','Raccorde les tuyaux selon la hauteur, amarre la division, crie « Hissez ! », guide l’ascension.'],['2e binôme','À l’ordre, raccorde et ouvre l’eau.']],
+  conducteur:['À « Raccordez - Ouvrez ! », raccorde le Ø70 et ouvre l’eau.'],
+  points:['Limitée au R+6.','À partir du R+5 : deux tuyaux Ø70.','Possible par le puits de jour de la cage d’escalier.'],
+  criteres:['Commande sécurisée avant l’envoi','Division hissée vannes fermées','Tuyau amarré, pas de descente à la mise en eau'],
+  questions:[['Combien de tuyaux Ø70 à partir du R+5 ?','Deux.']] },
+{ id:'etb-3-10', ref:'RDMI', code:'ETB 3.10', titre:'Établissement d’une LDV 65', jsp:false, duree:30,
+  objectif:'Établir une lance à fort débit (LDV 65).',
+  effectif:'1er binôme (+ 3e porteur) + conducteur',
+  materiel:[['Chef d’équipe','1 tuyau Ø70/20 m en Z + LDV 65'],['Équipier','2 tuyaux Ø70/20 m en Z']],
+  prep:'1er binôme, établissement d’une LDV 65, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['Chef d’équipe','Pose le tuyau, raccorde la LDV 65, établit et raccorde son tuyau à celui de l’équipier.'],['Équipier','Établit les tuyaux nécessaires, remet le demi-raccord ou raccorde à la division, ouvre l’eau.'],['Binôme','Vérifie l’établissement ; attaque en binôme ou trinôme à cause du recul.']],
+  conducteur:['Raccorde le Ø70 (refoulement additif) et ouvre l’eau.','L’engin-pompe doit être alimenté systématiquement.'],
+  points:['Engin-pompe toujours alimenté.','Force de recul : porte-lance en binôme ou trinôme.'],
+  criteres:['Alimentation de l’engin anticipée','Position de travail adaptée au recul','Débit réglé progressivement'],
+  questions:[['Pourquoi travailler à deux ou trois sur la LDV 65 ?','À cause de la force de recul.']] },
+{ id:'etb-3-11', ref:'RDMI', code:'ETB 3.11', titre:'LDV 40 sur structure extensible d’un MEA', jsp:false, duree:40,
+  objectif:'Établir une LDV 40 sur l’échelle d’un MEA avec la prise d’eau dédiée.',
+  effectif:'Équipage MEA : chef d’agrès, conducteur (échelier), équipier',
+  materiel:[['Chef d’agrès','1 tuyau Ø45/20 m + LDV 40, harnais, longe de maintien, 1 ligature'],['Équipier','1 tuyau Ø45/20 m, harnais, longe de maintien, 2 ligatures'],['Conducteur','Vanne pied d’échelle Ø65 + tuyau Ø70/1 m + division d’alimentation']],
+  prep:'Conducteur et Équipier, établissement d’une LDV 40 sur structure extensible, « En reconnaissance ! »',
+  exec:'Conducteur et Équipier, point d’attaque {point}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['Conducteur','Stabilise le MEA, positionne le dispositif de prise d’eau, place la structure au point d’attaque, reste en tourelle.'],['Chef d’agrès','Raccorde la lance, progresse, se longe et amarre la lance à hauteur de poitrine.'],['Équipier','Établit, sécurise la progression, amarre le tuyau à 10 échelons sous la lance puis entre ce point et le sol.'],['Équipier','À « Raccordez - Ouvrez ! », raccorde à la division et ouvre ; reste à la vanne pied d’échelle.']],
+  conducteur:['Angle de dressage : 60° ou 70° maximum selon le modèle.','Aucun mouvement avec du personnel sur la structure (sauf urgence : abaisser, dresser, pivoter).'],
+  points:['Angle latéral de la lance : 15° maximum.','Établissement de manœuvre réservé au MEA.','Lance laissée ouverte ; ouverture et fermeture à la vanne pied d’échelle.'],
+  criteres:['Stabilisation et sécurité MEA','3 points de contact, longe de maintien connectée','Amarrages au bon endroit','Communication porte-lance / vanne pied d’échelle'],
+  questions:[['Angle latéral maximal de la lance ?','15°.'],['Où l’équipier fait-il le 1er amarrage du tuyau ?','10 échelons sous celui de la lance.']] },
+{ id:'etb-4-1', ref:'RDMI', code:'ETB 4.1', titre:'Alimentation de l’engin-pompe à moins de 20 m', jsp:true, duree:15,
+  objectif:'Alimenter l’engin-pompe sur un PEI proche avec le tuyau Ø110/20 m.',
+  effectif:'Conducteur',
+  materiel:[['Conducteur','1 tuyau Ø110/20 m ; PI : clé fédérale, bouchons Ø100 et 2 × Ø65 ; BI : clé de barrage, coude Ø100/100']],
+  prep:'(ordre direct)',
+  exec:'Conducteur, alimentation de l’engin-pompe, PI-BI à utiliser {pei}, « Établissez ! »',
+  etapes:[['Conducteur','Pose le tuyau, raccorde un demi-raccord sur l’orifice Ø100 de l’engin.'],['Conducteur','Établit en tirant l’autre demi-raccord vers le PEI.'],['Conducteur','Purge et installe le matériel adapté au PEI, raccorde, ouvre l’eau, ramène la clé.']],
+  conducteur:['Peut ensuite compléter la cuve par la vanne de remplissage citerne.'],
+  points:['Un engin-pompe par conduite Ø80 ou Ø100, deux par conduite Ø150.','Le tuyau Ø70/10 m sert seulement à remplir la cuve au reconditionnement.','PEI surpressé : précautions pour la pompe.'],
+  criteres:['Purge du PEI avant raccordement','Ouverture progressive','Clé ramenée'],
+  questions:[['Quel tuyau pour un PEI à moins de 20 m ?','Un Ø110/20 m.']] },
+{ id:'etb-4-3', ref:'RDMI', code:'ETB 4.3', titre:'Alimentation de l’engin-pompe avec le dévidoir mobile', jsp:true, duree:25,
+  objectif:'Alimenter l’engin-pompe sur un PEI éloigné avec le dévidoir mobile.',
+  effectif:'2e binôme + conducteur',
+  materiel:[['Conducteur','Collecteur d’alimentation Ø100/2×65'],['2e binôme','Dévidoir mobile ; PI : clé fédérale, division Ø100/2×65, bouchons ; BI : clé de barrage, retenue']],
+  prep:'(ordre direct)',
+  exec:'Conducteur, 2e binôme, alimentation de l’engin-pompe avec le dévidoir mobile, PI-BI à utiliser {pei}, « Établissez ! »',
+  etapes:[['Conducteur','Positionne le collecteur sur l’orifice Ø100 de l’engin.'],['2e binôme','Raccorde un demi-raccord au collecteur, établit vers le PEI.'],['2e binôme','Purge, installe la division Ø100/2×65, raccorde, ouvre l’eau, ramène la clé, replace le dévidoir.']],
+  conducteur:['Complète la cuve une fois l’engin alimenté.'],
+  points:['Alimentation de préférence de l’engin vers le PEI.','PEI douteux : le chef d’équipe va le tester avant d’établir.','Division Ø100/2×65 posée systématiquement (1 à 2 alimentations sans fermer le PEI).'],
+  criteres:['Sens d’établissement engin → PEI','Division Ø100/2×65 en place','Dévidoir remis prêt à l’emploi'],
+  questions:[['Pourquoi poser la division Ø100/2×65 sur le poteau ?','Pour établir 1 à 2 alimentations sans fermer ni purger le PEI.']] },
+{ id:'etb-4-5', ref:'RDMI', code:'ETB 4.5', titre:'Alimentation par aspiration', jsp:false, duree:35,
+  objectif:'Alimenter l’engin-pompe par aspiration sur un point d’eau (PENA).',
+  effectif:'2e binôme + conducteur',
+  materiel:[['Conducteur','1 à 2 flotteurs, crépines Ø100, commandes'],['2e binôme','4 à 8 aspiraux Ø110/2 m']],
+  prep:'(ordre direct)',
+  exec:'Conducteur et 2e binôme, alimentation par aspiration de l’engin-pompe, PENA à utiliser {pei}, « Établissez ! »',
+  etapes:[['Conducteur','Raccorde un aspiral sur l’orifice Ø100 de l’engin.'],['2e binôme','Pose et raccorde les aspiraux au sol, connecte la commande à la crépine, raccorde crépine et flotteur.'],['2e binôme','Immerge la ligne, amarre la commande sur l’engin.'],['Conducteur','Effectue la mise en aspiration.']],
+  conducteur:['Crépine à 50 cm du fond et 30 cm sous la surface ; arrimée à contre-courant s’il y a du courant.'],
+  points:['PENA de l’Hérault : 8 m max entre engin et crépine, 6 m de hauteur.','Hors aire réglementaire : engin parallèle au point d’eau.','Décider dès le début 1 ou 2 établissements (sinon nouvel amorçage).'],
+  criteres:['Nombre d’aspiraux adapté','Crépine bien immergée et arrimée','Raccords étanches'],
+  questions:[['Profondeur de la crépine ?','50 cm du fond, 30 cm sous la surface.']] },
+{ id:'etb-5-1', ref:'RDMI', code:'ETB 5.1', titre:'Établissement d’une lance canon 65', jsp:false, duree:30,
+  objectif:'Établir et amarrer une lance canon au sol.',
+  effectif:'1er binôme + conducteur',
+  materiel:[['Chef d’équipe','1 tuyau Ø70/20 m en Z + lance canon + SIM'],['Équipier','2 tuyaux Ø70/20 m en Z']],
+  prep:'1er binôme, établissement d’une lance canon, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['Chef d’équipe','Pose le tuyau et la lance canon, raccorde, amarre la lance avec la SIM (tuyau dans l’axe sur 5 m).'],['Équipier','Établit les tuyaux, remet le demi-raccord ou raccorde à la division, ouvre l’eau.'],['Binôme','Vérifie, règle le débit et le jet, attaque.']],
+  conducteur:['Raccorde le Ø70 et ouvre l’eau ; engin-pompe toujours alimenté.'],
+  points:['À 2 000 l/min : établissement de 100 m maximum.','Amarrage avant la mise en eau.'],
+  criteres:['Tuyau aligné sur 5 m','Amarrage SIM correct','Mise en eau progressive'],
+  questions:[['Longueur max à 2 000 l/min ?','100 m.']] },
+{ id:'etb-5-2', ref:'RDMI', code:'ETB 5.2', titre:'Établissement d’une lance rideau mobile 40', jsp:true, duree:20,
+  objectif:'Créer un rideau d’eau contre un flux thermique ou gazeux.',
+  effectif:'1er binôme + conducteur',
+  materiel:[['Chef d’équipe','1 tuyau Ø45/20 m en Z + lance rideau mobile'],['Équipier','2 tuyaux Ø45/20 m en Z']],
+  prep:'1er binôme, établissement d’une lance rideau mobile, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['Chef d’équipe','Raccorde la queue de paon au tuyau, établit, raccorde au tuyau de l’équipier, maintient la lance.'],['Équipier','Établit, remet le demi-raccord ou raccorde à la division, ouvre l’eau.'],['Binôme','Oriente le rideau d’eau, se met à disposition.']],
+  conducteur:['Raccorde le Ø45 et ouvre l’eau.'],
+  points:['Rideau de 26 m de large et 7 m de haut.','Possible avec le dévidoir Ø45.'],
+  criteres:['Rideau orienté vers la menace','Établissement sécurisé'],
+  questions:[['Dimensions du rideau ?','26 m de large, 7 m de haut.']] },
+{ id:'etb-5-3', ref:'RDMI', code:'ETB 5.3', titre:'LDV 40 à mousse avec injecteur proportionneur', jsp:false, duree:35,
+  objectif:'Établir une LDV 40 à mousse sur un feu d’hydrocarbure.',
+  effectif:'1er et 2e binômes + conducteur',
+  materiel:[['1er binôme','Tuyau Ø45 en O + LDV 40, 2 tuyaux Ø45 en Z, adaptateur mousse, injecteur Ø40'],['2e binôme','Bidons d’additif']],
+  prep:'1er binôme et 2e binôme, établissement d’une LDV 40 à mousse, « En reconnaissance ! »',
+  exec:'1er binôme, point d’attaque {point}, emplacement de l’injecteur ici, prise d’eau à utiliser {prise}, « Établissez ! »',
+  etapes:[['1er binôme','Pose l’injecteur, l’adaptateur mousse sur la lance, établit et raccorde.'],['1er binôme','Ordonne « Plongez ! ».'],['2e binôme','Pose les bidons, plonge la canne d’aspiration à l’ordre, surveille le niveau.']],
+  conducteur:['Raccorde le Ø45 et ouvre l’eau.'],
+  points:['40 m maximum entre l’injecteur et la lance.','Injecteur bloqué à 1 % sur les engins sans injection fixe (+ 4 bidons).','Ouvrir la lance au débit indiqué sur l’injecteur, ne pas la fermer.'],
+  criteres:['Distance injecteur-lance respectée','Ordre « Plongez ! » donné au bon moment','Niveau d’additif surveillé'],
+  questions:[['Distance max injecteur-lance ?','40 m.']] },
+{ id:'etb-6-1', ref:'RDMI', code:'ETB 6.1', titre:'Prolongement d’un établissement', jsp:true, duree:15,
+  objectif:'Prolonger un établissement en eau pour atteindre le foyer.',
+  effectif:'1er binôme + conducteur',
+  materiel:[['1er binôme','1 à 2 tuyaux Ø45 ou Ø70 en Z']],
+  prep:'(ordre direct)',
+  exec:'1er binôme, point d’attaque {point}, prolongement avec X tuyaux, « Établissez ! »',
+  etapes:[['Équipier','Établit les tuyaux du prolongement.'],['Chef d’équipe','Ordonne « Fermez ! ».'],['Équipier','Fait fermer l’eau ; le chef d’équipe purge et raccorde la lance au nouveau tuyau.'],['Chef d’équipe','Ordonne « Ouvrez ! », règle et reprend l’attaque.']],
+  conducteur:['Ferme et ouvre l’eau sur ordre.'],
+  points:['3 tuyaux Ø45 maximum après la prise d’eau.','En milieu restreint : transformer un tuyau Ø45 de Z en O.'],
+  criteres:['Ordres « Fermez ! » / « Ouvrez ! » clairs','Purge avant raccordement','Temps sans eau le plus court possible'],
+  questions:[['Combien de tuyaux Ø45 maximum après la prise d’eau ?','3.']] },
+{ id:'rdeb-rapace', ref:'RDEB', code:'RDEB 2.5-2.13', titre:'Habillage, contrôle croisé et enregistrement', jsp:false, duree:20,
+  objectif:'Capeler l’ARI-CO, réaliser le contrôle croisé RAPACE et s’enregistrer auprès du contrôleur.',
+  effectif:'2 binômes + 1 contrôleur',
+  materiel:[['Chaque porteur','ARI-CO, masque, EPI complets, balise BSD/ICS'],['Contrôleur','TGP, gilet haute visibilité, radio N5']],
+  prep:'Binômes, équipez-vous sous ARI, « En reconnaissance ! »',
+  exec:'Binôme, engagement {point}, mission…, contrôle croisé avant engagement',
+  etapes:[['Porteur','Capelle : bouteille ouverte à la butée, sangle ventrale, bretelles, SAD encliquetée sur le masque.'],['Binôme','Contrôle croisé RAPACE : Robinet, Armement, Pression ≥ 270 bar, Ajustement, Code, Étanchéité.'],['Contrôleur','Enregistre : identité, pression, heure d’entrée, heure de sortie prévisible, mission.'],['Binôme','Coiffe le masque à l’air frais avant d’entrer en zone d’exclusion.']],
+  conducteur:['Prépare le parc matériel et la zone de soutien.'],
+  points:['Pas de bijoux, montre ni piercing.','Anomalie au contrôle croisé : pas d’engagement.','Le contrôleur supervise 5 binômes maximum (4 + sécurité).'],
+  criteres:['Les 6 points RAPACE vérifiés à voix haute','Pression ≥ 270 bar','Heure de sortie prévisible calculée','Masque coiffé à l’air frais'],
+  questions:[['Que signifie RAPACE ?','Robinet, Armement, Pression, Ajustement, Code, Étanchéité.'],['Autonomie à vue avec 6 L à 300 bar ?','30 min.']] },
+{ id:'rdeb-ligne-guide', ref:'RDEB', code:'RDEB 3.3-3.8', titre:'Engagement sur ligne guide', jsp:false, duree:40,
+  objectif:'Progresser en visibilité nulle sur ligne guide, explorer un volume et revenir.',
+  effectif:'1 binôme engagé + binôme de sécurité + contrôleur',
+  materiel:[['Chef d’équipe','Ligne guide 60 m, ARI-CO, liaison personnelle'],['Équipier','Caméra thermique, ARI-CO, liaison personnelle'],['Binôme de sécurité','Moyen hydraulique, assistance en air, SIM']],
+  prep:'1er binôme, engagement avec ligne guide, « En reconnaissance ! »',
+  exec:'1er binôme, point d’engagement {point}, mission : reconnaissance, « Engagez-vous ! »',
+  etapes:[['Chef d’équipe','Réalise l’amarrage initial (1 tour mort + 2 demi-nœuds), vérifie le sens de la ligne.'],['Binôme','S’attache à la ligne par la liaison personnelle, progresse en contact.'],['Équipier','Explore (linéaire, latérale ou circulaire) avec la caméra thermique.'],['Chef d’équipe','Amarrages intermédiaires puis final ; au retour, passe derrière son équipier (serre-file).'],['Binôme','Compte rendu : Je suis / Je vois / Je fais.']],
+  conducteur:['Assure le contrôle ou l’alimentation selon l’ordre du chef d’agrès.'],
+  points:['3 nodules = vers le sinistre, 1 nodule = vers la sortie.','Reconnaissance jusqu’à 388 m² (60 m + exploration unilatérale).','Moyen hydraulique à disposition, à sec ou en attente.'],
+  criteres:['Sens de la ligne correct','Contact permanent dans le binôme','Retournement correct (chef d’équipe serre-file)','Gestion de l’air et sortie à l’avertisseur'],
+  questions:[['Que signifient 3 nodules ?','La direction du sinistre.'],['Surface reconnaissable avec la ligne guide ?','Jusqu’à 388 m².']] },
+{ id:'rdeb-aides', ref:'RDEB', code:'RDEB 3.10', titre:'Recherche de victime : technique AIDES', jsp:false, duree:30,
+  objectif:'Rechercher une victime pièce par pièce depuis l’extérieur.',
+  effectif:'1 binôme + 2e binôme (échelle) + chef d’agrès',
+  materiel:[['1er binôme','ARI-CO, caméra thermique, moyen hydraulique'],['2e binôme','Échelle portable']],
+  prep:'1er binôme et 2e binôme, recherche de victime par l’extérieur, « En reconnaissance ! »',
+  exec:'1er binôme, pièce à reconnaître {point}, technique AIDES, « Engagez-vous ! »',
+  etapes:[['2e binôme','Place l’échelle à l’ouvrant désigné.'],['1er binôme','Accéder par l’ouvrant (lecture du feu au préalable).'],['1er binôme','Isoler : fermer la porte vers les circulations intérieures.'],['1er binôme','Désenfumer : laisser l’ouvrant d’accès ouvert ; Explorer à la caméra thermique.'],['1er binôme','Sauver : dégager la victime (RDSMES), puis rendre compte.']],
+  conducteur:['Prépare un moyen hydraulique et l’éclairage de la façade.'],
+  points:['Réservée aux pièces de surface modérée avec une seule porte intérieure.','Ressortir entre chaque pièce.','Marquer « R » les pièces reconnues.'],
+  criteres:['Lecture du feu avant l’accès','Porte intérieure fermée rapidement','Exploration complète le long des murs','Compte rendu après le dégagement'],
+  questions:[['Que veut dire AIDES ?','Accéder, Isoler, Désenfumer, Explorer, Sauver.']] },
+{ id:'smes-detresse', ref:'RDSMES', code:'RDSMES 5.1-5.9', titre:'Auto-sauvetage et message de détresse', jsp:false, duree:30,
+  objectif:'Réagir à un imprévu : analyse, message de détresse NELAR, appel de détresse, gestion de l’air.',
+  effectif:'1 binôme engagé + contrôleur + binôme de sécurité',
+  materiel:[['Binôme','ARI-CO, TTH 900, balise'],['Contrôleur','TGP, radio N5']],
+  prep:'(exercice déclenché par le formateur)',
+  exec:'Situation imposée au binôme : {point}',
+  etapes:[['Binôme','Analyse l’imprévu : problème, blessés, environnement, autonomie, lance, ligne de vie, radio.'],['Chef d’équipe','Message de détresse : « URGENT ×3 » puis Je suis (Nom, Engin, Localisation), Je vois (Air), Je fais, Je demande (Renfort).'],['Contrôleur','Confirme la réception, rend compte au COS, engage le binôme de sécurité.'],['Binôme','Sans réponse 3 fois : appel de détresse (appui ≥ 3 s) ; se signale (lampe, balise, coups) ; respiration en saut d’inspiration.']],
+  conducteur:['Assiste le contrôleur et prépare le renfort secours.'],
+  points:['Message de détresse dès environ 30 s de difficulté.','Économie d’air ≈ 10 l/min.','Bouteille vide : retirer la SAD, remonter la cagoule sur le groin.'],
+  criteres:['Message NELAR complet et clair','Pression la plus faible annoncée','Posture d’attente correcte','Réaction du contrôleur'],
+  questions:[['Que veut dire NELAR ?','Nom, Engin, Localisation, Air, Renfort.'],['Quand déclencher l’appel de détresse ?','Après 3 messages sans réponse.']] },
+{ id:'smes-sauveteur', ref:'RDSMES', code:'RDSMES 6', titre:'Sauvetage de sauveteur', jsp:false, duree:40,
+  objectif:'Aborder un intervenant en difficulté, l’assister en air et l’extraire.',
+  effectif:'Binôme de sauvetage + binôme « victime » + contrôleur',
+  materiel:[['Binôme de sauvetage','ARI-CO ≥ 270 bar, SIM, caméra thermique, pince coupante, raccord MP Y'],['Victime','Mannequin ou intervenant équipé']],
+  prep:'Binôme de sécurité, sauvetage d’un intervenant, « Engagez-vous ! »',
+  exec:'Binôme de sauvetage, intervenant en difficulté {point}, « Engagez-vous ! »',
+  etapes:[['Binôme','Abordage : origine du problème, risque de suraccident, conscience et respiration.'],['Chef d’équipe','Vérifie l’ouverture de la bouteille, appui bref sur le bipasse, compte rendu.'],['Équipier','Assiste en air si besoin (raccord Y ou cagoule d’évacuation).'],['Binôme','Packaging (bretelles serrées), traction par la poignée de sauvetage ou la SIM vers la sortie.']],
+  conducteur:['Prépare la prise en charge (VSAV, déshabillage en ~30 s).'],
+  points:['Mission exclusive : jamais couplée à l’attaque ou la reconnaissance.','Demander un renfort secours.','En formation : mannequin et protection contre les chutes.'],
+  criteres:['Pression d’engagement ≥ 270 bar','Abordage méthodique','Assistance en air correcte','Extraction rapide et sûre'],
+  questions:[['Pression d’engagement du binôme de sauvetage ?','≥ 270 bar.']] },
+{ id:'smes-coulisse', ref:'RDSMES', code:'RDSMES 3.4', titre:'Passage au vide d’une victime inconsciente (échelle à coulisse)', jsp:false, duree:35,
+  objectif:'Évacuer une victime inconsciente par une fenêtre avec une échelle à coulisse.',
+  effectif:'2 binômes + chef d’agrès',
+  materiel:[['Binômes','Échelle à coulisse, LSPCC (sécurisation en formation), mannequin']],
+  prep:'1er binôme et 2e binôme, sauvetage par l’échelle à coulisse, « En reconnaissance ! »',
+  exec:'Sauvetage de la victime {point}, « Établissez ! »',
+  etapes:[['2e binôme','Dresse l’échelle, montants au ras de la structure, la sécurise.'],['Sauveteur sur l’échelle','Attend au plus près de la victime.'],['1er binôme','Réalise le passage au vide : jambes de la victime sur les épaules du sauveteur, aisselles calées par ses bras.'],['Sauveteur','Descend en contrôlant la victime.']],
+  conducteur:['Prépare la prise en charge de la victime au sol.'],
+  points:['Anticiper les réactions de la victime au passage au vide.','En formation : LSPCC, EPI, mannequin et tapis de sol.'],
+  criteres:['Échelle bien placée et piétée','Coordination à la voix','Victime toujours maintenue'],
+  questions:[['Où placer les montants de l’échelle ?','Au ras de la structure.']] },
+{ id:'lspcc-exterieur', ref:'RDLSPCC', code:'RDLSPCC 3.3', titre:'Sauvetage par l’extérieur avec le LSPCC', jsp:false, duree:40,
+  objectif:'Descendre une victime par l’extérieur avec le triangle d’évacuation.',
+  effectif:'Chef d’équipe + équipier + chef d’agrès',
+  materiel:[['Binôme','LSPCC (lot engin ou échelle), commande, mannequin']],
+  prep:'1er binôme, sauvetage par l’extérieur avec le LSPCC, « En reconnaissance ! »',
+  exec:'1er binôme, victime {point}, « Établissez ! »',
+  etapes:[['Binôme','Se munit du LSPCC et de la commande, vérifie la faisabilité, choisit 1 ou 2 points d’ancrage.'],['Binôme','Équipe la victime du triangle, installe l’amarrage principal (sangle + connecteur à vis + descendeur), corde insérée, tient le garant.'],['Binôme','Attache la corde aux attaches sternales avec le connecteur automatique, la commande sur l’attache dorsale si besoin.'],['Binôme','Vérifie et teste le dispositif, engage la victime au vide (sur le ventre, pieds face à l’ouvrant).'],['Régulateur','Régule la descente sans lâcher le garant ; le chef d’agrès contrôle.']],
+  conducteur:['Sécurise la zone au sol et réceptionne la victime.'],
+  points:['Connecteur automatique toujours entre corde et charge.','Pas de clé d’arrêt pendant le passage au vide.','Têtes d’alouette interdites ; angle entre sangles ≤ 90°.'],
+  criteres:['Ancrage sûr et justifié','Triangle bien réglé','Ordres (« Sec ! », « Laissez filer ! ») utilisés','Garant tenu en permanence'],
+  questions:[['Quel connecteur entre corde et charge ?','Le connecteur automatique.'],['Clé d’arrêt pendant le passage au vide ?','Non, le régulateur tient le garant.']] },
+{ id:'lspcc-pfh', ref:'RDLSPCC', code:'RDLSPCC 3.2', titre:'Abordage d’une victime avec un point fixe humain', jsp:false, duree:35,
+  objectif:'Accéder à une victime en situation de péril sans ancrage disponible.',
+  effectif:'Chef d’équipe + équipier + chef d’agrès',
+  materiel:[['Binôme','LSPCC, 2 harnais, commande']],
+  prep:'1er binôme, abordage d’une victime avec un point fixe humain, « En reconnaissance ! »',
+  exec:'1er binôme, victime {point}, « Établissez ! »',
+  etapes:[['Binôme','Se munit du LSPCC et de la commande, s’équipe des harnais.'],['Régulateur','Se place en point fixe : allongé, jambes à 90° contre le mur, descendeur sur la demi-lune, garant tenu.'],['Sauveteur','Attache la corde à sa demi-lune avec le connecteur automatique.'],['Binôme','Vérifie et teste, puis régule la descente ; le chef d’agrès contrôle.']],
+  conducteur:['Sécurise la zone et prépare un 2e LSPCC ou une équipe spécialisée pour la remontée.'],
+  points:['Au moins 20 cm entre l’axe du descendeur et l’appui de la corde.','Utilisé seulement si aucun ancrage ni échelle ni MEA n’est possible.','Atmosphère viciée : détecteur multigaz et ARI-CO.'],
+  criteres:['Position du point fixe correcte','Distance ≥ 20 cm respectée','Communication régulateur / sauveteur'],
+  questions:[['Distance minimale descendeur / appui ?','20 cm.']] }
+];
+const MAN_BY = Object.fromEntries(MAN.map(m => [m.id, m]));
+
+/* =========================================================================
    Moteur
    ========================================================================= */
 const $ = s => document.querySelector(s);
@@ -2420,16 +2735,482 @@ function applyTheme(){
   if(th==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', th);
 }
 
+/* =========================================================================
+   MODULE MANŒUVRES : générateur, mises en situation, planning et suivi
+   ========================================================================= */
+const CAP = { ready:false, db:null, user:null, sample:null, downloads:null, uid:null, canWrite:null };
+let SEANCES = [], FICHES_EQ = [], SHARED = false, EDITING = false;
+const GEN = {};            // contexte du générateur par manœuvre
+let SIT = null;            // mise en situation en cours
+let MAN_FILTER = { ref:'tous', pub:'tous' };
+const RES = { A:{l:'Acquis', c:'ok'}, R:{l:'À revoir', c:'warn'}, N:{l:'Non acquis', c:'ko'} };
+const FEUX = { appartement:'feu d’appartement', cave:'feu de cave', parking:'feu de parking couvert', local:'feu de local poubelles', pavillon:'feu de pavillon', toiture:'feu de toiture' };
+const niv = e => +e === 0 ? 'RDC' : 'R+' + e;
+
+function loadLocal(){ SEANCES = store.get('seances_local', []); FICHES_EQ = store.get('fiches_local', []); }
+async function initCaps(){
+  const finish = () => { CAP.ready = true; onDataChange(true); };
+  if(!(window.claude && typeof window.claude.use === 'function')){ loadLocal(); return finish(); }
+  try{
+    const [db, user, sample, dl] = await Promise.all(['db','user','sample','downloads'].map(n => window.claude.use(n).catch(() => null)));
+    CAP.user = user; CAP.sample = sample; CAP.downloads = dl;
+    if(user){ try{ CAP.uid = await user.id(); CAP.canWrite = await user.can('data.write'); }catch(e){} }
+    if(db){
+      CAP.db = db; SHARED = true;
+      db.collection('seances').onSnapshot(s => { SEANCES = s.docs.map(d => Object.assign({id:d.id}, JSON.parse(JSON.stringify(d.data())))); onDataChange(); },
+        () => toast('Le planning partagé est momentanément indisponible.'));
+      db.collection('fiches').onSnapshot(s => { FICHES_EQ = s.docs.map(d => Object.assign({id:d.id}, JSON.parse(JSON.stringify(d.data())))); onDataChange(); }, () => {});
+    } else loadLocal();
+  }catch(e){ loadLocal(); }
+  finish();
+}
+function onDataChange(force){
+  if(EDITING && !force) return;
+  const h = location.hash;
+  if(h === '#/man' || h === '#/man/suivi' || /^#\/man\/plan(\/[^/]+)?$/.test(h)) render(true);
+}
+function dbErr(e){
+  const code = e && e.code;
+  if(code === 'invalid_argument'){ CAP.canWrite = false; toast('Tu n’as pas le droit de modifier le planning partagé (accès en lecture seule).'); }
+  else if(code === 'quota_exceeded') toast('L’espace partagé est plein : supprime d’anciennes séances.');
+  else toast('Enregistrement impossible pour le moment, réessaie dans un instant.');
+}
+async function saveDoc(col, obj){
+  const body = JSON.parse(JSON.stringify(obj)); const id = body.id || ('x' + Date.now().toString(36) + Math.random().toString(36).slice(2,7)); delete body.id;
+  body.updatedAt = Date.now(); if(CAP.uid) body.updatedBy = CAP.uid;
+  if(SHARED){
+    try{ await CAP.db.collection(col).doc(id).set(body); return id; }catch(e){ dbErr(e); return null; }
+  }
+  const key = col === 'seances' ? 'seances_local' : 'fiches_local';
+  const list = store.get(key, []).filter(x => x.id !== id); list.push(Object.assign({id}, body)); store.set(key, list); loadLocal(); return id;
+}
+async function deleteDoc(col, id){
+  if(SHARED){ try{ await CAP.db.collection(col).doc(id).delete(); return true; }catch(e){ dbErr(e); return false; } }
+  const key = col === 'seances' ? 'seances_local' : 'fiches_local';
+  store.set(key, store.get(key, []).filter(x => x.id !== id)); loadLocal(); return true;
+}
+const canWrite = () => !SHARED || CAP.canWrite !== false;
+async function fillNames(root){
+  const els = [...root.querySelectorAll('[data-uid]')]; if(!els.length || !CAP.user) return;
+  const ids = [...new Set(els.map(e => e.dataset.uid).filter(Boolean))]; if(!ids.length) return;
+  try{ const ps = await CAP.user.profiles(ids); els.forEach(e => { const p = ps[e.dataset.uid]; e.textContent = (p && p.name) || 'un formateur'; }); }catch(e){}
+}
+function copyText(txt){
+  const fallback = () => modal(`<b>Texte à copier</b><textarea id="cpy" readonly rows="12" style="width:100%;margin-top:8px;font:12px/1.4 ui-monospace,monospace;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--card2);color:var(--text)"></textarea><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-close>Fermer</button></div>`, d => { const t = d.querySelector('#cpy'); t.value = txt; t.focus(); t.select(); });
+  try{ navigator.clipboard.writeText(txt).then(() => toast('Copié ✔'), fallback); }catch(e){ fallback(); }
+}
+async function saveFile(filename, data){
+  if(CAP.downloads){ try{ const r = await CAP.downloads.save({filename, data}); if(r && r.status === 'saved') toast('Fichier enregistré ✔'); return; }catch(e){ if(e && e.code === 'cancelled') return; } }
+  copyText(data);
+}
+function fmtDate(d, h){ try{ return new Date(d + 'T' + (h || '12:00')).toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'short', year:'numeric'}); }catch(e){ return d; } }
+function modeBadge(){
+  if(!CAP.ready) return '<span class="pill">Connexion…</span>';
+  return SHARED ? `<span class="pill ok" title="Visible par les formateurs qui ont accès à l’application">👥 Partagé avec l’équipe</span>` : '<span class="pill" title="Les données restent dans ce navigateur">📱 Sur cet appareil</span>';
+}
+
+/* ---------- Fiche de manœuvre générée ---------- */
+function defCtx(){ return { public:'SP', etage:3, colonne:'non', dist:40, feu:'appartement', victime:'non', facade:'A', nuit:false }; }
+function suggestAttaque(e, cs){
+  if(cs === 'oui' && e >= 2) return 'ETB 3.6 · LDV 40 sur colonne sèche (jusqu’au R+17)';
+  if(e <= 1) return 'ETB 3.1 / 3.2 · LDV 40';
+  if(e <= 4) return 'ETB 3.2 · LDV 40 en rampant';
+  if(e <= 12) return 'ETB 3.7 · ligne d’attaque' + (e > 8 ? ' à trois binômes' : '');
+  return 'colonne sèche ou renforts : au-delà du tableau d’aide aux établissements';
+}
+function alimReco(d){
+  if(d < 20) return 'PEI à ' + d + ' m : ETB 4.1, un tuyau Ø110/20 m par le conducteur.';
+  if(d <= 200) return 'PEI à ' + d + ' m : ETB 4.2 ou 4.3 (tuyaux Ø70 en Z ou dévidoir mobile) par le 2e binôme.';
+  return 'PEI à ' + d + ' m : au-delà de 200 m, deux dévidoirs mobiles.';
+}
+const RISQUE_CHUTE = ['etb-3-3','etb-3-4','etb-3-8','etb-3-11','smes-coulisse','lspcc-exterieur','lspcc-pfh'];
+function buildFiche(m, c){
+  const e = +c.etage, lieu = niv(e);
+  const point = m.id === 'smes-detresse' ? `effondrement d’un faux plafond au ${lieu}, équipier coincé`
+    : (c.feu === 'appartement' ? `au ${lieu}, appartement côté façade ${c.facade}` : `au ${lieu} (${FEUX[c.feu]}), façade ${c.facade}`);
+  const div = ['etb-2-2','etb-2-3'].includes(m.id) ? `au pied du bâtiment, façade ${c.facade}` : (e > 0 ? `au ${niv(e-1)} (N-1)` : 'devant l’accès');
+  const sub = s => s.replace(/\{point\}/g, point).replace(/\{div\}/g, div).replace(/\{prise\}/g, 'l’engin-pompe').replace(/\{pei\}/g, `le PEI à ${c.dist} m`);
+  const vict = { non:'Pas de victime signalée.', fenetre:'Une victime appelle à la fenêtre.', interieur:'Un occupant est signalé disparu dans le logement.' }[c.victime];
+  const col = { non:'Pas de colonne sèche.', oui:'Le bâtiment a une colonne sèche en état.', hs:'La colonne sèche est hors service.' }[c.colonne];
+  const situation = `${FEUX[c.feu].replace(/^./, x => x.toUpperCase())} au ${lieu}, façade ${c.facade}. ${col} PEI le plus proche à ${c.dist} m. ${vict}${c.nuit ? ' Intervention de nuit.' : ''}`;
+  const alerts = [];
+  if(m.maxEtage != null && e > m.maxEtage) alerts.push(['ko', `Au ${lieu}, cette manœuvre dépasse sa limite (R+${m.maxEtage}). À privilégier : ${suggestAttaque(e, c.colonne)}.`]);
+  if(c.colonne === 'oui' && e >= 2 && /^etb-3/.test(m.id)) alerts.push(['info', 'Colonne sèche présente : elle est à privilégier (ETB 3.6).']);
+  if(c.colonne === 'hs' && e > 4 && /^etb-3/.test(m.id)) alerts.push(['info', 'Colonne sèche hors service : la ligne d’attaque (ETB 3.7) la remplace.']);
+  if(c.victime === 'fenetre') alerts.push(['warn', 'Victime à la fenêtre : sauvetage prioritaire (MEA, échelles ; LSPCC si besoin).']);
+  if(c.victime === 'interieur') alerts.push(['warn', 'Victime à rechercher : recherche primaire (étage du foyer et ascenseurs d’abord), binôme de sécurité dès que possible.']);
+  if(c.nuit) alerts.push(['info', 'Nuit : éclairer les façades et les zones de travail.']);
+  if(RISQUE_CHUTE.includes(m.id)) alerts.push(['warn', 'Risque de chute : en formation, LSPCC, EPI, mannequin et tapis de sol.']);
+  if(c.public === 'JSP'){
+    alerts.push(['info', 'Séance JSP : charges et hauteurs adaptées, mise en eau sous le contrôle du formateur, mannequin pour toute victime.']);
+    if(!m.jsp) alerts.push(['warn', 'Manœuvre de niveau sapeur-pompier : à simplifier ou réserver aux JSP les plus avancés.']);
+  }
+  return { situation, prep: m.prep, exec: sub(m.exec), alerts, alim: alimReco(+c.dist), lieu };
+}
+function ficheText(m, c, f){
+  const L = [];
+  L.push(`${m.code} · ${m.titre}`, `Référentiel : SDIS 34 ${m.ref} · Public : ${c.public} · Durée : ${m.duree} min`, '');
+  L.push('Objectif : ' + m.objectif, 'Situation : ' + f.situation, 'Effectif : ' + m.effectif, '');
+  L.push('MATÉRIEL'); m.materiel.forEach(([r, x]) => L.push(`- ${r} : ${x}`)); L.push('');
+  L.push('ORDRES', 'Préparatoire : ' + f.prep, 'Exécution : ' + f.exec, '');
+  L.push('DÉROULÉ'); m.etapes.forEach(([r, x], i) => L.push(`${i+1}. ${r} : ${x}`)); L.push('');
+  L.push('CONDUCTEUR'); m.conducteur.forEach(x => L.push('- ' + x)); L.push('Alimentation : ' + f.alim, '');
+  L.push('POINTS CLÉS'); m.points.forEach(x => L.push('- ' + x));
+  if(f.alerts.length){ L.push('', 'VIGILANCE'); f.alerts.forEach(([, x]) => L.push('- ' + x)); }
+  L.push('', 'CRITÈRES D’ÉVALUATION'); m.criteres.forEach(x => L.push('☐ ' + x));
+  L.push('', 'QUESTIONS DE CONTRÔLE'); m.questions.forEach(([q, a]) => L.push(`- ${q} → ${a}`));
+  return L.join('\n');
+}
+function manTabs(cur){
+  const t = [['#/man','📚 Bibliothèque','lib'],['#/man/sit','🎯 Mise en situation','sit'],['#/man/plan','📅 Planning','plan'],['#/man/suivi','📊 Suivi','suivi']];
+  return `<div class="tabs" role="tablist">${t.map(([h,l,k]) => `<a href="${h}" class="tab ${k===cur?'on':''}" role="tab" aria-selected="${k===cur}">${l}</a>`).join('')}</div>`;
+}
+function viewManLib(){
+  const refs = ['tous','RDMI','RDEB','RDSMES','RDLSPCC'];
+  const list = MAN.filter(m => (MAN_FILTER.ref === 'tous' || m.ref === MAN_FILTER.ref) && (MAN_FILTER.pub !== 'JSP' || m.jsp));
+  const fich = FICHES_EQ.slice().sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0)).slice(0, 12);
+  app.innerHTML = `<div class="fade">
+  <h1>🧯 Manœuvres</h1>
+  ${manTabs('lib')}
+  <p class="muted small">Choisis une manœuvre des référentiels SDIS 34, adapte la situation, et l’application prépare la fiche : ordres, déroulé par rôle, points de vigilance et grille d’évaluation.</p>
+  <div class="chips">${refs.map(r => `<button class="chip ${MAN_FILTER.ref===r?'on':''}" data-ref="${r}">${r==='tous'?'Tous les référentiels':r}</button>`).join('')}</div>
+  <div class="chips" style="margin-top:8px">${[['tous','SP et JSP'],['JSP','Adaptées aux JSP']].map(([k,l]) => `<button class="chip ${MAN_FILTER.pub===k?'on':''}" data-pub="${k}">${l}</button>`).join('')}</div>
+  <div class="list" style="margin-top:14px">${list.map(m => `<a class="item" href="#/man/m/${m.id}"><span class="code">${esc(m.code)}</span>
+    <div class="t"><b>${esc(m.titre)}</b><small>${esc(m.ref)} · ${m.duree} min · ${esc(m.effectif)}</small></div>${m.jsp?'<span class="pill ok">JSP</span>':''}<span class="muted">›</span></a>`).join('')}</div>
+  <h2>🗂️ Fiches enregistrées ${modeBadge()}</h2>
+  ${fich.length ? `<div class="list">${fich.map(f => { const m = MAN_BY[f.mid]; if(!m) return ''; return `<a class="item" href="#/man/m/${m.id}?f=${encodeURIComponent(f.id)}"><span class="code">${esc(m.code)}</span>
+    <div class="t"><b>${esc(f.titre || m.titre)}</b><small>${esc(niv(f.ctx && f.ctx.etage || 0))} · ${esc((f.ctx && f.ctx.public) || '')} · ${f.updatedBy ? `par <span data-uid="${esc(f.updatedBy)}">…</span>` : ''}</small></div><span class="muted">›</span></a>`; }).join('')}</div>`
+    : `<div class="empty small"><div class="e">🗂️</div>Aucune fiche enregistrée. Ouvre une manœuvre, adapte la situation puis touche « Enregistrer la fiche ».</div>`}
+  </div>`;
+  app.querySelectorAll('[data-ref]').forEach(b => b.onclick = () => { MAN_FILTER.ref = b.dataset.ref; viewManLib(); });
+  app.querySelectorAll('[data-pub]').forEach(b => b.onclick = () => { MAN_FILTER.pub = b.dataset.pub; viewManLib(); });
+  fillNames(app);
+}
+function viewManFiche(id, params){
+  const m = MAN_BY[id]; if(!m) return go('#/man');
+  const fid = params.get('f'); const saved = fid && FICHES_EQ.find(f => f.id === fid);
+  if(saved && !GEN['_loaded_' + fid]){ GEN[id] = Object.assign(defCtx(), saved.ctx || {}); GEN['_loaded_' + fid] = true; }
+  const c = GEN[id] || (GEN[id] = defCtx());
+  const sel = (k, opts) => `<select id="g_${k}" data-k="${k}">${opts.map(([v,l]) => `<option value="${v}" ${String(c[k])===String(v)?'selected':''}>${l}</option>`).join('')}</select>`;
+  app.innerHTML = `<div class="fade">
+  <a class="back" href="#/man">‹ Manœuvres</a>
+  <div class="card">
+    <div class="row"><span class="code">${esc(m.code)}</span><span class="tag" style="--c:#d84315">${esc(m.ref)}</span>${m.jsp?'<span class="pill ok">JSP</span>':''}</div>
+    <h1 style="margin-top:8px">${esc(m.titre)}</h1>
+    <p class="muted" style="margin:0">${esc(m.objectif)}</p>
+  </div>
+  <h2>⚙️ Adapter la situation</h2>
+  <div class="card form-grid">
+    <label>Public ${sel('public', [['SP','Sapeurs-pompiers'],['JSP','JSP']])}</label>
+    <label>Type de feu ${sel('feu', Object.entries(FEUX).map(([k,v]) => [k, v.replace(/^feu d(e |’)/, '')]))}</label>
+    <label>Étage du sinistre ${sel('etage', Array.from({length:18}, (_, i) => [i, niv(i)]))}</label>
+    <label>Colonne sèche ${sel('colonne', [['non','Absente'],['oui','Présente'],['hs','Hors service']])}</label>
+    <label>Distance du PEI (m) <input id="g_dist" data-k="dist" type="number" min="5" max="400" step="5" value="${+c.dist}"></label>
+    <label>Façade ${sel('facade', [['A','A'],['B','B'],['C','C'],['D','D']])}</label>
+    <label>Victime ${sel('victime', [['non','Aucune'],['fenetre','À la fenêtre'],['interieur','Disparue à l’intérieur']])}</label>
+    <label class="check"><input id="g_nuit" data-k="nuit" type="checkbox" ${c.nuit?'checked':''}> Intervention de nuit</label>
+  </div>
+  <div id="ficheOut"></div>
+  </div>`;
+  const out = () => {
+    const f = buildFiche(m, c);
+    $('#ficheOut').innerHTML = `
+    <h2>📋 Fiche de manœuvre</h2>
+    <div class="card fiche">
+      <div class="callout"><b>Situation :</b> ${esc(f.situation)}</div>
+      <p class="small"><b>Effectif :</b> ${esc(m.effectif)} · <b>Durée indicative :</b> ${m.duree} min</p>
+      ${f.alerts.map(([lvl, x]) => `<div class="alert ${lvl}">${esc(x)}</div>`).join('')}
+      <h3>Matériel</h3>
+      <div class="tbl"><table><thead><tr><th>Qui</th><th>Matériel</th></tr></thead><tbody>${m.materiel.map(([r,x]) => `<tr><td>${esc(r)}</td><td>${esc(x)}</td></tr>`).join('')}</tbody></table></div>
+      <h3>Ordres</h3>
+      <p><b>Préparatoire :</b> ${esc(f.prep)}</p>
+      <p><b>Exécution :</b> ${esc(f.exec)}</p>
+      <h3>Déroulé</h3>
+      <ol class="steps">${m.etapes.map(([r,x]) => `<li><b>${esc(r)}</b> · ${esc(x)}</li>`).join('')}</ol>
+      <h3>Conducteur</h3>
+      <ul>${m.conducteur.map(x => `<li>${esc(x)}</li>`).join('')}<li><b>Alimentation :</b> ${esc(f.alim)}</li></ul>
+      <h3>Points clés du référentiel</h3>
+      <ul>${m.points.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+      <h3>Grille d’évaluation</h3>
+      <div class="list">${m.criteres.map((x, i) => `<label class="crit"><input type="checkbox" id="crit${i}"> ${esc(x)}</label>`).join('')}</div>
+      <h3>Questions de contrôle</h3>
+      ${m.questions.map(([q,a]) => `<details class="qa"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}
+      <p class="small muted" style="margin-top:12px">Source : SDIS 34 · ${esc(m.ref)} · ${esc(m.code)}. Le référentiel officiel fait foi.</p>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="fCopy">📋 Copier la fiche</button>
+      ${canWrite() ? '<button class="btn primary" id="fSave">💾 Enregistrer la fiche</button><button class="btn navy" id="fPlan">📅 Planifier une séance</button>' : ''}
+    </div>`;
+    $('#fCopy').onclick = () => copyText(ficheText(m, c, f));
+    const fs = $('#fSave'); if(fs) fs.onclick = async () => {
+      fs.disabled = true;
+      const id2 = await saveDoc('fiches', { id: fid || undefined, mid: m.id, ctx: Object.assign({}, c), titre: `${m.titre} · ${f.lieu} · ${c.public}` });
+      fs.disabled = false; if(id2) toast(SHARED ? 'Fiche enregistrée pour l’équipe ✔' : 'Fiche enregistrée sur cet appareil ✔');
+    };
+    const fp = $('#fPlan'); if(fp) fp.onclick = () => { PLAN_PREFILL = { manoeuvres:[m.id], public: c.public }; go('#/man/plan/new'); };
+  };
+  app.querySelectorAll('[data-k]').forEach(el => el.onchange = el.oninput = () => {
+    const k = el.dataset.k; c[k] = el.type === 'checkbox' ? el.checked : (k === 'dist' ? Math.max(0, +el.value || 0) : el.value);
+    if(k === 'etage') c.etage = +c.etage; out();
+  });
+  out();
+}
+
+/* ---------- Mise en situation ---------- */
+const ATTAQUES = { 'etb-1-1':'ETB 1.1 · LDT', 'etb-3-2':'ETB 3.2 · LDV 40', 'etb-3-3':'ETB 3.3 · LDV 40 avec échelle à coulisse', 'etb-3-6':'ETB 3.6 · LDV 40 sur colonne sèche', 'etb-3-7':'ETB 3.7 · ligne d’attaque' };
+const ALIMS = { a41:'ETB 4.1 · tuyau Ø110/20 m', a43:'ETB 4.2 / 4.3 · tuyaux Ø70 en Z ou dévidoir mobile', a2d:'Deux dévidoirs mobiles', a45:'ETB 4.5 · aspiration' };
+function rnd(a){ return a[Math.floor(Math.random() * a.length)]; }
+function newSituation(pub){
+  const feu = rnd(['appartement','appartement','appartement','local','cave']);
+  let etage = feu === 'local' || feu === 'cave' ? 0 : rnd([1,2,3,4,5,6,7,8,9,10,11]);
+  let colonne = 'non';
+  if(etage >= 8) colonne = Math.random() < .6 ? 'oui' : 'hs';
+  else if(etage >= 4 && Math.random() < .25) colonne = 'oui';
+  if(pub === 'JSP' && etage > 4){ etage = rnd([1,2,3,4]); colonne = 'non'; }
+  const pena = Math.random() < .15;
+  const dist = pena ? rnd([5,6,7,8]) : rnd([10,15,40,60,90,120,180,250]);
+  const victime = Math.random() < .35 ? rnd(['fenetre','interieur']) : 'non';
+  const c = { public: pub, feu, etage, colonne, dist, pena, victime, facade: rnd(['A','B','C','D']), nuit: Math.random() < .3 };
+  let att;
+  if(feu === 'local') att = ['etb-1-1','etb-3-2'];
+  else if(colonne === 'oui' && etage >= 2) att = ['etb-3-6'];
+  else if(etage <= 4) att = etage >= 3 ? ['etb-3-2','etb-3-7'] : ['etb-3-2'];
+  else att = ['etb-3-7'];
+  const alim = pena ? 'a45' : c.dist < 20 ? 'a41' : c.dist <= 200 ? 'a43' : 'a2d';
+  const why = { att: feu === 'local' ? 'Feu de faible intensité au RDC : une LDT (ou une LDV 40) suffit.'
+      : colonne === 'oui' && etage >= 2 ? 'Une colonne sèche en état est à privilégier (ETB 3.6).'
+      : etage <= 4 ? 'Jusqu’au R+4, la LDV 40 rampante suffit ; la ligne d’attaque reste au choix du chef d’agrès.'
+      : `Au-delà du R+4 en rampant, la ligne d’attaque est obligatoire${etage > 8 ? ', avec trois binômes au-delà du R+8' : ''}${colonne === 'hs' ? ' ; elle remplace ici la colonne sèche hors service' : ''}.`,
+    alim: pena ? 'Point d’eau naturel ou artificiel : alimentation par aspiration (8 m max, 6 m de hauteur).' : alimReco(c.dist) };
+  return { c, att, alim, why, step:0, answers:{}, score:0, smes:{s:'',m:'',e:'',x:''}, corr:'' };
+}
+function sitText(c){
+  const v = { non:'Pas de victime signalée.', fenetre:'Une victime appelle à l’aide à la fenêtre.', interieur:'La requérante signale que son fils est resté dans le logement.' }[c.victime];
+  const col = c.etage >= 2 ? ({ non:'Pas de colonne sèche.', oui:'Le bâtiment a une colonne sèche.', hs:'La colonne sèche est signalée hors service.' }[c.colonne]) : '';
+  const eau = c.pena ? `Pas de poteau : une réserve d’eau aménagée est à ${c.dist} m de l’engin.` : `Le poteau d’incendie le plus proche est à ${c.dist} m.`;
+  return `${FEUX[c.feu].replace(/^./, x => x.toUpperCase())} au ${niv(c.etage)}, façade ${c.facade}. Fumées visibles aux ouvrants. ${col} ${eau} ${v}${c.nuit ? ' Il fait nuit.' : ''}`;
+}
+function modelSmes(S){
+  const c = S.c; const att = ATTAQUES[S.att[0]];
+  return {
+    s: `${FEUX[c.feu]} au ${niv(c.etage)}, façade ${c.facade}${c.victime !== 'non' ? ', victime ' + (c.victime === 'fenetre' ? 'à la fenêtre' : 'à rechercher') : ''}.`,
+    m: c.victime !== 'non' ? 'Sauvetage / mise en sécurité de la victime, puis extinction et protection des étages supérieurs.' : 'Extinction du foyer et protection des étages supérieurs.',
+    e: `1er binôme : ${att}, point d’attaque au ${niv(c.etage)}. 2e binôme : ${S.att[0] === 'etb-3-7' ? 'division d’attaque au N-1 puis prise d’eau' : 'prise d’eau et alimentation'}. Conducteur : ${ALIMS[S.alim]}. « Établissez ! »`,
+    x: 'Contrôle croisé RAPACE avant l’engagement, binôme de sécurité dès que possible, itinéraire de repli reconnu, pas d’établissement dans l’axe de l’ouvrant.'
+  };
+}
+function viewManSit(){
+  const pub = (SIT && SIT.c.public) || 'SP';
+  if(!SIT){
+    app.innerHTML = `<div class="fade"><h1>🧯 Manœuvres</h1>${manTabs('sit')}
+    <div class="card"><h2 style="margin-top:0">🎯 Mise en situation</h2>
+    <p class="muted">L’application tire une situation au hasard. Le stagiaire choisit l’établissement d’attaque et l’alimentation, puis rédige son ordre initial SMES. La correction s’appuie sur le RDMI.</p>
+    <div class="row"><button class="btn primary" id="sSP">🚒 Situation sapeur-pompier</button><button class="btn" id="sJSP">🧒 Situation JSP</button></div></div></div>`;
+    $('#sSP').onclick = () => { SIT = newSituation('SP'); viewManSit(); };
+    $('#sJSP').onclick = () => { SIT = newSituation('JSP'); viewManSit(); };
+    return;
+  }
+  const S = SIT, c = S.c;
+  const q3 = c.victime !== 'non'
+    ? { q:'Quelle est ta priorité à l’arrivée ?', opts:{ v:'Le sauvetage ou la mise en sécurité de la victime', a:'L’alimentation de l’engin', z:'Le zonage de l’intervention', d:'Le déblai' }, ok:'v', why:'Les sauvetages et mises en sécurité passent avant tout : MEA, échelles ou recherche primaire selon la situation.' }
+    : { q:'Quel débit de référence le conducteur doit-il garantir au binôme ?', opts:{ d500:'500 l/min', d150:'150 l/min', d1000:'1 000 l/min', d250:'250 l/min' }, ok:'d500', why:'Sur feu de structure, le binôme doit disposer de 500 l/min (RDMI 3.1).' };
+  const steps = [
+    { k:'att', q:'Quel établissement d’attaque choisis-tu ?', opts:ATTAQUES, ok:S.att, why:S.why.att },
+    { k:'alim', q:'Comment alimentes-tu l’engin-pompe ?', opts:ALIMS, ok:[S.alim], why:S.why.alim },
+    { k:'q3', q:q3.q, opts:q3.opts, ok:[q3.ok], why:q3.why }
+  ];
+  let body = '';
+  steps.forEach((st, i) => {
+    if(i > S.step) return;
+    const ans = S.answers[st.k];
+    body += `<div class="card" style="margin-top:12px"><b>${i+1}. ${esc(st.q)}</b><div class="choices" style="margin-top:10px">${Object.entries(st.opts).map(([k, l]) => {
+      let cls = ''; if(ans){ if(st.ok.includes(k)) cls = 'ok'; else if(k === ans) cls = 'ko'; }
+      return `<button class="choice ${cls}" data-st="${i}" data-v="${k}" ${ans?'disabled':''}><span>${esc(l)}</span></button>`; }).join('')}</div>
+      ${ans ? `<div class="feedback ${st.ok.includes(ans)?'ok':'ko'}"><b>${st.ok.includes(ans)?'✅ Correct':'❌ À revoir'}</b><p style="margin:6px 0 0">${esc(st.why)}</p></div>` : ''}</div>`;
+  });
+  if(S.step >= 3){
+    const mdl = modelSmes(S);
+    body += `<div class="card" style="margin-top:12px"><b>4. Rédige ton ordre initial (SMES)</b>
+      <div class="form-grid one" style="margin-top:10px">
+        <label>S · Situation (quoi ? où ?)<textarea id="sm_s" rows="2">${esc(S.smes.s)}</textarea></label>
+        <label>M · Mission (quoi faire ?)<textarea id="sm_m" rows="2">${esc(S.smes.m)}</textarea></label>
+        <label>E · Exécution (comment, avec qui ?)<textarea id="sm_e" rows="3">${esc(S.smes.e)}</textarea></label>
+        <label>S · Sécurité (quelles règles ?)<textarea id="sm_x" rows="2">${esc(S.smes.x)}</textarea></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="smShow">👀 Voir un exemple de corrigé</button>${CAP.sample ? '<button class="btn primary" id="smAi">🤖 Faire corriger par Claude</button>' : ''}</div>
+      <div id="smModel" hidden><div class="callout" style="margin-top:10px"><b>Exemple :</b><br><b>S</b> ${esc(mdl.s)}<br><b>M</b> ${esc(mdl.m)}<br><b>E</b> ${esc(mdl.e)}<br><b>S</b> ${esc(mdl.x)}</div></div>
+      <div id="smAiOut" class="ai-out" ${S.corr ? '' : 'hidden'}>${esc(S.corr)}</div></div>`;
+  }
+  const good = steps.filter(st => S.answers[st.k] && st.ok.includes(S.answers[st.k])).length;
+  app.innerHTML = `<div class="fade"><h1>🧯 Manœuvres</h1>${manTabs('sit')}
+    <div class="card sit"><div class="row"><span class="pill">${c.public === 'JSP' ? '🧒 JSP' : '🚒 SP'}</span><span class="spacer"></span>${S.step >= 3 ? `<b>${good}/3</b>` : ''}</div>
+    <p style="font-size:17px;margin:10px 0 0"><b>📟 Départ :</b> ${esc(sitText(c))}</p></div>
+    ${body}
+    <div class="row" style="margin-top:14px"><button class="btn" id="sNew">🔄 Nouvelle situation</button><a class="btn" href="#/man/m/${S.att[0] === 'etb-3-6' ? 'etb-3-2' : S.att[0]}">📋 Fiche de l’établissement</a></div></div>`;
+  app.querySelectorAll('[data-st]').forEach(b => b.onclick = () => { const st = steps[+b.dataset.st]; S.answers[st.k] = b.dataset.v; S.step = Math.max(S.step, +b.dataset.st + 1); viewManSit(); });
+  $('#sNew').onclick = () => { SIT = newSituation(c.public); viewManSit(); };
+  ['s','m','e','x'].forEach(k => { const t = $('#sm_' + k); if(t) t.oninput = () => { S.smes[k] = t.value; }; });
+  const sh = $('#smShow'); if(sh) sh.onclick = () => { $('#smModel').hidden = false; };
+  const ai = $('#smAi'); if(ai) ai.onclick = async () => {
+    const o = $('#smAiOut'); o.hidden = false; o.textContent = 'Correction en cours…'; ai.disabled = true;
+    const prompt = `Tu es formateur sapeur-pompier au SDIS de l’Hérault. Corrige l’ordre initial d’un stagiaire (${c.public === 'JSP' ? 'jeune sapeur-pompier' : 'sapeur-pompier'}) selon le référentiel départemental RDMI.
+Règles du RDMI à appliquer : ordre initial SMES = Situation (quoi ? où, par où ?), Mission (quoi faire ? objectifs), Exécution (comment, avec qui ? ordres aux binômes indiquant au minimum le point d’attaque et la prise d’eau, terminés par « Établissez ! »), Sécurité (protections individuelles et collectives). Sauvetages prioritaires. LDV 40 rampante jusqu’au R+4, ligne d’attaque obligatoire au-delà (jusqu’au R+12, trois binômes au-delà du R+8). Colonne sèche en état à privilégier. Débit de référence du binôme : 500 l/min. Contrôle croisé RAPACE avant engagement, binôme de sécurité dès que possible.
+Situation : ${sitText(c)}
+Ordre du stagiaire :
+S : ${S.smes.s || '(vide)'}
+M : ${S.smes.m || '(vide)'}
+E : ${S.smes.e || '(vide)'}
+S : ${S.smes.x || '(vide)'}
+Réponds en français, en 8 lignes au plus, sans titre : ce qui est juste, ce qui manque ou est faux (avec la règle du référentiel), puis une note sur 10.`;
+    try{ const r = await CAP.sample(prompt, { onText: ({text}) => { o.textContent = text; } }); S.corr = r.text; o.textContent = r.text; }
+    catch(e){ o.textContent = e && e.code === 'not_granted' ? 'La correction par Claude n’est pas autorisée pour cette page.' : e && e.code === 'rate_limited' ? 'Trop de demandes : réessaie dans un moment.' : 'La correction n’a pas pu aboutir. Réessaie plus tard.'; if(e && (e.code === 'not_granted' || e.code === 'sampling_disabled')) CAP.sample = null; }
+    ai.disabled = false;
+  };
+}
+
+/* ---------- Planning et suivi ---------- */
+let PLAN_PREFILL = null;
+function seanceCard(s){
+  const nb = (s.participants || []).length;
+  const done = (s.participants || []).reduce((a, p) => a + Object.values(p.res || {}).filter(Boolean).length, 0);
+  const tot = nb * (s.manoeuvres || []).length;
+  return `<a class="item" href="#/man/plan/${encodeURIComponent(s.id)}"><div class="date-box"><b>${esc((s.date||'').slice(8,10))}</b><small>${esc(new Date((s.date||'2000-01-01') + 'T12:00').toLocaleDateString('fr-FR',{month:'short'}))}</small></div>
+    <div class="t"><b>${esc(s.titre || (s.manoeuvres||[]).map(id => MAN_BY[id] ? MAN_BY[id].code : id).join(' · ') || 'Séance')}</b>
+    <small>${esc(fmtDate(s.date, s.heure))}${s.heure ? ' · ' + esc(s.heure) : ''}${s.lieu ? ' · ' + esc(s.lieu) : ''} · ${nb} participant${nb>1?'s':''}${tot ? ` · ${done}/${tot} résultats` : ''}</small></div>
+    <span class="pill ${s.public==='JSP'?'ok':''}">${esc(s.public || 'SP')}</span></a>`;
+}
+function viewPlanList(){
+  const today = new Date().toISOString().slice(0,10);
+  const all = SEANCES.slice().sort((a,b) => (a.date||'').localeCompare(b.date||'') || (a.heure||'').localeCompare(b.heure||''));
+  const up = all.filter(s => (s.date||'') >= today), past = all.filter(s => (s.date||'') < today).reverse();
+  app.innerHTML = `<div class="fade"><h1>🧯 Manœuvres</h1>${manTabs('plan')}
+    <div class="row"><h2 style="margin:0">📅 Planning des séances</h2><span class="spacer"></span>${modeBadge()}</div>
+    ${!CAP.ready ? '<div class="empty">Connexion à l’espace partagé…</div>' : `
+    ${canWrite() ? '<a class="btn primary" href="#/man/plan/new" style="margin-top:12px">➕ Nouvelle séance</a>' : '<p class="small muted">Accès en lecture seule : seuls les formateurs autorisés modifient le planning.</p>'}
+    <h2>À venir</h2>
+    ${up.length ? `<div class="list">${up.map(seanceCard).join('')}</div>` : '<div class="empty small"><div class="e">📅</div>Aucune séance prévue. Crée la prochaine avec « Nouvelle séance ».</div>'}
+    <h2>Séances passées</h2>
+    ${past.length ? `<div class="list">${past.map(seanceCard).join('')}</div>` : '<p class="muted small">Les séances passées apparaîtront ici avec leurs résultats.</p>'}
+    ${!SHARED ? '<p class="small muted" style="margin-top:16px">Ouvre l’application en ligne et partage-la avec tes formateurs pour avoir un planning commun.</p>' : ''}`}
+  </div>`;
+}
+function viewPlanForm(id){
+  if(!canWrite()) return go('#/man/plan');
+  const ex = id && SEANCES.find(s => s.id === id);
+  const s = ex ? JSON.parse(JSON.stringify(ex)) : Object.assign({ date: new Date().toISOString().slice(0,10), heure:'19:00', lieu:'', public:'SP', groupe:'', manoeuvres:[], participants:[], notes:'' }, PLAN_PREFILL || {});
+  PLAN_PREFILL = null;
+  const byRef = ['RDMI','RDEB','RDSMES','RDLSPCC'].map(r => [r, MAN.filter(m => m.ref === r)]);
+  app.innerHTML = `<div class="fade"><a class="back" href="${ex ? '#/man/plan/' + encodeURIComponent(id) : '#/man/plan'}">‹ Retour</a>
+    <h1>${ex ? 'Modifier la séance' : 'Nouvelle séance'}</h1>
+    <form id="pForm" class="card form-grid">
+      <label>Date <input id="pDate" type="date" required value="${esc(s.date)}"></label>
+      <label>Heure <input id="pHeure" type="time" value="${esc(s.heure)}"></label>
+      <label>Lieu <input id="pLieu" type="text" placeholder="CIS Cruzy-Quarante" value="${esc(s.lieu)}"></label>
+      <label>Public <select id="pPublic">${['SP','JSP','Mixte'].map(v => `<option ${s.public===v?'selected':''}>${v}</option>`).join('')}</select></label>
+      <label class="wide">Titre (facultatif) <input id="pTitre" type="text" placeholder="Ex. Manœuvre ligne d’attaque" value="${esc(s.titre||'')}"></label>
+      <fieldset class="wide"><legend>Manœuvres au programme</legend>
+        ${byRef.map(([r, ms]) => `<div class="small muted" style="margin-top:6px">${r}</div>${ms.map(m => `<label class="check"><input type="checkbox" name="pm" value="${m.id}" ${s.manoeuvres.includes(m.id)?'checked':''}> ${esc(m.code)} · ${esc(m.titre)}</label>`).join('')}`).join('')}
+      </fieldset>
+      <label class="wide">Participants (un par ligne : prénom et initiale du nom)<textarea id="pPart" rows="6" placeholder="Lucas M.&#10;Inès R.">${esc((s.participants||[]).map(p => p.nom).join('\n'))}</textarea></label>
+      <label class="wide">Notes<textarea id="pNotes" rows="3">${esc(s.notes||'')}</textarea></label>
+      <div class="wide row" style="justify-content:flex-end"><button type="submit" class="btn primary" id="pSave">💾 Enregistrer</button></div>
+    </form></div>`;
+  EDITING = true;
+  $('#pForm').onsubmit = async e => {
+    e.preventDefault();
+    const names = $('#pPart').value.split('\n').map(x => x.trim()).filter(Boolean);
+    const old = Object.fromEntries((s.participants||[]).map(p => [norm(p.nom), p]));
+    const obj = { id: ex ? ex.id : undefined, date: $('#pDate').value, heure: $('#pHeure').value, lieu: $('#pLieu').value.trim(), public: $('#pPublic').value,
+      titre: $('#pTitre').value.trim(), notes: $('#pNotes').value.trim(), manoeuvres: [...app.querySelectorAll('[name=pm]:checked')].map(x => x.value),
+      participants: names.map(n => old[norm(n)] ? Object.assign({}, old[norm(n)], {nom:n}) : { nom:n, res:{}, rem:'' }), createdBy: (ex && ex.createdBy) || CAP.uid || null };
+    if(!obj.date){ toast('Indique une date.'); return; }
+    $('#pSave').disabled = true;
+    const nid = await saveDoc('seances', obj);
+    $('#pSave').disabled = false;
+    if(nid){ EDITING = false; toast('Séance enregistrée ✔'); if(!SHARED) loadLocal(); go('#/man/plan/' + encodeURIComponent(nid)); }
+  };
+}
+function viewPlanDetail(id){
+  const ex = SEANCES.find(s => s.id === id);
+  if(!ex){ app.innerHTML = `<div class="fade"><a class="back" href="#/man/plan">‹ Planning</a><div class="empty">${CAP.ready ? 'Cette séance n’existe plus.' : 'Chargement…'}</div></div>`; return; }
+  const s = JSON.parse(JSON.stringify(ex)); const w = canWrite();
+  const ms = (s.manoeuvres || []).filter(mid => MAN_BY[mid]);
+  app.innerHTML = `<div class="fade"><a class="back" href="#/man/plan">‹ Planning</a>
+    <div class="card">
+      <div class="row"><span class="pill ${s.public==='JSP'?'ok':''}">${esc(s.public||'SP')}</span><span class="spacer"></span>${modeBadge()}</div>
+      <h1 style="margin:8px 0 4px">${esc(s.titre || 'Séance de manœuvre')}</h1>
+      <p class="muted" style="margin:0">${esc(fmtDate(s.date, s.heure))}${s.heure?' · '+esc(s.heure):''}${s.lieu?' · '+esc(s.lieu):''}${s.createdBy ? ` · organisée par <span data-uid="${esc(s.createdBy)}">…</span>` : ''}</p>
+      ${s.notes ? `<p style="margin:8px 0 0">${esc(s.notes)}</p>` : ''}
+      <div class="chips">${ms.map(mid => `<a class="chip" href="#/man/m/${mid}">${esc(MAN_BY[mid].code)} · ${esc(MAN_BY[mid].titre)}</a>`).join('') || '<span class="muted small">Aucune manœuvre choisie.</span>'}</div>
+      ${w ? `<div class="row" style="margin-top:12px"><a class="btn" href="#/man/plan/${encodeURIComponent(id)}/edit">✏️ Modifier</a><button class="btn" id="dDel" style="color:var(--ko)">🗑️ Supprimer</button></div>` : ''}
+    </div>
+    <h2>✅ Résultats</h2>
+    ${!(s.participants||[]).length || !ms.length ? '<div class="empty small">Ajoute des participants et des manœuvres (bouton « Modifier ») pour saisir les résultats.</div>' : `
+    <div class="tbl res-tbl"><table><thead><tr><th>Participant</th>${ms.map(mid => `<th title="${esc(MAN_BY[mid].titre)}">${esc(MAN_BY[mid].code)}</th>`).join('')}<th>Remarque</th></tr></thead>
+    <tbody>${s.participants.map((p, i) => `<tr><td><b>${esc(p.nom)}</b></td>${ms.map(mid => {
+      const v = (p.res||{})[mid] || '';
+      return `<td>${w ? `<select data-p="${i}" data-m="${mid}" class="res-sel ${v?RES[v].c:''}" aria-label="${esc(p.nom)} · ${esc(MAN_BY[mid].code)}"><option value="">—</option>${Object.entries(RES).map(([k, r]) => `<option value="${k}" ${v===k?'selected':''}>${r.l}</option>`).join('')}</select>` : (v ? `<span class="pill ${RES[v].c}">${RES[v].l}</span>` : '—')}</td>`; }).join('')}
+      <td>${w ? `<input data-rem="${i}" type="text" value="${esc(p.rem||'')}" aria-label="Remarque ${esc(p.nom)}">` : esc(p.rem||'')}</td></tr>`).join('')}</tbody></table></div>
+    ${w ? '<div class="row" style="margin-top:12px;justify-content:flex-end"><span class="small muted" id="dirty"></span><button class="btn primary" id="dSave">💾 Enregistrer les résultats</button></div>' : ''}`}
+  </div>`;
+  fillNames(app);
+  const mark = () => { EDITING = true; const d = $('#dirty'); if(d) d.textContent = 'Modifications non enregistrées'; };
+  app.querySelectorAll('.res-sel').forEach(sl => sl.onchange = () => { const p = s.participants[+sl.dataset.p]; p.res = p.res || {}; if(sl.value) p.res[sl.dataset.m] = sl.value; else delete p.res[sl.dataset.m]; sl.className = 'res-sel ' + (sl.value ? RES[sl.value].c : ''); mark(); });
+  app.querySelectorAll('[data-rem]').forEach(inp => inp.oninput = () => { s.participants[+inp.dataset.rem].rem = inp.value; mark(); });
+  const sv = $('#dSave'); if(sv) sv.onclick = async () => { sv.disabled = true; const ok = await saveDoc('seances', s); sv.disabled = false; if(ok){ EDITING = false; toast('Résultats enregistrés ✔'); if(!SHARED) loadLocal(); render(true); } };
+  const dl = $('#dDel'); if(dl) dl.onclick = () => ask('Supprimer cette séance et ses résultats ?', 'Supprimer', async () => { if(await deleteDoc('seances', id)){ toast('Séance supprimée'); go('#/man/plan'); } });
+}
+function viewSuivi(){
+  const pubF = MAN_FILTER.suivi || 'tous';
+  const people = {};
+  SEANCES.filter(s => pubF === 'tous' || s.public === pubF).slice().sort((a,b) => (a.date||'').localeCompare(b.date||'')).forEach(s => (s.participants||[]).forEach(p => {
+    const k = norm(p.nom).trim(); if(!k) return;
+    const e = people[k] || (people[k] = { nom:p.nom, last:{}, seances:0 });
+    e.seances++; Object.entries(p.res||{}).forEach(([mid, v]) => { if(v) e.last[mid] = { v, date:s.date }; });
+  }));
+  const rows = Object.values(people).sort((a,b) => a.nom.localeCompare(b.nom, 'fr'));
+  const mids = MAN.map(m => m.id).filter(mid => rows.some(r => r.last[mid]));
+  const csv = () => { const head = ['Participant','Séances', ...mids.map(m => MAN_BY[m].code)]; const lines = rows.map(r => [r.nom, r.seances, ...mids.map(m => r.last[m] ? RES[r.last[m].v].l : '')]);
+    return [head, ...lines].map(l => l.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(';')).join('\n'); };
+  app.innerHTML = `<div class="fade"><h1>🧯 Manœuvres</h1>${manTabs('suivi')}
+    <div class="row"><h2 style="margin:0">📊 Suivi des participants</h2><span class="spacer"></span>${modeBadge()}</div>
+    <div class="chips">${[['tous','Tous'],['SP','SP'],['JSP','JSP'],['Mixte','Mixte']].map(([k,l]) => `<button class="chip ${pubF===k?'on':''}" data-sf="${k}">${l}</button>`).join('')}</div>
+    ${!rows.length ? '<div class="empty"><div class="e">📊</div>Le suivi se remplit à partir des résultats saisis dans les séances du planning.</div>' : `
+    <p class="small muted">Dernier résultat connu de chaque participant, par manœuvre.</p>
+    <div class="tbl res-tbl"><table><thead><tr><th>Participant</th><th>Séances</th>${mids.map(m => `<th title="${esc(MAN_BY[m].titre)}">${esc(MAN_BY[m].code)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr><td><b>${esc(r.nom)}</b></td><td class="num">${r.seances}</td>${mids.map(m => `<td>${r.last[m] ? `<span class="pill ${RES[r.last[m].v].c}" title="${esc(fmtDate(r.last[m].date))}">${RES[r.last[m].v].l}</span>` : '<span class="muted">—</span>'}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="sCsv">⬇️ Exporter (CSV)</button></div>`}
+  </div>`;
+  app.querySelectorAll('[data-sf]').forEach(b => b.onclick = () => { MAN_FILTER.suivi = b.dataset.sf; viewSuivi(); });
+  const ex = $('#sCsv'); if(ex) ex.onclick = () => saveFile('suivi-manoeuvres.csv', '﻿' + csv());
+}
+function viewMan(parts, params){
+  const sub = parts[1];
+  if(sub === 'm') return viewManFiche(parts[2], params);
+  if(sub === 'sit') return viewManSit();
+  if(sub === 'suivi') return viewSuivi();
+  if(sub === 'plan'){
+    if(parts[2] === 'new') return viewPlanForm(null);
+    if(parts[2] && parts[3] === 'edit') return viewPlanForm(decodeURIComponent(parts[2]));
+    if(parts[2]) return viewPlanDetail(decodeURIComponent(parts[2]));
+    return viewPlanList();
+  }
+  return viewManLib();
+}
+
 /* ---------- Routeur ---------- */
-function render(){
+let LAST_HASH = null;
+function render(keep){
   const h = location.hash.slice(1) || '/';
   const [path, qs] = h.split('?'); const params = new URLSearchParams(qs||'');
   const parts = path.split('/').filter(Boolean);
   const r = parts[0] || 'home';
   if(r !== 'quiz' && TIMER){ clearInterval(TIMER); TIMER = null; }
+  if(keep !== true) EDITING = false;
   document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('on', a.dataset.r === (['theme','fiche','quiz','flash'].includes(r) ? 'home' : r)));
-  window.scrollTo(0,0);
+  if(location.hash !== LAST_HASH){ window.scrollTo(0,0); LAST_HASH = location.hash; }
   switch(r){
+    case 'man': return viewMan(parts, params);
     case 'theme': return viewTheme(parts[1]);
     case 'fiche': return viewFiche(parts[1], params);
     case 'search': return viewSearch(params);
@@ -2457,8 +3238,9 @@ document.addEventListener('keydown', e => {
   }
 });
 $('#btnSearch').onclick = () => go('#/search');
-window.addEventListener('hashchange', render);
-applyTheme(); buildThemes(); render();
+window.addEventListener('hashchange', () => render());
+window.addEventListener('beforeunload', e => { if(EDITING){ e.preventDefault(); } });
+applyTheme(); buildThemes(); render(); initCaps();
 </script>
 </body>
 </html>
