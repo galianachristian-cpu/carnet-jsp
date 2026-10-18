@@ -1652,7 +1652,8 @@ function reparerAbsencesDemandes(db) {
 // Sécurité : un nom, une ville ou un message ne contient jamais de balise HTML.
 // Ces champs sont affichés tels quels à de nombreux endroits : on retire « < » et « > »
 // pour qu'un texte saisi (inscription en ligne, compte famille…) ne puisse pas devenir du code.
-const sansBalise = v => typeof v === 'string' ? v.replace(/[<>]/g, '') : v;
+// (déclaration de fonction : disponible dès le début du script, car loadData() l'utilise au démarrage)
+function sansBalise(v) { return typeof v === 'string' ? v.replace(/[<>]/g, '') : v; }
 function assainirObjet(o, profondeur) {
   if (!o || typeof o !== 'object' || profondeur > 2) return;
   Object.keys(o).forEach(k => {
