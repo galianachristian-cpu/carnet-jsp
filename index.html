@@ -755,7 +755,109 @@
   .btn-primary.chargement { cursor: progress; opacity: .9; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
   .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; animation: tourne .7s linear infinite; }
   @keyframes tourne { to { transform: rotate(360deg); } }
+
+  /* ── Fiche JSP ── */
+  .ligne-cliquable, .cellule-fiche { cursor: pointer; }
+  .cellule-fiche:hover strong { color: var(--bleu-clair); text-decoration: underline; }
+  .fiche-jsp { --promo-c: var(--promo, var(--bleu)); }
+  .fj-tete { display: flex; align-items: center; gap: 16px; margin: -28px -28px 18px; padding: 22px 24px; border-radius: 14px 14px 0 0; color: #fff;
+    background: linear-gradient(135deg, var(--promo-c), color-mix(in srgb, var(--promo-c) 55%, #0b1b33)); }
+  .fj-photo { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(255,255,255,.85), 0 8px 18px rgba(0,0,0,.25); }
+  .fj-init { display: grid; place-items: center; background: rgba(255,255,255,.2); font-size: 28px; font-weight: 700; }
+  .fj-id { flex: 1; min-width: 0; }
+  .fj-id h3 { color: #fff !important; font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 30px !important; margin: 0 0 6px !important; line-height: 1.05; }
+  .fj-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; opacity: .95; }
+  .fj-meta .badge-promo { background: rgba(255,255,255,.95); color: var(--promo-c); border-color: transparent; }
+  .fj-fermer { align-self: flex-start; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(255,255,255,.18); color: #fff; font-size: 18px; cursor: pointer; }
+  .fj-fermer:hover { background: rgba(255,255,255,.3); }
+  .fj-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .fj-kpi { --c: var(--bleu-clair); --cp: var(--bleu-pale); background: var(--cp); color: var(--c); border-radius: 12px; padding: 10px 8px; text-align: center; }
+  .fj-kpi.rouge { --c: var(--rouge); --cp: var(--rouge-pale); } .fj-kpi.orange { --c: var(--orange); --cp: var(--orange-pale); } .fj-kpi.vert { --c: var(--vert); --cp: var(--vert-pale); }
+  .fj-kpi b { display: block; font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 28px; line-height: 1.1; }
+  .fj-kpi span { font-size: 12px; font-weight: 600; }
+  .fj-jauge { margin-bottom: 16px; }
+  .fj-jauge-tete { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .fj-jauge-barre { height: 10px; border-radius: 6px; background: var(--gris-bg); overflow: hidden; border: 1px solid var(--gris-bord); }
+  .fj-jauge-barre i { display: block; height: 100%; border-radius: 6px; transition: width .6s cubic-bezier(.2,.8,.2,1); }
+  .fj-jauge small { display: block; font-size: 12px; color: var(--gris-txt); margin-top: 4px; }
+  .fj-grille { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fj-bloc { border: 1px solid var(--gris-bord); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; min-width: 0; }
+  .fj-bloc h4 { font-size: 14px; color: var(--bleu); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .fj-courbe { width: 100%; height: 70px; display: block; margin-bottom: 6px; }
+  .fj-courbe .fj-trait { fill: none; stroke: var(--promo-c); stroke-width: 2.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .fj-courbe .fj-aire { fill: color-mix(in srgb, var(--promo-c) 14%, transparent); }
+  .fj-courbe .fj-ligne10 { stroke: var(--gris-bord); stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+  .fj-courbe circle { fill: var(--blanc); stroke: var(--promo-c); stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .fj-ligne { display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 6px 0; border-top: 1px solid var(--gris-bord); }
+  .fj-ligne > span:first-child { color: var(--gris-txt); white-space: nowrap; }
+  .fj-l-txt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fj-vide { font-size: 13px; color: var(--gris-txt); }
+  .fj-contacts { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+  .fj-contact { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: var(--gris-bg); color: inherit; text-decoration: none; min-height: 48px; transition: background .15s; }
+  .fj-contact:hover { background: var(--bleu-pale); }
+  .fj-contact i { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--vert); color: #fff; font-size: 16px; flex-shrink: 0; }
+  .fj-contact span { display: flex; flex-direction: column; font-size: 14px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .fj-contact small { font-size: 11px; font-weight: 600; color: var(--gris-txt); }
+  [data-theme="dark"] .fj-courbe circle { fill: #1f2937; }
+  [data-theme="dark"] .btn-cancel { background: transparent; color: #f9fafb; border-color: #4b5563; }
+  @media (max-width: 640px) {
+    .fj-tete { margin: -28px -28px 14px; padding: 18px 16px; gap: 12px; }
+    .fj-photo { width: 60px; height: 60px; }
+    .fj-id h3 { font-size: 24px !important; }
+    .fj-kpis { grid-template-columns: repeat(2, 1fr); }
+    .fj-grille { grid-template-columns: 1fr; gap: 0; }
+  }
+
+  /* ── Menu du bas + tiroir (téléphone) ── */
+  .nav-bas, .voile-menu { display: none; }
+  @media (max-width: 640px) {
+    .main { display: block; }
+    .content { padding: 16px 14px calc(84px + env(safe-area-inset-bottom, 0px)); }
+    .sidebar { position: fixed; z-index: 90; top: 0; bottom: 0; left: 0; width: 270px; max-width: 82vw; overflow-y: auto;
+      padding: 16px 0 calc(90px + env(safe-area-inset-bottom, 0px)); transform: translateX(-105%); transition: transform .28s cubic-bezier(.2,.8,.2,1); box-shadow: 0 0 40px rgba(0,0,0,.25); }
+    body.menu-ouvert .sidebar { transform: none; }
+    .sidebar .nav-item span, .sidebar .nav-item .badge-nav, .sidebar .sidebar-section { display: revert; }
+    .sidebar .nav-item { justify-content: flex-start; padding: 11px 14px; margin: 1px 10px; }
+    .sidebar .nav-item.active::before { left: -10px; }
+    .voile-menu { position: fixed; inset: 0; z-index: 85; background: rgba(15,23,42,.45); opacity: 0; pointer-events: none; transition: opacity .25s; display: block; }
+    body.menu-ouvert .voile-menu { opacity: 1; pointer-events: auto; }
+    .nav-bas { position: fixed; z-index: 80; left: 0; right: 0; bottom: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+      background: var(--blanc); border-top: 1px solid var(--gris-bord); box-shadow: 0 -6px 20px rgba(16,24,40,.08); padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .nav-bas:empty { display: none; }
+    .nav-bas button { border: 0; background: none; color: var(--gris-txt); font: inherit; font-size: 11px; font-weight: 600; padding: 7px 2px 8px; min-height: 60px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; cursor: pointer; position: relative; min-width: 0; }
+    .nav-bas button i { font-size: 22px; width: 48px; height: 28px; display: grid; place-items: center; border-radius: 14px; transition: background .2s, color .2s; }
+    .nav-bas button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+    .nav-bas button.actif { color: var(--bleu); }
+    .nav-bas button.actif i { background: var(--bleu-pale); }
+    .nav-bas button.actif::before { content: ''; position: absolute; top: 0; left: 50%; width: 28px; height: 3px; margin-left: -14px; border-radius: 0 0 3px 3px; background: #cf1419; }
+    [data-theme="dark"] .nav-bas button.actif { color: #93c5fd; }
+  }
+  @media (max-width: 640px) and (prefers-reduced-motion: reduce) { .sidebar, .voile-menu { transition: none; } }
+
+  /* ── Bandeau « nouvelle version » ── */
+  .bandeau-maj { position: fixed; z-index: 3000; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); padding: 10px 10px 10px 16px; border-radius: 14px;
+    background: #163a64; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 12px 30px rgba(0,0,0,.3); animation: fadeIn .3s ease; }
+  .bandeau-maj button { border: 0; border-radius: 9px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer; background: #cf1419; color: #fff; white-space: nowrap; }
+  .bandeau-maj .bm-fermer { background: rgba(255,255,255,.15); padding: 8px 11px; }
+  @media (max-width: 640px) { .bandeau-maj { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); font-size: 13px; } }
 </style>
+<script>
+// Ouverture instantanée : copie de l'appli gardée sur l'appareil (voir sw.js)
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (!e.data || e.data.type !== 'nouvelle-version' || document.getElementById('bandeauMaj')) return;
+    const b = document.createElement('div');
+    b.id = 'bandeauMaj'; b.className = 'bandeau-maj'; b.setAttribute('role', 'status');
+    b.innerHTML = '<span>✨ Nouvelle version du carnet disponible</span><button type="button">Actualiser</button><button type="button" class="bm-fermer" aria-label="Plus tard">✕</button>';
+    b.querySelector('button').onclick = () => location.reload();
+    b.querySelector('.bm-fermer').onclick = () => b.remove();
+    (document.body || document.documentElement).appendChild(b);
+  });
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
 <!-- PDF, Excel, QR code, e-mail : « defer » pour ne pas retarder l'affichage (ils ne servent qu'au clic) -->
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -812,6 +914,7 @@
   </div>
 
   <div class="main">
+    <div class="voile-menu" onclick="fermerMenuMobile()"></div>
     <!-- Sidebar -->
     <div class="sidebar">
       <div id="sidebarAdmin" class="hidden">
@@ -960,6 +1063,7 @@
 
     <!-- Content -->
     <div class="content" id="content"></div>
+    <nav class="nav-bas" id="navBas" aria-label="Navigation principale"></nav>
   </div>
 </div>
 
@@ -2874,6 +2978,7 @@ function showSection(sec) {
     case 'subventions': c.innerHTML = renderSubventions(); break;
   }
   if (changement) { c.classList.remove('entree'); void c.offsetWidth; c.classList.add('entree'); }
+  fermerMenuMobile(); majNavBas(sec);
   try { majBadgeDemandesAbsence(); } catch (e) {}
   if (sec === 'absences' || sec === 'parent-absences') rafraichirDemandesAbsence();
 }
@@ -2947,6 +3052,85 @@ function banniereAccueil(p) {
     <i class="ti ti-flame ba-deco" aria-hidden="true"></i>
   </div>`;
 }
+// ══════════════════════════════════════════
+//  FICHE JSP EN UN CLIC (admin)
+// ══════════════════════════════════════════
+function ficheJSP(id) {
+  const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  const e = escTexte, pc = promoClasse(j.promotion);
+  const st = getAbsenceStats(j.id);
+  const ret = DB.retards.filter(r => r.jspId == j.id);
+  const comp = DB.comportements.filter(c => c.jspId == j.id).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const res = DB.resultats.filter(r => r.jspId == j.id && r.sur).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sur20 = r => Math.round(r.note / r.sur * 200) / 10;
+  const moy = res.length ? (res.reduce((s, r) => s + r.note / r.sur * 20, 0) / res.length).toFixed(1) : null;
+  let age = '';
+  if (j.dateNaissance) { const n = new Date(j.dateNaissance), a = new Date(); let ans = a.getFullYear() - n.getFullYear(); if (a < new Date(a.getFullYear(), n.getMonth(), n.getDate())) ans--; if (ans > 0 && ans < 30) age = ans + ' ans'; }
+  const avatar = j.photo ? `<img src="${j.photo}" alt="" class="fj-photo">` : `<div class="fj-photo fj-init">${e((j.prenom || '?')[0] + (j.nom || '?')[0])}</div>`;
+  const pire = Math.max(st.nonExc, st.exc), pct = Math.min(100, Math.round(pire / st.seuil * 100));
+  const jauge = `<div class="fj-jauge"><div class="fj-jauge-tete"><span>Absences de la saison</span><b>${pire} / ${st.seuil}</b></div>
+    <div class="fj-jauge-barre"><i style="width:${Math.max(pct, 3)}%;background:${pct >= 100 ? 'var(--rouge)' : pct >= 67 ? 'var(--orange)' : 'var(--vert)'}"></i></div>
+    <small>${st.alerte ? 'Seuil d\'alerte atteint' : st.seuil - pire > 1 ? 'Encore ' + (st.seuil - pire) + ' avant le seuil d\'alerte' : 'Plus qu\'une avant le seuil d\'alerte'}</small></div>`;
+  // Petite courbe des notes (sur 20)
+  let courbe = '';
+  if (res.length >= 2) {
+    const pts = res.slice(-10), W = 300, H = 70, x = i => 8 + i * (W - 16) / (pts.length - 1), y = v => H - 6 - v / 20 * (H - 12);
+    const d = pts.map((r, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(sur20(r)).toFixed(1)).join(' ');
+    courbe = `<svg class="fj-courbe" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Évolution des notes">
+      <line x1="0" x2="${W}" y1="${y(10)}" y2="${y(10)}" class="fj-ligne10"/>
+      <path d="${d} L${x(pts.length - 1)} ${H} L${x(0)} ${H} Z" class="fj-aire"/><path d="${d}" class="fj-trait"/>
+      ${pts.map((r, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(sur20(r)).toFixed(1)}" r="3.5"><title>${fmtDate(r.date)} · ${e(r.matiere || '')} : ${r.note}/${r.sur}</title></circle>`).join('')}</svg>`;
+  }
+  const notes = res.slice(-4).reverse().map(r => `<div class="fj-ligne"><span>${fmtDate(r.date)}</span><span class="fj-l-txt">${e(r.matiere || '')}</span><span class="badge badge-${noteColor(r.note, r.sur)}">${r.note}/${r.sur}</span></div>`).join('');
+  const comps = comp.slice(0, 3).map(c => `<div class="fj-ligne"><span>${fmtDate(c.date)}</span><span class="fj-l-txt">${e(c.description || '')}</span><span class="badge ${c.type === 'Félicitations' ? 'badge-vert' : c.gravite === 'grave' ? 'badge-rouge' : 'badge-orange'}">${e(c.type || '')}</span></div>`).join('');
+  const tel = (num, lbl) => num ? `<a class="fj-contact" href="tel:${e(String(num).replace(/[^\d+]/g, ''))}"><i class="ti ti-phone" aria-hidden="true"></i><span><small>${lbl}</small>${e(num)}</span></a>` : '';
+  const contacts = tel(j.telPere, 'Père') + tel(j.telMere, 'Mère') + tel(j.telJSP, 'JSP')
+    + (j.email ? `<a class="fj-contact" href="mailto:${e(j.email)}"><i class="ti ti-mail" aria-hidden="true"></i><span><small>E-mail</small>${e(j.email)}</span></a>` : '');
+  openModalWide(`<div class="fiche-jsp ${pc}">
+    <div class="fj-tete">${avatar}
+      <div class="fj-id"><h3>${e(j.prenom)} ${e(j.nom)}</h3>
+        <div class="fj-meta">${promoBadge(j.promotion)}${age ? '<span>' + age + '</span>' : ''}${j.ville ? '<span><i class="ti ti-map-pin" aria-hidden="true"></i> ' + e(j.ville) + '</span>' : ''}</div></div>
+      <button class="fj-fermer" onclick="closeModal()" aria-label="Fermer"><i class="ti ti-x"></i></button></div>
+    <div class="fj-kpis">
+      <div class="fj-kpi ${st.nonExc ? 'rouge' : 'vert'}"><b>${st.nonExc}</b><span>Abs. non excusées</span></div>
+      <div class="fj-kpi ${st.exc ? 'orange' : 'vert'}"><b>${st.exc}</b><span>Abs. excusées</span></div>
+      <div class="fj-kpi ${ret.length ? 'orange' : 'vert'}"><b>${ret.length}</b><span>Retards</span></div>
+      <div class="fj-kpi ${moy ? noteColor(parseFloat(moy), 20) : ''}"><b>${moy || '—'}</b><span>Moyenne /20</span></div>
+    </div>
+    ${jauge}
+    <div class="fj-grille">
+      <div class="fj-bloc"><h4><i class="ti ti-school" aria-hidden="true"></i> Résultats</h4>${courbe}${notes || '<p class="fj-vide">Aucune note pour l\'instant</p>'}</div>
+      <div class="fj-bloc"><h4><i class="ti ti-mood-smile" aria-hidden="true"></i> Comportement</h4>${comps || '<p class="fj-vide">Rien à signaler 👍</p>'}</div>
+    </div>
+    ${contacts ? `<div class="fj-bloc"><h4><i class="ti ti-address-book" aria-hidden="true"></i> Contacts</h4><div class="fj-contacts">${contacts}</div></div>` : ''}
+    <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Fermer</button><button class="btn-save" onclick="closeModal();modalEditJSP(${j.id})"><i class="ti ti-pencil" aria-hidden="true"></i> Modifier la fiche</button></div>
+  </div>`);
+}
+// ══════════════════════════════════════════
+//  MENU DU BAS (téléphone)
+// ══════════════════════════════════════════
+// Rubriques mises en avant selon le profil ; le reste est dans le tiroir « Menu »
+const NAV_BAS_PREF = {
+  sidebarAdmin: ['dashboard', 'feuille-appel', 'planning', 'trombinoscope'],
+  sidebarParent: ['parent-accueil', 'parent-planning', 'parent-absences', 'parent-messages']
+};
+const NAV_BAS_COURT = { 'dashboard': 'Accueil', 'feuille-appel': 'Appel', 'trombinoscope': 'Trombi', 'parent-accueil': 'Accueil', 'parent-planning': 'Planning', 'parent-absences': 'Absences', 'parent-messages': 'Messages' };
+function majNavBas(sec) {
+  const nb = document.getElementById('navBas'); if (!nb) return;
+  const side = ['sidebarAdmin', 'sidebarParent', 'sidebarSpecial'].map(id => document.getElementById(id)).find(d => d && !d.classList.contains('hidden'));
+  if (!side) { nb.innerHTML = ''; return; }
+  const items = [...side.querySelectorAll('.nav-item')].map(it => ({ it, sec: ((it.getAttribute('onclick') || '').match(/showSection\('([^']+)'\)/) || [])[1] })).filter(x => x.sec);
+  const pref = NAV_BAS_PREF[side.id];
+  const choix = (pref ? pref.map(k => items.find(x => x.sec === k)).filter(Boolean) : []).concat(items).filter((x, i, t) => t.indexOf(x) === i).slice(0, 4);
+  const courant = sec || currentSection;
+  nb.innerHTML = choix.map(x => {
+    const ico = x.it.querySelector('i'), lbl = x.it.querySelector('span');
+    return `<button class="${x.sec === courant ? 'actif' : ''}" onclick="showSection('${x.sec}')"><i class="${ico ? ico.className : 'ti ti-point'}" aria-hidden="true"></i><span>${escTexte(NAV_BAS_COURT[x.sec] || (lbl ? lbl.textContent.trim() : x.sec))}</span></button>`;
+  }).join('') + `<button class="${choix.some(x => x.sec === courant) ? '' : 'actif'}" onclick="ouvrirMenuMobile()"><i class="ti ti-menu-2" aria-hidden="true"></i><span>Menu</span></button>`;
+}
+function ouvrirMenuMobile() { document.body.classList.add('menu-ouvert'); }
+function fermerMenuMobile() { document.body.classList.remove('menu-ouvert'); }
+
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
 // ══════════════════════════════════════════
@@ -2992,7 +3176,7 @@ function renderDashboard() {
             const res = DB.resultats.filter(r=>r.jspId==j.id);
             const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
             const stats = getAbsenceStats(j.id);
-            return `<tr class="${promoClasse(j.promotion)}${stats.alerte ? ' ligne-alerte' : ''}">
+            return `<tr class="${promoClasse(j.promotion)}${stats.alerte ? ' ligne-alerte' : ''} ligne-cliquable" onclick="ficheJSP(${j.id})" title="Voir la fiche">
               <td style="display:flex;align-items:center;gap:10px">
           ${j.photo ? '<img src="'+j.photo+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--promo, var(--bleu))">' : '<div style="width:36px;height:36px;border-radius:50%;background:var(--promo, var(--bleu));color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+j.prenom[0]+j.nom[0]+'</div>'}
           <strong>${j.prenom} ${j.nom}</strong>
@@ -3043,7 +3227,7 @@ function renderTrombinoscope() {
       ? `<img src="${j.photo}" style="width:100%;height:140px;object-fit:cover;border-radius:10px 10px 0 0">`
       : `<div style="width:100%;height:140px;background:linear-gradient(135deg, var(--promo, var(--bleu)), color-mix(in srgb, var(--promo, var(--bleu)) 60%, #000));color:white;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;border-radius:10px 10px 0 0">${j.prenom[0]}${j.nom[0]}</div>`;
     return `
-    <div class="trombi-card ${promoClasse(j.promotion)}" onclick="modalEditJSP(${j.id})" title="Cliquer pour modifier la photo">
+    <div class="trombi-card ${promoClasse(j.promotion)}" onclick="ficheJSP(${j.id})" title="Voir la fiche">
       ${photo}
       <div style="padding:10px 12px">
         <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.prenom} ${j.nom}</div>
@@ -3165,10 +3349,10 @@ function renderJSPs() {
 function renderLignesJSPs(jsps) {
   if (!jsps.length) return `<tr class="empty-row"><td colspan="10"><i class="ti ti-users-off"></i> Aucun JSP trouvé</td></tr>`;
   return jsps.map(j => `<tr class="${promoClasse(j.promotion)}">
-    <td>${j.photo
+    <td class="cellule-fiche" onclick="ficheJSP(${j.id})" title="Voir la fiche">${j.photo
       ? '<img src="'+j.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover">'
       : '<div style="width:34px;height:34px;border-radius:50%;background:var(--promo, var(--bleu));color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>'}</td>
-    <td><strong>${j.prenom} ${j.nom}</strong></td>
+    <td class="cellule-fiche" onclick="ficheJSP(${j.id})" title="Voir la fiche"><strong>${j.prenom} ${j.nom}</strong></td>
     <td>${promoBadge(j.promotion)}</td>
     <td>${j.ville||'—'}</td>
     <td style="font-size:12px;color:var(--gris-txt)">${j.adresse||'—'}</td>
