@@ -844,6 +844,67 @@
   .bandeau-maj button { border: 0; border-radius: 9px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer; background: #cf1419; color: #fff; white-space: nowrap; }
   .bandeau-maj .bm-fermer { background: rgba(255,255,255,.15); padding: 8px 11px; }
   @media (max-width: 640px) { .bandeau-maj { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); font-size: 13px; } }
+
+  /* ── Recherche rapide ── */
+  .btn-recherche { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px 0 10px; border-radius: 8px; cursor: pointer; font: inherit; font-size: 13px;
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.28); color: #fff; margin-right: 4px; min-width: 190px; }
+  .btn-recherche:hover { background: rgba(255,255,255,.2); }
+  .btn-recherche i { font-size: 16px; }
+  .btn-recherche .lbl-recherche { flex: 1; text-align: left; opacity: .85; }
+  .btn-recherche kbd, .rch-champ kbd { font: inherit; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,.18); }
+  .btn-recherche[hidden] { display: none; }
+  .recherche-fond { position: fixed; inset: 0; z-index: 2500; background: rgba(15,23,42,.5); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+    display: none; align-items: flex-start; justify-content: center; padding: 10vh 12px 12px; }
+  .recherche-fond.ouvert { display: flex; animation: fondu .15s ease; }
+  .recherche-boite { width: 560px; max-width: 100%; background: var(--blanc); border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.35); overflow: hidden; animation: fadeIn .2s ease; }
+  .rch-champ { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--gris-bord); }
+  .rch-champ i { font-size: 20px; color: var(--gris-txt); }
+  .rch-champ input { flex: 1; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; font-size: 17px; min-width: 0; }
+  .rch-fermer { border: 1px solid var(--gris-bord); background: var(--gris-bg); color: var(--gris-txt); font: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+  .rch-fermer:hover { color: var(--bleu); border-color: var(--bleu-clair); }
+  .rch-res { max-height: 60vh; overflow-y: auto; padding: 6px; }
+  .rch-groupe { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--gris-txt); padding: 10px 10px 4px; }
+  .rch-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; background: none; color: inherit; font: inherit; padding: 8px 10px; border-radius: 10px; cursor: pointer; min-height: 52px; }
+  .rch-item:hover, .rch-item.sel { background: var(--bleu-pale); }
+  .rch-av { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; overflow: hidden; display: grid; place-items: center; background: var(--promo, var(--bleu)); color: #fff; font-size: 13px; font-weight: 700; }
+  .rch-av img { width: 100%; height: 100%; object-fit: cover; }
+  .rch-ico { border-radius: 10px; background: var(--gris-bg); color: var(--bleu); font-size: 18px; }
+  .rch-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .rch-txt b { font-size: 15px; } .rch-txt small { font-size: 12px; color: var(--gris-txt); }
+  .rch-fleche { color: var(--gris-txt); }
+  .rch-vide { padding: 22px; text-align: center; color: var(--gris-txt); font-size: 14px; }
+  @media (max-width: 640px) {
+    .btn-recherche { min-width: 0; padding: 0 9px; height: 36px; }
+    .btn-recherche .lbl-recherche, .btn-recherche kbd { display: none; }
+    .recherche-fond { padding-top: 12px; }
+  }
+
+  /* ── Pastilles d'état ── */
+  .etat-pt { display: inline-block; width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px var(--blanc); }
+  .etat-pt.vert { background: #16a34a; } .etat-pt.orange { background: #f59e0b; } .etat-pt.rouge { background: #dc2626; animation: alertePulse 2.4s ease-in-out infinite; }
+  .trombi-card { position: relative; }
+  .etat-pt.sur-photo { position: absolute; top: 10px; right: 10px; width: 16px; height: 16px; box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(0,0,0,.3); z-index: 1; }
+  .etat-legende { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--gris-txt); margin: -6px 0 18px; }
+  .etat-legende span { display: inline-flex; align-items: center; gap: 6px; }
+  .etat-legende .etat-pt { box-shadow: none; animation: none; }
+
+  /* ── Anniversaires ── */
+  .carte-anniv { margin-bottom: 24px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--gris-bord); box-shadow: var(--ombre);
+    background: linear-gradient(135deg, color-mix(in srgb, #f59e0b 10%, var(--blanc)), var(--blanc) 60%); }
+  .ca-titre { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--bleu); }
+  .ca-gateau { font-size: 22px; display: inline-block; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-3px) rotate(-6deg); } }
+  .ca-liste { display: flex; flex-wrap: wrap; gap: 10px; }
+  .ca-item { display: flex; align-items: center; gap: 10px; padding: 7px 14px 7px 7px; border-radius: 40px; border: 1px solid var(--gris-bord); background: var(--blanc);
+    color: inherit; font: inherit; cursor: pointer; text-align: left; transition: transform .15s, box-shadow .15s; }
+  .ca-item:hover { transform: translateY(-1px); box-shadow: var(--ombre-haute); }
+  .ca-item.aujourdhui { border-color: #f59e0b; box-shadow: 0 0 0 3px color-mix(in srgb, #f59e0b 25%, transparent); }
+  .ca-av { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: var(--promo, var(--bleu)); color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .ca-av img { width: 100%; height: 100%; object-fit: cover; }
+  .ca-txt { display: flex; flex-direction: column; line-height: 1.2; }
+  .ca-txt b { font-size: 14px; } .ca-txt small { font-size: 12px; color: var(--gris-txt); }
+  .ca-txt small::first-letter { text-transform: uppercase; }
+  @media (prefers-reduced-motion: reduce) { .ca-gateau, .etat-pt.rouge, .recherche-fond.ouvert, .recherche-boite { animation: none !important; } }
 </style>
 <script>
 // Ouverture instantanée : copie de l'appli gardée sur l'appareil (voir sw.js)
@@ -903,6 +964,7 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         <p>CIS Cruzy-Quarante</p>
       </div>
       <div class="header-user">
+        <button type="button" id="btnRecherche" class="btn-recherche" onclick="ouvrirRecherche()" title="Rechercher un JSP (touche /)" aria-label="Rechercher" hidden><i class="ti ti-search" aria-hidden="true"></i><span class="lbl-recherche">Rechercher</span><kbd>/</kbd></button>
         <button onclick="toggleDarkMode()" id="btn-dark" title="Mode sombre" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:16px;margin-right:4px">🌙</button>
         <div id="sync-cloud-status" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:5px 10px;margin-right:4px;font-size:12px;color:white">
           <div class="sync-dot wait" id="sync-cloud-dot" style="width:8px;height:8px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
@@ -2981,6 +3043,7 @@ function showSection(sec) {
   }
   if (changement) { c.classList.remove('entree'); void c.offsetWidth; c.classList.add('entree'); }
   fermerMenuMobile(); majNavBas(sec);
+  const br = document.getElementById('btnRecherche'); if (br) br.hidden = !(currentUser && currentUser.role === 'admin');
   try { majBadgeDemandesAbsence(); } catch (e) {}
   if (sec === 'absences' || sec === 'parent-absences') rafraichirDemandesAbsence();
 }
@@ -3132,6 +3195,104 @@ function majNavBas(sec) {
 function ouvrirMenuMobile() { document.body.classList.add('menu-ouvert'); }
 function fermerMenuMobile() { document.body.classList.remove('menu-ouvert'); }
 
+// ══════════════════════════════════════════
+//  ÉTAT D'UN JSP (pastille du trombinoscope)
+// ══════════════════════════════════════════
+// rouge : seuil d'alerte d'absences atteint ou comportement grave (3 derniers mois)
+// orange : une absence non excusée, 2 absences excusées, 2 retards, un avertissement / réprimande récente ou moyenne < 10
+function etatJSP(j) {
+  const st = getAbsenceStats(j.id), raisons = [];
+  const debut = new Date(); debut.setDate(debut.getDate() - 90); const depuis = dateISOLocale(debut);
+  const ret = DB.retards.filter(r => r.jspId == j.id && (!r.date || r.date >= depuis)).length;
+  const comp = DB.comportements.filter(c => c.jspId == j.id && c.type !== 'Félicitations' && (c.date || '') >= depuis);
+  const res = DB.resultats.filter(r => r.jspId == j.id && r.sur);
+  const moy = res.length ? res.reduce((s, r) => s + r.note / r.sur * 20, 0) / res.length : null;
+  if (st.alerte) raisons.push('seuil d\'alerte d\'absences');
+  if (comp.some(c => c.gravite === 'grave')) raisons.push('comportement grave');
+  if (raisons.length) return { niveau: 'rouge', raisons };
+  if (st.nonExc >= 1) raisons.push(st.nonExc + ' absence(s) non excusée(s)');
+  if (st.exc >= 2) raisons.push(st.exc + ' absences excusées');
+  if (ret >= 2) raisons.push(ret + ' retards (3 mois)');
+  if (comp.length) raisons.push(comp.length + ' remarque(s) de comportement (3 mois)');
+  if (moy != null && moy < 10) raisons.push('moyenne ' + moy.toFixed(1) + '/20');
+  return { niveau: raisons.length ? 'orange' : 'vert', raisons };
+}
+function pastilleEtat(j) {
+  const e = etatJSP(j), txt = e.raisons.length ? e.raisons.join(', ') : 'Tout va bien';
+  return `<span class="etat-pt ${e.niveau} sur-photo" title="${escTexte(txt)}" aria-label="${escTexte(txt)}"></span>`;
+}
+
+// ══════════════════════════════════════════
+//  ANNIVERSAIRES (tableau de bord)
+// ══════════════════════════════════════════
+function carteAnniversaires() {
+  const auj = new Date(); auj.setHours(0, 0, 0, 0);
+  const liste = DB.jsps.filter(j => j.dateNaissance && /^\d{4}-\d{2}-\d{2}/.test(j.dateNaissance)).map(j => {
+    const [a, m, d] = j.dateNaissance.slice(0, 10).split('-').map(Number);
+    let pro = new Date(auj.getFullYear(), m - 1, d); if (pro < auj) pro = new Date(auj.getFullYear() + 1, m - 1, d);
+    return { j, pro, dans: Math.round((pro - auj) / 86400000), age: pro.getFullYear() - a };
+  }).filter(x => x.dans <= 14).sort((x, y) => x.dans - y.dans);
+  if (!liste.length) return '';
+  const quand = x => x.dans === 0 ? "Aujourd'hui 🎉" : x.dans === 1 ? 'Demain' : x.pro.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return `<div class="carte-anniv">
+    <div class="ca-titre"><span class="ca-gateau" aria-hidden="true">🎂</span> Anniversaires des 15 prochains jours</div>
+    <div class="ca-liste">${liste.map(x => `<button class="ca-item ${promoClasse(x.j.promotion)}${x.dans === 0 ? ' aujourdhui' : ''}" onclick="ficheJSP(${x.j.id})">
+      <span class="ca-av">${x.j.photo ? `<img src="${x.j.photo}" alt="">` : escTexte((x.j.prenom || '?')[0] + (x.j.nom || '?')[0])}</span>
+      <span class="ca-txt"><b>${escTexte(x.j.prenom)} ${escTexte(x.j.nom)}</b><small>${quand(x)} · ${x.age} ans</small></span></button>`).join('')}</div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+//  RECHERCHE RAPIDE (admin) : JSP et rubriques
+// ══════════════════════════════════════════
+const sansAccents = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+function ouvrirRecherche() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  let o = document.getElementById('recherche');
+  if (!o) {
+    o = document.createElement('div'); o.id = 'recherche'; o.className = 'recherche-fond';
+    o.innerHTML = `<div class="recherche-boite" role="dialog" aria-modal="true" aria-label="Recherche rapide">
+      <div class="rch-champ"><i class="ti ti-search" aria-hidden="true"></i><input id="rchInput" type="search" placeholder="Un JSP, une ville, une rubrique…" autocomplete="off" aria-controls="rchRes"><button type="button" class="rch-fermer" onclick="fermerRecherche()">Fermer</button></div>
+      <div class="rch-res" id="rchRes" role="listbox"></div></div>`;
+    o.addEventListener('click', ev => { if (ev.target === o) fermerRecherche(); });
+    document.body.appendChild(o);
+    const inp = o.querySelector('#rchInput');
+    inp.addEventListener('input', () => afficherResultatsRecherche(inp.value));
+    inp.addEventListener('keydown', ev => {
+      const items = [...o.querySelectorAll('.rch-item')]; let i = items.findIndex(x => x.classList.contains('sel'));
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); if (!items.length) return; i = ev.key === 'ArrowDown' ? (i + 1) % items.length : (i - 1 + items.length) % items.length; items.forEach((x, k) => x.classList.toggle('sel', k === i)); items[i].scrollIntoView({ block: 'nearest' }); }
+      else if (ev.key === 'Enter') { ev.preventDefault(); (items[i] || items[0] || { click() {} }).click(); }
+      else if (ev.key === 'Escape') fermerRecherche();
+    });
+  }
+  o.classList.add('ouvert');
+  const inp = o.querySelector('#rchInput'); inp.value = ''; afficherResultatsRecherche('');
+  setTimeout(() => inp.focus(), 30);
+}
+function fermerRecherche() { const o = document.getElementById('recherche'); if (o) o.classList.remove('ouvert'); }
+function afficherResultatsRecherche(q) {
+  const zone = document.getElementById('rchRes'); if (!zone) return;
+  const mots = sansAccents(q).split(/\s+/).filter(Boolean);
+  const ok = txt => mots.every(m => sansAccents(txt).includes(m));
+  const jsps = DB.jsps.filter(j => !mots.length || ok(j.prenom + ' ' + j.nom + ' ' + (j.promotion || '') + ' ' + (j.ville || '')))
+    .sort((a, b) => (a.nom || '').localeCompare(b.nom || '')).slice(0, mots.length ? 8 : 6);
+  const rubriques = mots.length ? [...document.querySelectorAll('#sidebarAdmin .nav-item')].map(it => ({ sec: ((it.getAttribute('onclick') || '').match(/showSection\('([^']+)'\)/) || [])[1], ico: (it.querySelector('i') || {}).className || 'ti ti-point', lbl: ((it.querySelector('span') || {}).textContent || '').trim() }))
+    .filter(r => r.sec && ok(r.lbl)).slice(0, 5) : [];
+  let h = '';
+  if (jsps.length) h += `<div class="rch-groupe">${mots.length ? 'JSP' : 'Tous les JSP'}</div>` + jsps.map((j, k) => `<button class="rch-item ${promoClasse(j.promotion)}${k === 0 ? ' sel' : ''}" role="option" onclick="fermerRecherche();ficheJSP(${j.id})">
+      <span class="rch-av">${j.photo ? `<img src="${j.photo}" alt="">` : escTexte((j.prenom || '?')[0] + (j.nom || '?')[0])}</span>
+      <span class="rch-txt"><b>${escTexte(j.prenom)} ${escTexte(j.nom)}</b><small>${escTexte(j.ville || '')}</small></span>${promoBadge(j.promotion)}${pastilleEtat(j).replace('sur-photo', '')}</button>`).join('');
+  if (rubriques.length) h += '<div class="rch-groupe">Rubriques</div>' + rubriques.map((r, k) => `<button class="rch-item${!jsps.length && k === 0 ? ' sel' : ''}" role="option" onclick="fermerRecherche();showSection('${r.sec}')"><span class="rch-av rch-ico"><i class="${r.ico}" aria-hidden="true"></i></span><span class="rch-txt"><b>${escTexte(r.lbl)}</b><small>Ouvrir la rubrique</small></span><i class="ti ti-arrow-right rch-fleche" aria-hidden="true"></i></button>`).join('');
+  zone.innerHTML = h || '<p class="rch-vide">Aucun résultat pour « ' + escTexte(q) + ' »</p>';
+}
+// Touche « / » (ou Ctrl+K) pour ouvrir la recherche, hors des champs de saisie
+document.addEventListener('keydown', ev => {
+  const champ = ev.target && (ev.target.closest && ev.target.closest('input, textarea, select, [contenteditable="true"]'));
+  if ((ev.key === '/' && !champ) || ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k')) {
+    if (currentUser && currentUser.role === 'admin' && document.getElementById('app').style.display !== 'none') { ev.preventDefault(); ouvrirRecherche(); }
+  }
+});
+
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
 // ══════════════════════════════════════════
@@ -3158,6 +3319,7 @@ function renderDashboard() {
       <div class="stat-card ${reprimandes ? 'rouge' : 'vert'}"><i class="ti ti-alert-triangle stat-ico" aria-hidden="true"></i><div class="stat-val">${reprimandes}</div><div class="stat-lbl">Comportements</div></div>
       ${jspsEnAlerte > 0 ? `<div class="stat-card rouge stat-alerte" style="cursor:pointer" onclick="showSection('absences')"><i class="ti ti-urgent stat-ico" aria-hidden="true"></i><div class="stat-val">${jspsEnAlerte}</div><div class="stat-lbl">JSP en alerte absences</div></div>` : ''}
     </div>
+    ${carteAnniversaires()}
     <div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Prochains événements</h2></div>
     <div class="planning-grid">
       ${prochains.length ? prochains.map(p => `
@@ -3229,7 +3391,7 @@ function renderTrombinoscope() {
       : `<div style="width:100%;height:140px;background:linear-gradient(135deg, var(--promo, var(--bleu)), color-mix(in srgb, var(--promo, var(--bleu)) 60%, #000));color:white;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;border-radius:10px 10px 0 0">${j.prenom[0]}${j.nom[0]}</div>`;
     return `
     <div class="trombi-card ${promoClasse(j.promotion)}" onclick="ficheJSP(${j.id})" title="Voir la fiche">
-      ${photo}
+      ${pastilleEtat(j)}${photo}
       <div style="padding:10px 12px">
         <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.prenom} ${j.nom}</div>
         <div style="font-size:11px;color:var(--gris-txt);margin-top:2px">${j.ville||''}</div>
@@ -3254,6 +3416,7 @@ function renderTrombinoscope() {
     .trombi-group-count { background:var(--bleu-pale); color:var(--bleu); border-radius:20px; padding:2px 10px; font-size:12px; }
   </style>
 
+  <div class="etat-legende"><span><i class="etat-pt vert"></i> Tout va bien</span><span><i class="etat-pt orange"></i> À surveiller</span><span><i class="etat-pt rouge"></i> Seuil d'alerte</span></div>
   ${groupes.map(g => `
     <div class="trombi-group-title ${promoClasse(g.label)}">
       <i class="ti ti-flame"></i> ${g.label}
