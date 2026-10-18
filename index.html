@@ -696,6 +696,60 @@
     .content.entree > *, .modal, .modal-bg, .stat-alerte { animation: none !important; }
     .stat-card, .planning-item, .btn-add, .btn-save, .btn-danger, .btn-primary { transition: none; }
   }
+
+  /* ── Bannière d'accueil ── */
+  .banniere-accueil { position: relative; overflow: hidden; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+    margin-bottom: 20px; padding: 22px 24px 22px 32px; border-radius: 16px; color: #fff;
+    background: radial-gradient(600px 200px at 100% 0%, rgba(207,20,25,.35), transparent 60%), linear-gradient(135deg, #163a64 0%, #1d4b80 100%);
+    box-shadow: var(--ombre-haute); }
+  .banniere-accueil::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 8px;
+    background: linear-gradient(180deg, #163a64 0 33%, #fff 33% 66%, #cf1419 66% 100%); }
+  .ba-texte { flex: 1; min-width: 220px; position: relative; z-index: 1; }
+  .ba-date { font-size: 13px; font-weight: 600; opacity: .8; text-transform: capitalize; }
+  .banniere-accueil h2 { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 34px; font-weight: 700; line-height: 1.05; margin: 2px 0 6px; }
+  .ba-sous { font-size: 14px; opacity: .85; display: flex; align-items: center; gap: 6px; }
+  .ba-rdv { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 2px; min-width: 240px; max-width: 360px; cursor: pointer;
+    padding: 12px 16px; border-radius: 12px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: background .15s, transform .15s; }
+  .ba-rdv:hover { background: rgba(255,255,255,.18); transform: translateY(-1px); }
+  .ba-rdv-lbl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .8; display: flex; align-items: center; gap: 5px; }
+  .ba-rdv b { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 22px; line-height: 1.1; }
+  .ba-rdv-quand { font-size: 13px; opacity: .85; text-transform: capitalize; }
+  .ba-rebours { position: absolute; top: 10px; right: 12px; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 20px; background: rgba(255,255,255,.2); }
+  .ba-rebours.bientot { background: #cf1419; }
+  .ba-deco { position: absolute; right: -10px; bottom: -34px; font-size: 150px; opacity: .07; pointer-events: none; }
+  [data-theme="dark"] .banniere-accueil { background: radial-gradient(600px 200px at 100% 0%, rgba(207,20,25,.28), transparent 60%), linear-gradient(135deg, #0f2745 0%, #163a64 100%); }
+
+  /* ── Couleurs des promotions ── */
+  .promo-1 { --promo: #7c3aed; } .promo-2 { --promo: #ea580c; } .promo-3 { --promo: #0d9488; } .promo-4 { --promo: #db2777; }
+  .badge-promo { background: color-mix(in srgb, var(--promo, var(--bleu)) 14%, transparent); color: var(--promo, var(--bleu)); border: 1px solid color-mix(in srgb, var(--promo, var(--bleu)) 30%, transparent); }
+  [data-theme="dark"] .badge-promo { color: color-mix(in srgb, var(--promo, var(--bleu)) 60%, #fff); }
+  tbody tr.ligne-alerte { background: var(--rouge-pale); }
+  .trombi-card.trombi-card[class*="promo-"] { border-top: 4px solid var(--promo); }
+  [data-theme="dark"] .trombi-card { background: #1f2937; border-color: #374151; }
+  .trombi-group-title[class*="promo-"] { color: var(--promo); border-bottom-color: color-mix(in srgb, var(--promo) 30%, transparent); }
+  .trombi-group-title[class*="promo-"] .trombi-group-count { background: color-mix(in srgb, var(--promo) 14%, transparent); color: var(--promo); }
+
+  /* ── Bandeau du haut sur téléphone ── */
+  .btn-logout { display: inline-flex; align-items: center; gap: 6px; }
+  .btn-logout i { font-size: 16px; }
+  @media (max-width: 640px) {
+    .header-content { padding: 10px 12px; gap: 10px; }
+    .flamme img { height: 40px !important; width: auto !important; }
+    .header-titre { min-width: 0; }
+    .header-titre h1 { font-size: 21px; white-space: nowrap; }
+    .header-titre p { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .header-user { gap: 6px; flex-shrink: 0; }
+    .header-user-ico, #headerUserName, .lbl-logout, #sync-cloud-label { display: none; }
+    #sync-cloud-status { padding: 9px !important; margin-right: 0 !important; }
+    #btn-dark { margin-right: 0 !important; }
+    .btn-logout { padding: 6px 9px; }
+    .section-header { flex-wrap: wrap; gap: 10px; }
+    .banniere-accueil { padding: 18px 16px 18px 24px; }
+    .banniere-accueil h2 { font-size: 28px; }
+    .ba-rdv { min-width: 0; max-width: none; width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .ba-rdv { transition: none; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -744,9 +798,9 @@
           <div class="sync-dot wait" id="sync-cloud-dot" style="width:8px;height:8px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
           <span id="sync-cloud-label">Cloud…</span>
         </div>
-        <i class="ti ti-user-circle" style="font-size:20px"></i>
+        <i class="ti ti-user-circle header-user-ico" style="font-size:20px"></i>
         <span id="headerUserName"></span>
-        <button class="btn-logout" onclick="doLogout()">Déconnexion</button>
+        <button class="btn-logout" onclick="doLogout()" aria-label="Déconnexion"><i class="ti ti-logout" aria-hidden="true"></i><span class="lbl-logout">Déconnexion</span></button>
       </div>
     </div>
   </div>
@@ -2837,12 +2891,41 @@ function planningTypeBadge(t) {
   return `<span class="badge ${map[t]||'badge-gris'}">${libelleTypePlanning(t)}</span>`;
 }
 // Mini feuillet de calendrier (jour + mois) et compte à rebours pour le tableau de bord
+function joursAvant(iso) { const d = new Date(iso + 'T12:00:00'), auj = new Date(); auj.setHours(12, 0, 0, 0); return Math.round((d - auj) / 86400000); }
+function texteRebours(n) { return n <= 0 ? "Aujourd'hui" : n === 1 ? 'Demain' : 'Dans ' + n + ' j'; }
 function evtFeuillet(iso) {
-  const d = new Date(iso + 'T12:00:00'), auj = new Date(); auj.setHours(12, 0, 0, 0);
-  const n = Math.round((d - auj) / 86400000);
-  const rebours = n <= 0 ? "Aujourd'hui" : n === 1 ? 'Demain' : 'Dans ' + n + ' j';
+  const d = new Date(iso + 'T12:00:00'), n = joursAvant(iso), rebours = texteRebours(n);
   return `<div class="evt-date"><span class="evt-mois">${d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '')}</span><b>${d.getDate()}</b></div>`
     + `<div class="evt-quand"><span class="evt-jour">${d.toLocaleDateString('fr-FR', { weekday: 'long' })}</span><span class="evt-rebours${n <= 1 ? ' bientot' : ''}">${rebours}</span></div>`;
+}
+// Couleur de chaque promotion (JSP 1 violet, JSP 2 orange, JSP 3 turquoise, JSP 4 rose)
+function promoClasse(p) { const m = /([1-4])/.exec(p || ''); return m ? 'promo-' + m[1] : ''; }
+function promoBadge(p) { return `<span class="badge badge-promo ${promoClasse(p)}">${p || '—'}</span>`; }
+// Bannière d'accueil du tableau de bord : salutation, date du jour et prochain rendez-vous
+function banniereAccueil(p) {
+  const h = new Date().getHours(), salut = (h >= 18 || h < 5) ? 'Bonsoir' : 'Bonjour';
+  const nom = currentUser && currentUser.nom ? ' ' + escTexte(currentUser.nom) : '';
+  const date = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const nbPromos = new Set(DB.jsps.map(j => j.promotion).filter(Boolean)).size;
+  let rdv = '';
+  if (p) {
+    const n = joursAvant(p.date), jour = new Date(p.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    rdv = `<div class="ba-rdv" onclick="showSection('planning')" role="button" tabindex="0">
+      <span class="ba-rdv-lbl"><i class="ti ti-calendar-event" aria-hidden="true"></i> Prochain rendez-vous</span>
+      <b>${escTexte(p.titre || '')}</b>
+      <span class="ba-rdv-quand">${jour}${p.lieu ? ' · ' + escTexte(p.lieu) : ''}</span>
+      <span class="ba-rebours${n <= 1 ? ' bientot' : ''}">${texteRebours(n)}</span>
+    </div>`;
+  }
+  return `<div class="banniere-accueil">
+    <div class="ba-texte">
+      <p class="ba-date">${date}</p>
+      <h2>${salut}${nom}</h2>
+      <p class="ba-sous"><i class="ti ti-users" aria-hidden="true"></i> ${DB.jsps.length} JSP${nbPromos ? ' · ' + nbPromos + ' promotion' + (nbPromos > 1 ? 's' : '') : ''}${DB.saison ? ' · Saison ' + escTexte(String(DB.saison)) : ''}</p>
+    </div>
+    ${rdv}
+    <i class="ti ti-flame ba-deco" aria-hidden="true"></i>
+  </div>`;
 }
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
@@ -2862,6 +2945,7 @@ function renderDashboard() {
       <button class="btn-add" style="background:#b91c1c;font-size:13px" onclick="genererBilanAnnuelPDF()"><i class="ti ti-file-type-pdf"></i> Bilan annuel PDF</button>
       <button id="btnSyncAppel" class="btn-add btn-sync-appel" style="background:#16a34a;font-size:13px" onclick="syncAbsencesFromAppel()"><i class="ti ti-refresh"></i> Synchroniser avec l\'appli d\'appel</button>
     </div></div>
+    ${banniereAccueil(prochains[0])}
     <div class="stats-grid">
       <div class="stat-card bleu"><i class="ti ti-users stat-ico" aria-hidden="true"></i><div class="stat-val">${totalJSP}</div><div class="stat-lbl">JSP inscrits</div></div>
       <div class="stat-card ${absNE ? 'rouge' : 'vert'}"><i class="ti ti-calendar-x stat-ico" aria-hidden="true"></i><div class="stat-val">${absNE}</div><div class="stat-lbl">Absences non excusées</div></div>
@@ -2888,13 +2972,13 @@ function renderDashboard() {
             const res = DB.resultats.filter(r=>r.jspId==j.id);
             const moy = res.length ? (res.reduce((s,r)=>s+r.note/r.sur*20,0)/res.length).toFixed(1) : '—';
             const stats = getAbsenceStats(j.id);
-            return `<tr ${stats.alerte ? 'style="background:#fef2f2"' : ''}>
+            return `<tr class="${promoClasse(j.promotion)}${stats.alerte ? ' ligne-alerte' : ''}">
               <td style="display:flex;align-items:center;gap:10px">
-          ${j.photo ? '<img src="'+j.photo+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--bleu)">' : '<div style="width:36px;height:36px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+j.prenom[0]+j.nom[0]+'</div>'}
+          ${j.photo ? '<img src="'+j.photo+'" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--promo, var(--bleu))">' : '<div style="width:36px;height:36px;border-radius:50%;background:var(--promo, var(--bleu));color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+j.prenom[0]+j.nom[0]+'</div>'}
           <strong>${j.prenom} ${j.nom}</strong>
           ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:15px" title="Seuil alerte absences atteint"></i>' : ''}
           </td>
-              <td><span class="badge badge-bleu">${j.promotion}</span></td>
+              <td>${promoBadge(j.promotion)}</td>
               <td><span class="badge ${stats.exc>0?'badge-orange':'badge-vert'}">${stats.exc}</span></td>
               <td><span class="badge ${stats.nonExc>0?'badge-rouge':'badge-vert'}">${stats.nonExc}</span></td>
               <td><span class="badge ${ret>0?'badge-orange':'badge-vert'}">${ret}</span></td>
@@ -2937,9 +3021,9 @@ function renderTrombinoscope() {
   const card = (j) => {
     const photo = j.photo
       ? `<img src="${j.photo}" style="width:100%;height:140px;object-fit:cover;border-radius:10px 10px 0 0">`
-      : `<div style="width:100%;height:140px;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;border-radius:10px 10px 0 0">${j.prenom[0]}${j.nom[0]}</div>`;
+      : `<div style="width:100%;height:140px;background:linear-gradient(135deg, var(--promo, var(--bleu)), color-mix(in srgb, var(--promo, var(--bleu)) 60%, #000));color:white;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;border-radius:10px 10px 0 0">${j.prenom[0]}${j.nom[0]}</div>`;
     return `
-    <div class="trombi-card" onclick="modalEditJSP(${j.id})" title="Cliquer pour modifier la photo">
+    <div class="trombi-card ${promoClasse(j.promotion)}" onclick="modalEditJSP(${j.id})" title="Cliquer pour modifier la photo">
       ${photo}
       <div style="padding:10px 12px">
         <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${j.prenom} ${j.nom}</div>
@@ -2966,7 +3050,7 @@ function renderTrombinoscope() {
   </style>
 
   ${groupes.map(g => `
-    <div class="trombi-group-title">
+    <div class="trombi-group-title ${promoClasse(g.label)}">
       <i class="ti ti-flame"></i> ${g.label}
       <span class="trombi-group-count">${g.jsps.length}</span>
     </div>
@@ -3060,12 +3144,12 @@ function renderJSPs() {
 
 function renderLignesJSPs(jsps) {
   if (!jsps.length) return `<tr class="empty-row"><td colspan="10"><i class="ti ti-users-off"></i> Aucun JSP trouvé</td></tr>`;
-  return jsps.map(j => `<tr>
+  return jsps.map(j => `<tr class="${promoClasse(j.promotion)}">
     <td>${j.photo
       ? '<img src="'+j.photo+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover">'
-      : '<div style="width:34px;height:34px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>'}</td>
+      : '<div style="width:34px;height:34px;border-radius:50%;background:var(--promo, var(--bleu));color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>'}</td>
     <td><strong>${j.prenom} ${j.nom}</strong></td>
-    <td><span class="badge badge-bleu">${j.promotion||'—'}</span></td>
+    <td>${promoBadge(j.promotion)}</td>
     <td>${j.ville||'—'}</td>
     <td style="font-size:12px;color:var(--gris-txt)">${j.adresse||'—'}</td>
     <td style="font-size:12px">${j.telPere||'—'}</td>
@@ -13112,7 +13196,7 @@ function renderBilanForm(j, bilan, saison) {
     ? '<img src="'+j.photo+'" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--bleu)">'
     : '<div style="background:var(--bleu);color:white;border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>';
   html += '<div><div style="font-size:18px;font-weight:700">'+j.prenom+' '+j.nom+'</div>';
-  html += '<div style="font-size:13px;color:var(--gris-txt)"><span style="background:var(--bleu-pale);color:var(--bleu);padding:2px 10px;border-radius:20px;font-weight:700;font-size:12px">'+j.promotion+'</span> — Saison '+saison+'</div></div>';
+  html += '<div style="font-size:13px;color:var(--gris-txt)">'+promoBadge(j.promotion)+' — Saison '+saison+'</div></div>';
   html += '<div style="margin-left:auto;display:flex;gap:8px">';
   html += '<button class="btn-add" onclick="saveBilan('+j.id+',\''+saison+'\')"><i class="ti ti-device-floppy"></i> Sauvegarder</button>';
   html += '<button class="btn-add" style="background:#b91c1c;margin-left:8px" onclick="genererPDFJSP('+j.id+')"><i class="ti ti-file-type-pdf"></i> Générer PDF</button>';
@@ -19349,7 +19433,7 @@ function renderHabillement(ongletActif) {
                 : `<div style="width:32px;height:32px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${jsp.prenom[0]}${jsp.nom[0]}</div>`}
               <strong>${jsp.prenom} ${jsp.nom}</strong>
             </div></td>
-            <td><span class="badge badge-bleu">${jsp.promotion}</span></td>
+            <td>${promoBadge(jsp.promotion)}</td>
             <td>${val(hab?.veste)}</td>
             <td>${val(hab?.poloTsi)}</td>
             <td>${val(hab?.pantalon)}${hab?.pantalonLongueur ? ` <span style="color:var(--gris-txt);font-size:11px">(${hab.pantalonLongueur} cm)</span>` : ''}</td>
