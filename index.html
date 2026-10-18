@@ -1057,6 +1057,15 @@
   @keyframes toastEntree { from { opacity: 0; transform: translateY(16px) scale(.97); } }
   @media (max-width: 640px) { .notif-toast { left: 16px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); max-width: none; } }
   @media (prefers-reduced-motion: reduce) { .notif-toast { animation: none; } }
+
+  /* ── Mots de passe ── */
+  .mdp-info { font-size: 13px; padding: 10px 16px; margin: 0; background: var(--bleu-pale); color: var(--bleu); line-height: 1.45; }
+  .mdp-saisie { display: inline-flex; gap: 4px; }
+  .mdp-saisie input { border: 1px solid var(--gris-bord); border-radius: 6px; padding: 5px 8px; font-size: 13px; width: 160px; background: inherit; color: inherit; }
+  .mdp-saisie button { border: 1px solid var(--gris-bord); border-radius: 6px; background: var(--gris-bg); cursor: pointer; padding: 0 8px; font-size: 15px; }
+  .mdp-recap { display: grid; gap: 8px; max-height: 50vh; overflow: auto; margin-bottom: 6px; }
+  .mdp-recap > div { padding: 10px 12px; border-radius: 10px; background: var(--gris-bg); font-size: 14px; }
+  .mdp-recap code { display: block; margin-top: 6px; white-space: pre; font-size: 14px; font-family: ui-monospace, Menlo, Consolas, monospace; user-select: all; }
 </style>
 <script>
 // Ouverture instantanée : copie de l'appli gardée sur l'appareil (voir sw.js)
@@ -3894,6 +3903,14 @@ function genererAttestation(id) {
   ouvrirDocumentImprimable('Attestation — ' + j.prenom + ' ' + j.nom, corps);
 }
 function lienTel(n) { return n ? `<a href="tel:${escTexte(String(n).replace(/[^\d+]/g, ''))}" class="lien-tel">${escTexte(n)}</a>` : '—'; }
+
+// Mot de passe aléatoire, sans caractères ambigus (0/O, 1/l/I) : 10 caractères
+function motDePasseAleatoire() {
+  const alpha = 'abcdefghjkmnpqrstuvwxyz23456789', t = new Uint32Array(10);
+  (window.crypto || window.msCrypto).getRandomValues(t);
+  return Array.from(t, n => alpha[n % alpha.length]).join('');
+}
+const MDP_MIN = 8;
 
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
@@ -15784,13 +15801,13 @@ function renderEnvoiIdentifiants() {
   DB.jsps.forEach(j => {
     // Cherche le compte parent correspondant via le login déjà utilisé dans la page Mots de passe (basé sur le nom de famille)
     const loginFamille = (j.nom || '').toLowerCase().replace(/[^a-z]/g, '');
-    const user = DB.users.find(u => u.role === 'parent' && u.login === loginFamille);
+    const user = DB.users.find(u => u.role === 'parent' && u.jspId == j.id) || DB.users.find(u => u.role === 'parent' && u.login === loginFamille);
     destinatairesJSP.push({
       id: 'jsp_' + j.id,
       label: j.prenom + ' ' + j.nom + (j.promotion ? ' — ' + j.promotion : ''),
       email: j.email || '',
       login: user ? user.login : loginFamille,
-      pass: user ? user.pass : ''
+      jspId: j.id
     });
   });
 
@@ -15801,7 +15818,7 @@ function renderEnvoiIdentifiants() {
     <h2><i class="ti ti-key"></i> Envoi des identifiants</h2>
   </div>
   <p style="font-size:13px;color:var(--gris-txt);margin-bottom:18px">
-    Sélectionne un ou plusieurs destinataires, puis envoie-leur directement leur identifiant et mot de passe par email.
+    Sélectionne un ou plusieurs destinataires : un <b>nouveau mot de passe</b> est créé pour chacun et envoyé par email (les mots de passe sont chiffrés, l'ancien ne peut pas être renvoyé).
   </p>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
@@ -15818,7 +15835,7 @@ function renderEnvoiIdentifiants() {
           <tbody>
             ${destinatairesJSP.map(d => `
               <tr>
-                <td><input type="checkbox" class="jsp-dest" value="${d.id}" data-login="${d.login}" data-pass="${d.pass}" data-email="${d.email}" data-label="${d.label.replace(/"/g,'&quot;')}" ${!d.email ? 'disabled' : ''}></td>
+                <td><input type="checkbox" class="jsp-dest" value="${d.id}" data-login="${d.login}" data-jsp="${d.jspId}" data-email="${d.email}" data-label="${d.label.replace(/"/g,'&quot;')}" ${!d.email ? 'disabled' : ''}></td>
                 <td>${d.label}</td>
                 <td style="font-size:12px;color:${d.email ? 'inherit' : 'var(--gris-txt)'}">${d.email || "Pas d'email"}</td>
               </tr>`).join('')}
@@ -15835,7 +15852,7 @@ function renderEnvoiIdentifiants() {
           <tbody>
             ${comptesSpeciaux.map(u => `
               <tr>
-                <td><input type="checkbox" class="special-dest" value="${u.login}" data-login="${u.login}" data-pass="${u.pass}" data-label="${u.nom}"></td>
+                <td><input type="checkbox" class="special-dest" value="${u.login}" data-login="${u.login}" data-label="${u.nom}"></td>
                 <td>${u.nom}</td>
                 <td style="font-size:12px">${u.login}</td>
               </tr>`).join('')}
@@ -15870,16 +15887,17 @@ function apercuEnvoiIdentifiants() {
   const lienApp = 'https://galianachristian-cpu.github.io/carnet-jsp/';
 
   const listeJSP = jspCoches.map(cb => ({
-    label: cb.dataset.label, email: cb.dataset.email, login: cb.dataset.login, pass: cb.dataset.pass
+    label: cb.dataset.label, email: cb.dataset.email, login: cb.dataset.login, jspId: cb.dataset.jsp
   }));
   const listeSpec = specCoches.map(cb => ({
-    label: cb.dataset.label, login: cb.dataset.login, pass: cb.dataset.pass
+    label: cb.dataset.label, login: cb.dataset.login
   }));
+  window._envoiIdentifiants = { jsp: listeJSP, spec: listeSpec };
 
   openModal(`
     <h3><i class="ti ti-send"></i> Aperçu de l'envoi (${listeJSP.length + listeSpec.length} destinataire${listeJSP.length+listeSpec.length>1?'s':''})</h3>
     <p style="font-size:13px;color:var(--gris-txt);margin-bottom:14px">
-      Chaque destinataire recevra un email personnalisé avec son propre identifiant et mot de passe.
+      Un <b>nouveau mot de passe</b> sera créé pour chaque destinataire : l'ancien ne fonctionnera plus. Les familles le reçoivent par email ; pour les comptes spéciaux, il s'affichera à la fin pour que tu le transmettes.
     </p>
     <div style="max-height:280px;overflow-y:auto;border:1px solid var(--gris-bord);border-radius:8px;padding:10px;margin-bottom:16px">
       ${listeJSP.map(d => `<div style="padding:6px 0;border-bottom:1px solid var(--gris-bord);font-size:13px"><strong>${d.label}</strong> — ${d.email} <span class="badge badge-bleu">${d.login}</span></div>`).join('')}
@@ -15893,15 +15911,33 @@ function apercuEnvoiIdentifiants() {
     </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeModal()">Annuler</button>
-      ${listeJSP.length > 0 ? `<button class="btn-save" onclick='lancerEnvoiIdentifiants(${JSON.stringify(listeJSP).replace(/'/g,"&#39;")})'><i class="ti ti-mail"></i> Envoyer ${listeJSP.length} email${listeJSP.length>1?'s':''}</button>` : ''}
+      ${listeJSP.length > 0 ? `<button class="btn-save" onclick="lancerEnvoiIdentifiants()"><i class="ti ti-mail"></i> Envoyer ${listeJSP.length} email${listeJSP.length>1?'s':''}</button>` : ''}
+      ${listeSpec.length > 0 && !listeJSP.length ? `<button class="btn-save" onclick="lancerEnvoiIdentifiants()"><i class="ti ti-key"></i> Créer ${listeSpec.length > 1 ? 'les mots de passe' : 'le mot de passe'}</button>` : ''}
     </div>`);
 }
 
-async function lancerEnvoiIdentifiants(liste) {
+async function lancerEnvoiIdentifiants() {
   const lienApp = 'https://galianachristian-cpu.github.io/carnet-jsp/';
-  document.getElementById('envoi-progress').style.display = 'block';
-  let ok = 0, echecs = [];
+  const sel = window._envoiIdentifiants || { jsp: [], spec: [] };
+  const liste = sel.jsp.map(d => Object.assign({}, d, { pass: motDePasseAleatoire() }));
+  const specs = sel.spec.map(d => Object.assign({}, d, { pass: motDePasseAleatoire() }));
+  // 1. Les nouveaux mots de passe sont enregistrés AVANT l'envoi des emails
+  liste.forEach(d => {
+    let u = DB.users.find(x => x.login === d.login);
+    if (!u) {
+      const j = DB.jsps.find(x => x.id == d.jspId);
+      u = { login: d.login, role: 'parent', nom: 'Famille ' + (j ? j.nom : d.login), jspId: j ? j.id : undefined };
+      DB.users.push(u);
+    }
+    u.pass = d.pass;
+  });
+  specs.forEach(d => { const u = DB.users.find(x => x.login === d.login); if (u) u.pass = d.pass; });
+  const prog = document.getElementById('envoi-progress'); if (prog) prog.style.display = 'block';
+  await saveData();
+  for (let k = 0; k < 40 && (saveEnCours || saveEnAttente); k++) await new Promise(r => setTimeout(r, 250));
 
+  // 2. Emails aux familles
+  let ok = 0; const echecs = [];
   for (let i = 0; i < liste.length; i++) {
     const d = liste[i];
     const sujet = 'Vos identifiants Carnet JSP — CIS Cruzy-Quarante';
@@ -15914,11 +15950,12 @@ Identifiant : ${d.login}
 Mot de passe : ${d.pass}
 
 Vous pourrez y suivre les absences, résultats, planning et bilans de ${d.label}.
+Vous pouvez changer ce mot de passe depuis « Mot de passe » une fois connecté.
 
 Cordialement,
 Le Chef de section`;
-
     try {
+      if (!window.emailjs) throw new Error('EmailJS non chargé');
       await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
         email_destinataire: d.email,
         sujet: sujet,
@@ -15927,20 +15964,23 @@ Le Chef de section`;
         email: 'galiana.christian@gmail.com'
       });
       ok++;
-    } catch(e) {
+    } catch (e) {
       console.error('Erreur envoi à', d.email, e);
-      echecs.push(d.label);
+      echecs.push(d);
     }
-    document.getElementById('envoi-compteur').textContent = (i + 1);
-    document.getElementById('envoi-barre').style.width = Math.round(((i + 1) / liste.length) * 100) + '%';
+    const c = document.getElementById('envoi-compteur'), b = document.getElementById('envoi-barre');
+    if (c) c.textContent = (i + 1);
+    if (b) b.style.width = Math.round(((i + 1) / liste.length) * 100) + '%';
   }
 
-  closeModal();
-  if (echecs.length === 0) {
-    showNotifToast('✅ ' + ok + ' email(s) envoyé(s) avec succès !');
-  } else {
-    alert(ok + ' email(s) envoyé(s).\n' + echecs.length + ' échec(s) : ' + echecs.join(', '));
-  }
+  // 3. Récapitulatif : les mots de passe à transmettre à la main ne sont affichés qu'ici, une seule fois
+  const aTransmettre = specs.concat(echecs);
+  if (!aTransmettre.length) { closeModal(); showNotifToast('✅ ' + ok + ' email(s) envoyé(s) avec succès !'); return; }
+  openModal(`<h3><i class="ti ti-key"></i> Identifiants à transmettre</h3>
+    ${ok ? `<p style="font-size:14px;margin-bottom:10px">✅ ${ok} email${ok > 1 ? 's' : ''} envoyé${ok > 1 ? 's' : ''}.</p>` : ''}
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:10px">À transmettre toi-même (SMS, WhatsApp…). <b>Note-les maintenant : ils ne seront plus affichés.</b></p>
+    <div class="mdp-recap">${aTransmettre.map(d => `<div><b>${escTexte(d.label)}</b>${echecs.includes(d) ? ' <span class="badge badge-rouge">email non parti</span>' : ''}<code>Identifiant : ${escTexte(d.login)}\nMot de passe : ${escTexte(d.pass)}</code></div>`).join('')}</div>
+    <div class="modal-btns"><button class="btn-cancel" onclick="navigator.clipboard && navigator.clipboard.writeText(document.querySelector('.mdp-recap').innerText).then(() => showToast('Copié'))"><i class="ti ti-copy"></i> Tout copier</button><button class="btn-save" onclick="closeModal()">J'ai noté</button></div>`);
 }
 
 
@@ -17678,8 +17718,8 @@ function changerMdpParent() {
     errDiv.textContent = 'Mot de passe actuel incorrect.';
     errDiv.style.display = 'block'; return;
   }
-  if (nouveau.length < 4) {
-    errDiv.textContent = 'Le nouveau mot de passe doit faire au moins 4 caractères.';
+  if (nouveau.length < MDP_MIN) {
+    errDiv.textContent = 'Le nouveau mot de passe doit faire au moins ' + MDP_MIN + ' caractères.';
     errDiv.style.display = 'block'; return;
   }
   if (nouveau !== confirm) {
@@ -17717,13 +17757,14 @@ function renderAdminMdp() {
     +'</div>'
     +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden">'
     +'<div style="background:var(--bleu);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-users"></i> Mots de passe des parents</div>'
+    +'<p class="mdp-info"><i class="ti ti-lock" aria-hidden="true"></i> Les mots de passe sont <b>chiffrés</b> : personne ne peut les relire, pas même l\'admin. Pour en donner un à une famille, choisis-en un nouveau ici (bouton 🎲 pour en générer un), ou passe par <b>Envoi identifiants</b>.</p>'
     +'<table style="width:100%;border-collapse:collapse;font-size:14px">'
     +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Famille</th><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
     +'<tbody>'
     + parents.map((u,i) => '<tr style="border-bottom:.5px solid var(--gris-bord);background:'+(i%2?'var(--gris-bg)':'white')+'">'
       +'<td style="padding:9px 14px;font-weight:600">'+u.nom+'</td>'
       +'<td style="padding:9px 14px;color:var(--bleu)">'+u.login+'</td>'
-      +'<td style="padding:9px 14px"><input type="text" id="mdp_parent_'+u.login+'" value="'+u.pass+'" style="border:1px solid var(--gris-bord);border-radius:6px;padding:5px 8px;font-size:13px;width:140px"></td>'
+      +'<td style="padding:9px 14px"><span class="mdp-saisie"><input type="text" id="mdp_parent_'+u.login+'" value="" placeholder="Nouveau mot de passe" autocomplete="off"><button type="button" title="Générer un mot de passe" onclick="document.getElementById(\'mdp_parent_'+u.login+'\').value = motDePasseAleatoire()">🎲</button></span></td>'
       +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+u.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
       +'</tr>'
     ).join('')
@@ -17739,7 +17780,7 @@ function renderAdminMdp() {
             +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;text-align:left;font-size:13px">Accès</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
             +'<tbody><tr>'
             +'<td style="padding:9px 14px;color:var(--bleu)">'+u.login+'</td>'
-            +'<td style="padding:9px 14px"><input type="text" id="mdp_parent_'+u.login+'" value="'+u.pass+'" style="border:1px solid var(--gris-bord);border-radius:6px;padding:5px 8px;font-size:13px;width:140px"></td>'
+            +'<td style="padding:9px 14px"><span class="mdp-saisie"><input type="text" id="mdp_parent_'+u.login+'" value="" placeholder="Nouveau mot de passe" autocomplete="off"><button type="button" title="Générer un mot de passe" onclick="document.getElementById(\'mdp_parent_'+u.login+'\').value = motDePasseAleatoire()">🎲</button></span></td>'
             +'<td style="padding:9px 14px;font-size:12px;color:var(--gris-txt)">'+accesLbl+'</td>'
             +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+u.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
             +'</tr></tbody></table></div>';
@@ -17762,8 +17803,8 @@ function changerMdpAdmin() {
     errDiv.textContent = 'Mot de passe actuel incorrect.';
     errDiv.style.display = 'block'; return;
   }
-  if (nouveau.length < 4) {
-    errDiv.textContent = 'Minimum 4 caractères.';
+  if (nouveau.length < MDP_MIN) {
+    errDiv.textContent = 'Minimum ' + MDP_MIN + ' caractères.';
     errDiv.style.display = 'block'; return;
   }
   if (nouveau !== confirm) {
@@ -17777,13 +17818,13 @@ function changerMdpAdmin() {
 }
 
 function resetMdpParent_go(btn) { const login = btn ? btn.dataset.login : '';
-  const nouveau = document.getElementById('mdp_parent_'+login).value;
-  if (!nouveau || nouveau.length < 4) {
-    alert('Minimum 4 caractères.'); return;
+  const nouveau = document.getElementById('mdp_parent_'+login).value.trim();
+  if (!nouveau || nouveau.length < MDP_MIN) {
+    alert('Le nouveau mot de passe doit faire au moins ' + MDP_MIN + ' caractères (bouton 🎲 pour en générer un).'); return;
   }
   const user = DB.users.find(u => u.login === login);
   if (user) { user.pass = nouveau; saveData(); }
-  showNotifToast('✅ Mot de passe de ' + login + ' modifié !');
+  showNotifToast('✅ Nouveau mot de passe de ' + login + ' : ' + nouveau + ' (note-le, il ne sera plus affiché)');
 }
 
 
@@ -18962,7 +19003,7 @@ function ouvrirModalCompteSpecial(loginExistant) {
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
       <div class="form-group"><label>Nom du compte</label><input type="text" id="cs_nom" value="${u ? u.nom.replace(/"/g,'&quot;') : ''}" placeholder="Ex : Secrétariat" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
       <div class="form-group"><label>Login</label><input type="text" id="cs_login" value="${u ? u.login : ''}" placeholder="Ex : secretariat" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
-      <div class="form-group"><label>Mot de passe</label><input type="text" id="cs_pass" value="${u ? u.pass : ''}" placeholder="Mot de passe" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
+      <div class="form-group"><label>Mot de passe</label><input type="text" id="cs_pass" value="" autocomplete="off" placeholder="${u ? 'Laisser vide pour ne pas le changer' : 'Mot de passe (8 caractères minimum)'}" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
     </div>
     <div id="cs_erreur" style="color:var(--rouge);font-size:13px;margin-bottom:10px;display:none"></div>
     <div style="max-height:340px;overflow-y:auto;border:.5px solid var(--gris-bord);border-radius:8px;padding:14px;margin-bottom:16px">
@@ -18982,8 +19023,17 @@ function enregistrerCompteSpecial() {
   const pass = document.getElementById('cs_pass').value;
   const errDiv = document.getElementById('cs_erreur');
 
-  if (!nom || !login || !pass) {
-    errDiv.textContent = 'Nom, login et mot de passe sont obligatoires.';
+  if (!nom || !login) {
+    errDiv.textContent = 'Nom et login sont obligatoires.';
+    errDiv.style.display = 'block'; return;
+  }
+  // mot de passe : obligatoire pour un nouveau compte ou si le login change ; sinon vide = inchangé
+  if (!pass && (!loginOriginal || login !== loginOriginal)) {
+    errDiv.textContent = loginOriginal ? 'Le login a changé : indique aussi un mot de passe.' : 'Le mot de passe est obligatoire.';
+    errDiv.style.display = 'block'; return;
+  }
+  if (pass && pass.length < MDP_MIN) {
+    errDiv.textContent = 'Le mot de passe doit faire au moins ' + MDP_MIN + ' caractères.';
     errDiv.style.display = 'block'; return;
   }
   const doublon = DB.users.find(u => u.login === login && u.login !== loginOriginal);
@@ -19001,7 +19051,7 @@ function enregistrerCompteSpecial() {
 
   if (loginOriginal) {
     const u = DB.users.find(x => x.login === loginOriginal);
-    u.nom = nom; u.login = login; u.pass = pass; u.acces = acces; u.role = 'special';
+    u.nom = nom; u.login = login; if (pass) u.pass = pass; u.acces = acces; u.role = 'special';
   } else {
     DB.users.push({ login, pass, nom, role: 'special', acces });
   }
@@ -21537,7 +21587,7 @@ async function inscValider(id) {
     } else if (existant) {
       messageCompte = 'Un compte « ' + login + ' » existe déjà (frère ou sœur ?) : compte parent à gérer dans « Mots de passe ».';
     } else {
-      const pass = 'jsp' + (inscSansAccent(j.prenom) || 'cruzy') + String(Math.floor(10 + Math.random() * 90));
+      const pass = motDePasseAleatoire();
       DB.users.push({ login, pass, role: 'parent', nom: 'Famille ' + j.nom, jspId: nouveauId });
       messageCompte = 'Compte parent « ' + login + ' » préparé : envoie les identifiants depuis « Envoi identifiants ».';
     }
