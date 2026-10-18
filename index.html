@@ -953,6 +953,37 @@
   .sauv-vide { font-size: 13px; color: var(--gris-txt); }
   [data-theme="dark"] .sauv-btn { color: #93c5fd; }
   @media (max-width: 640px) { .sauv-btn span { display: none; } .as-hero b { font-size: 40px; } }
+
+  /* ── Documents de la saison ── */
+  .carte-docs { margin-bottom: 24px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--gris-bord); border-left: 4px solid var(--orange); background: var(--blanc); box-shadow: var(--ombre); }
+  .carte-docs.vide, .carte-docs.complet { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .carte-docs.vide { border-left-color: var(--bleu-clair); } .carte-docs.complet { border-left-color: var(--vert); }
+  .cd-tete { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .cd-txt { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+  .cd-txt b { font-size: 15px; color: var(--bleu); display: flex; align-items: center; gap: 6px; }
+  .cd-txt small { font-size: 13px; color: var(--gris-txt); }
+  .cd-liste { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cd-jsp { display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 4px; border-radius: 30px; border: 1px solid var(--gris-bord); background: var(--blanc); color: inherit; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .cd-jsp:hover { border-color: var(--bleu-clair); }
+  .cd-av { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--promo, var(--bleu)); color: #fff; font-size: 11px; }
+  .cd-jsp em { font-style: normal; min-width: 20px; height: 20px; border-radius: 10px; display: grid; place-items: center; background: var(--orange-pale); color: var(--orange); font-size: 12px; padding: 0 5px; }
+  .cd-plus { padding: 4px 12px; color: var(--bleu); }
+  .docs-aide { font-size: 13px; color: var(--gris-txt); margin: -8px 0 12px; }
+  .docs-scroll { overflow: auto; max-height: 60vh; border: 1px solid var(--gris-bord); border-radius: 10px; }
+  .docs-table { font-size: 13px; }
+  .docs-table thead th { position: sticky; top: 0; z-index: 1; font-size: 11px; text-align: center; padding: 9px 6px; white-space: nowrap; }
+  .docs-table thead th:first-child { text-align: left; }
+  .docs-table td { padding: 7px 8px; }
+  .docs-nom { font-weight: 600; margin-right: 4px; }
+  .docs-c { text-align: center; }
+  .docs-c input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--vert); }
+  .fj-docs { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* ── Bouton agenda ── */
+  .entete-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .btn-agenda { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; min-height: 38px; border-radius: 10px; border: 1.5px solid var(--bleu); background: var(--blanc); color: var(--bleu); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn-agenda:hover { background: var(--bleu-pale); }
+  [data-theme="dark"] .btn-agenda { color: #93c5fd; border-color: #93c5fd; }
 </style>
 <script>
 // Ouverture instantanée : copie de l'appli gardée sur l'appareil (voir sw.js)
@@ -1545,7 +1576,27 @@ function reparerAbsencesDemandes(db) {
   });
 }
 
+// Sécurité : un nom, une ville ou un message ne contient jamais de balise HTML.
+// Ces champs sont affichés tels quels à de nombreux endroits : on retire « < » et « > »
+// pour qu'un texte saisi (inscription en ligne, compte famille…) ne puisse pas devenir du code.
+const sansBalise = v => typeof v === 'string' ? v.replace(/[<>]/g, '') : v;
+function assainirObjet(o, profondeur) {
+  if (!o || typeof o !== 'object' || profondeur > 2) return;
+  Object.keys(o).forEach(k => {
+    if (k === 'photo' || k === 'pass') return;
+    if (typeof o[k] === 'string') o[k] = sansBalise(o[k]);
+    else if (o[k] && typeof o[k] === 'object') assainirObjet(o[k], profondeur + 1);
+  });
+}
+function assainirIdentites(db) {
+  if (!db) return;
+  (db.jsps || []).forEach(j => assainirObjet(j, 0));
+  (db.users || []).forEach(u => { u.nom = sansBalise(u.nom); u.login = sansBalise(u.login); });
+  (db.messages || []).forEach(m => { m.sujet = sansBalise(m.sujet); m.corps = sansBalise(m.corps); });
+  (db.planning || []).forEach(p => { p.titre = sansBalise(p.titre); p.lieu = sansBalise(p.lieu); });
+}
 function normaliserAbsences(db) {
+  assainirIdentites(db);
   if (!db || !Array.isArray(db.absences)) return;
   reparerAbsencesDemandes(db);
   if (Array.isArray(db.retards)) db.retards.forEach(r => { r.date = dateAbsenceNormalisee(r.date); });
@@ -3215,6 +3266,7 @@ function ficheJSP(id) {
       <div class="fj-bloc"><h4><i class="ti ti-school" aria-hidden="true"></i> Résultats</h4>${courbe}${notes || '<p class="fj-vide">Aucune note pour l\'instant</p>'}</div>
       <div class="fj-bloc"><h4><i class="ti ti-mood-smile" aria-hidden="true"></i> Comportement</h4>${comps || '<p class="fj-vide">Rien à signaler 👍</p>'}</div>
     </div>
+    ${blocDocumentsFiche(j)}
     ${contacts ? `<div class="fj-bloc"><h4><i class="ti ti-address-book" aria-hidden="true"></i> Contacts</h4><div class="fj-contacts">${contacts}</div></div>` : ''}
     <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Fermer</button><button class="btn-save" onclick="closeModal();modalEditJSP(${j.id})"><i class="ti ti-pencil" aria-hidden="true"></i> Modifier la fiche</button></div>
   </div>`);
@@ -3477,6 +3529,104 @@ function restaurerDonnees(d, libelle) {
   });
 }
 
+// ══════════════════════════════════════════
+//  DOCUMENTS DE LA SAISON (suivi des pièces par JSP)
+// ══════════════════════════════════════════
+// DB.documents[saison][jspId] = { certificat: true, … } — mêmes pièces que l'inscription en ligne.
+const DOCS_PIECES = [
+  { key: 'dossier', label: 'Dossier signé', court: 'Dossier' },
+  { key: 'certificat', label: 'Certificat médical', court: 'Certificat' },
+  { key: 'cheque', label: 'Cotisation', court: 'Cotisation' },
+  { key: 'photos', label: "Photos d'identité", court: 'Photos' },
+  { key: 'rc', label: 'Responsabilité civile', court: 'Resp. civile' },
+  { key: 'vaccin', label: 'Carnet de vaccination', court: 'Vaccins' }
+];
+function docsSaison() { DB.documents = DB.documents || {}; return DB.documents[DB.saison] || null; }
+function docsManquants(j) { const d = (docsSaison() || {})[j.id] || {}; return DOCS_PIECES.filter(p => !d[p.key]); }
+function carteDocuments() {
+  if (!DB.jsps.length) return '';
+  const ds = docsSaison();
+  if (!ds) return `<div class="carte-docs vide"><div class="cd-txt"><b><i class="ti ti-file-check" aria-hidden="true"></i> Documents de la saison ${escTexte(DB.saison || '')}</b><small>Coche les pièces reçues pour chaque JSP : le carnet te dira qui relancer.</small></div><button class="btn-add" onclick="modalDocuments()"><i class="ti ti-checklist"></i> Commencer le suivi</button></div>`;
+  const enRetard = DB.jsps.map(j => ({ j, m: docsManquants(j) })).filter(x => x.m.length).sort((a, b) => b.m.length - a.m.length);
+  if (!enRetard.length) return `<div class="carte-docs complet"><div class="cd-txt"><b><i class="ti ti-circle-check" aria-hidden="true"></i> Tous les dossiers sont complets 🎉</b><small>Saison ${escTexte(DB.saison || '')}</small></div><button class="btn-cancel" onclick="modalDocuments()">Voir le détail</button></div>`;
+  return `<div class="carte-docs"><div class="cd-tete"><div class="cd-txt"><b><i class="ti ti-file-alert" aria-hidden="true"></i> ${enRetard.length} dossier${enRetard.length > 1 ? 's' : ''} incomplet${enRetard.length > 1 ? 's' : ''}</b>
+      <small>${DOCS_PIECES.map(p => ({ p, n: enRetard.filter(x => x.m.includes(p)).length })).filter(x => x.n).map(x => x.p.court + ' : ' + x.n).join(' · ')}</small></div>
+      <button class="btn-add" onclick="modalDocuments()"><i class="ti ti-checklist"></i> Gérer</button></div>
+    <div class="cd-liste">${enRetard.slice(0, 8).map(x => `<button class="cd-jsp ${promoClasse(x.j.promotion)}" onclick="ficheJSP(${x.j.id})" title="Manque : ${escTexte(x.m.map(p => p.label).join(', '))}"><span class="cd-av">${escTexte((x.j.prenom || '?')[0] + (x.j.nom || '?')[0])}</span>${escTexte(x.j.prenom)} ${escTexte(x.j.nom)}<em>${x.m.length}</em></button>`).join('')}${enRetard.length > 8 ? `<button class="cd-jsp cd-plus" onclick="modalDocuments()">+ ${enRetard.length - 8}</button>` : ''}</div>
+  </div>`;
+}
+function modalDocuments() {
+  const ds = docsSaison() || {};
+  const jsps = [...DB.jsps].sort((a, b) => (a.promotion || '').localeCompare(b.promotion || '') || (a.nom || '').localeCompare(b.nom || ''));
+  openModalWide(`<h3><i class="ti ti-file-check"></i> Documents de la saison ${escTexte(DB.saison || '')}</h3>
+    <p class="docs-aide">Coche les pièces reçues. C'est enregistré tout de suite.</p>
+    <div class="docs-scroll"><table class="docs-table"><thead><tr><th>JSP</th>${DOCS_PIECES.map(p => `<th title="${escTexte(p.label)}">${escTexte(p.court)}</th>`).join('')}<th></th></tr></thead><tbody>
+    ${jsps.map(j => { const d = ds[j.id] || {}, m = docsManquants(j); return `<tr><td><span class="docs-nom">${escTexte(j.prenom)} ${escTexte(j.nom)}</span> ${promoBadge(j.promotion)}</td>
+      ${DOCS_PIECES.map(p => `<td class="docs-c"><input type="checkbox" ${d[p.key] ? 'checked' : ''} aria-label="${escTexte(p.label)} — ${escTexte(j.prenom)}" onchange="cocherDocument(${j.id},'${p.key}',this.checked)"></td>`).join('')}
+      <td>${m.length ? `<button class="sauv-btn" onclick="prevenirFamilleDocuments(${j.id})" title="Envoyer un message à la famille"><i class="ti ti-send"></i><span>Relancer</span></button>` : '<span class="badge badge-vert">Complet</span>'}</td></tr>`; }).join('')}
+    </tbody></table></div>
+    <div class="modal-btns"><button class="btn-save" onclick="closeModal();showSection(currentSection)">Terminé</button></div>`);
+}
+function cocherDocument(jspId, cle, ok) {
+  DB.documents = DB.documents || {};
+  const ds = DB.documents[DB.saison] = DB.documents[DB.saison] || {};
+  const d = ds[jspId] = ds[jspId] || {};
+  if (ok) d[cle] = new Date().toISOString().slice(0, 10); else delete d[cle];
+  saveData();
+  // la colonne « Relancer / Complet » suit les cases cochées (on garde la position de défilement)
+  const zone = document.querySelector('.docs-scroll'), haut = zone ? zone.scrollTop : 0;
+  modalDocuments();
+  const z2 = document.querySelector('.docs-scroll'); if (z2) z2.scrollTop = haut;
+}
+function prevenirFamilleDocuments(jspId) {
+  const j = DB.jsps.find(x => x.id == jspId); if (!j) return;
+  const m = docsManquants(j); if (!m.length) return;
+  const corps = 'Bonjour,\n\nPour compléter le dossier de ' + j.prenom + ' pour la saison ' + DB.saison + ', il nous manque encore :\n'
+    + m.map(p => '• ' + p.label).join('\n') + '\n\nMerci de les apporter à la prochaine séance.\n\nLe chef de section';
+  if (!confirm('Envoyer ce message à la famille de ' + j.prenom + ' ' + j.nom + ' ?\n\n' + corps)) return;
+  DB.messages = DB.messages || [];
+  DB.messages.push({ id: Date.now(), jspId: j.id, sujet: 'Documents à fournir — ' + j.prenom, corps, ts: Date.now(), lu: false, accuses: [] });
+  saveData();
+  showToast('✅ Message envoyé à la famille de ' + j.prenom);
+}
+function blocDocumentsFiche(j) {
+  if (!docsSaison()) return '';
+  const m = docsManquants(j);
+  return `<div class="fj-bloc"><h4><i class="ti ti-file-check" aria-hidden="true"></i> Documents ${escTexte(DB.saison || '')}</h4>
+    ${m.length ? `<div class="fj-docs">${DOCS_PIECES.map(p => `<span class="badge ${m.includes(p) ? 'badge-rouge' : 'badge-vert'}">${m.includes(p) ? '✗' : '✓'} ${escTexte(p.court)}</span>`).join('')}</div>
+      <button class="sauv-btn" style="margin-top:8px" onclick="prevenirFamilleDocuments(${j.id})"><i class="ti ti-send"></i><span>Relancer la famille</span></button>` : '<p class="fj-vide">Dossier complet ✓</p>'}</div>`;
+}
+
+// ══════════════════════════════════════════
+//  EXPORT AGENDA (.ics) — Google Agenda, iPhone, Outlook
+// ══════════════════════════════════════════
+function exporterAgenda() {
+  const auj = dateISOLocale(new Date());
+  const evts = (DB.planning || []).filter(p => p.date && p.date >= auj).sort((a, b) => a.date.localeCompare(b.date));
+  if (!evts.length) { showToast('Aucun événement à venir à ajouter'); return; }
+  const esc = t => String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  const jourSuivant = d => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + 1); return dateISOLocale(x).replace(/-/g, ''); };
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const hash = t => { let h = 0; for (const c of String(t)) h = (h * 31 + c.charCodeAt(0)) | 0; return (h >>> 0).toString(36); };
+  // lignes de 75 caractères maximum (norme iCalendar)
+  const plier = l => { const out = []; while (l.length > 74) { out.push(l.slice(0, 74)); l = ' ' + l.slice(74); } out.push(l); return out.join('\r\n'); };
+  const lignes = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CIS Cruzy-Quarante//Carnet JSP//FR', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:JSP Cruzy-Quarante'];
+  evts.forEach(p => {
+    lignes.push('BEGIN:VEVENT', 'UID:jsp-' + p.date + '-' + hash(p.titre) + '@carnet-jsp-cruzy', 'DTSTAMP:' + stamp,
+      'DTSTART;VALUE=DATE:' + p.date.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + jourSuivant(p.date),
+      'SUMMARY:' + esc('JSP — ' + (p.titre || 'Séance')), 'DESCRIPTION:' + esc(libelleTypePlanning(p.type) + ' · JSP Cruzy-Quarante'));
+    if (p.lieu) lignes.push('LOCATION:' + esc(p.lieu));
+    // rappel la veille à 18 h
+    lignes.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc('Demain : ' + (p.titre || 'séance JSP')), 'TRIGGER:-PT6H', 'END:VALARM', 'END:VEVENT');
+  });
+  lignes.push('END:VCALENDAR');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lignes.map(plier).join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' }));
+  a.download = 'planning-jsp-' + (DB.saison || 'saison') + '.ics';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  showToast('📅 ' + evts.length + ' événement' + (evts.length > 1 ? 's' : '') + ' — ouvre le fichier pour les ajouter à ton agenda');
+}
+
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
 // ══════════════════════════════════════════
@@ -3504,6 +3654,7 @@ function renderDashboard() {
       ${jspsEnAlerte > 0 ? `<div class="stat-card rouge stat-alerte" style="cursor:pointer" onclick="showSection('absences')"><i class="ti ti-urgent stat-ico" aria-hidden="true"></i><div class="stat-val">${jspsEnAlerte}</div><div class="stat-lbl">JSP en alerte absences</div></div>` : ''}
     </div>
     ${carteAnniversaires()}
+    ${carteDocuments()}
     <div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Prochains événements</h2></div>
     <div class="planning-grid">
       ${prochains.length ? prochains.map(p => `
@@ -12699,6 +12850,7 @@ function renderPlanning(moisActif) {
     +'L\'arrêté ministériel sort généralement à l\'automne précédent — demande la mise à jour des dates de vacances dès qu\'il est publié.</div></div>';
 
   return '<div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning '+DB.saison+'</h2>'
+    +'<button class="btn-agenda" onclick="exporterAgenda()" style="margin-left:auto;margin-right:8px"><i class="ti ti-calendar-plus" aria-hidden="true"></i> Exporter vers un agenda</button>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-add" style="background:#6b7280" onclick="modalNouvelleSaison()"><i class="ti ti-calendar-stats"></i> Saison</button>'
     +'<button class="btn-add" style="background:#25D366" onclick="modalPartagerPlanning()"><i class="ti ti-brand-whatsapp"></i> Partager (WhatsApp)</button>'
     +'<button class="btn-add" style="background:var(--bleu-clair)" onclick="modalProgrammeAnnuel()"><i class="ti ti-route"></i> Programme de l\'année</button>'
@@ -13529,7 +13681,7 @@ function renderParentPlanning(moisActif) {
     + '<button class="'+(vue==='agenda'?'actif':'')+'" aria-pressed="'+(vue==='agenda')+'" onclick="window._planningParentVue=\'agenda\';showSection(\'parent-planning\')"><i class="ti ti-list"></i> Agenda</button>'
     + '<button class="'+(vue==='calendrier'?'actif':'')+'" aria-pressed="'+(vue==='calendrier')+'" onclick="window._planningParentVue=\'calendrier\';showSection(\'parent-planning\')"><i class="ti ti-calendar-month"></i> Calendrier</button>'
     + '</div>';
-  const entete = `<div class="section-header entete-planning"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning de la section ${saison}</h2>${bascule}</div>`;
+  const entete = `<div class="section-header entete-planning"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Planning de la section ${saison}</h2><div class="entete-actions"><button class="btn-agenda" onclick="exporterAgenda()"><i class="ti ti-calendar-plus" aria-hidden="true"></i> Ajouter à mon agenda</button>${bascule}</div></div>`;
 
   if (vue === 'agenda') return entete + renderAgendaParent(saison);
 
@@ -21090,6 +21242,7 @@ async function inscValider(id) {
     inscriptionId: i.id
   };
   if (j.photo) fiche.photo = j.photo;
+  assainirObjet(fiche, 0);
   DB.jsps.push(fiche);
 
   // Habillement : tailles déclarées, statut « En attente » (rien n'est distribué)
