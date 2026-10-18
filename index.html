@@ -715,8 +715,10 @@
   .ba-rdv-lbl { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; opacity: .8; display: flex; align-items: center; gap: 5px; }
   .ba-rdv b { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 22px; line-height: 1.1; }
   .ba-rdv-quand { font-size: 13px; opacity: .85; text-transform: capitalize; }
-  .ba-rebours { position: absolute; top: 10px; right: 12px; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 20px; background: rgba(255,255,255,.2); }
-  .ba-rebours.bientot { background: #cf1419; }
+  .ba-rdv-ligne { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 2px 0; }
+  .ba-rebours { flex-shrink: 0; font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 17px; font-weight: 700; line-height: 1;
+    padding: 5px 11px; border-radius: 20px; background: #fff; color: #163a64; box-shadow: 0 2px 6px rgba(0,0,0,.2); white-space: nowrap; }
+  .ba-rebours.bientot { background: #cf1419; color: #fff; }
   .ba-deco { position: absolute; right: -10px; bottom: -34px; font-size: 150px; opacity: .07; pointer-events: none; }
   [data-theme="dark"] .banniere-accueil { background: radial-gradient(600px 200px at 100% 0%, rgba(207,20,25,.28), transparent 60%), linear-gradient(135deg, #0f2745 0%, #163a64 100%); }
 
@@ -3037,9 +3039,8 @@ function banniereAccueil(p) {
     const n = joursAvant(p.date), jour = new Date(p.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     rdv = `<div class="ba-rdv" onclick="showSection('planning')" role="button" tabindex="0">
       <span class="ba-rdv-lbl"><i class="ti ti-calendar-event" aria-hidden="true"></i> Prochain rendez-vous</span>
-      <b>${escTexte(p.titre || '')}</b>
+      <span class="ba-rdv-ligne"><b>${escTexte(p.titre || '')}</b><span class="ba-rebours${n <= 1 ? ' bientot' : ''}">${texteRebours(n)}</span></span>
       <span class="ba-rdv-quand">${jour}${p.lieu ? ' · ' + escTexte(p.lieu) : ''}</span>
-      <span class="ba-rebours${n <= 1 ? ' bientot' : ''}">${texteRebours(n)}</span>
     </div>`;
   }
   return `<div class="banniere-accueil">
