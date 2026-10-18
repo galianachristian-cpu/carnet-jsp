@@ -984,6 +984,79 @@
   .btn-agenda { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; min-height: 38px; border-radius: 10px; border: 1.5px solid var(--bleu); background: var(--blanc); color: var(--bleu); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
   .btn-agenda:hover { background: var(--bleu-pale); }
   [data-theme="dark"] .btn-agenda { color: #93c5fd; border-color: #93c5fd; }
+
+  /* ── Accueil parent : ce mois-ci ── */
+  .parent-mois { margin-bottom: 20px; padding: 16px 18px; border-radius: 14px; background: var(--blanc); border: 1px solid var(--gris-bord); box-shadow: var(--ombre); }
+  .pm-titre { font-weight: 700; font-size: 16px; color: var(--bleu); display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .pm-titre::first-letter { text-transform: uppercase; }
+  .pm-tuiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .pm-tuile { --c: var(--bleu-clair); --cp: var(--bleu-pale); background: var(--cp); color: var(--c); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+  .pm-tuile.vert { --c: var(--vert); --cp: var(--vert-pale); } .pm-tuile.orange { --c: var(--orange); --cp: var(--orange-pale); } .pm-tuile.rouge { --c: var(--rouge); --cp: var(--rouge-pale); }
+  .pm-tuile.or { --c: #a16207; --cp: #fef9c3; }
+  [data-theme="dark"] .pm-tuile.or { --c: #fde047; --cp: #422006; }
+  .pm-tuile i { font-size: 20px; }
+  .pm-tuile b { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 28px; line-height: 1.05; }
+  .pm-tuile span { font-size: 12px; font-weight: 600; opacity: .9; }
+  .pm-felic { margin-top: 12px; font-size: 14px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, #facc15 14%, var(--blanc)); }
+  .pm-felic small { color: var(--gris-txt); }
+  .pm-afaire { margin-top: 12px; display: grid; gap: 6px; }
+  .pm-afaire > b { font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .pm-afaire button, .pm-afaire div { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; min-height: 44px; border-radius: 10px;
+    border: 1px solid var(--gris-bord); background: var(--gris-bg); color: inherit; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .pm-afaire div { cursor: default; }
+  .pm-afaire button:hover { border-color: var(--bleu-clair); }
+  .pm-afaire i:first-child { color: var(--orange); font-size: 18px; }
+  .pm-afaire .ti-chevron-right { margin-left: auto; color: var(--gris-txt); }
+  .pm-ok { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--vert-pale); color: var(--vert); font-weight: 600; font-size: 14px; display: flex; gap: 8px; align-items: center; }
+  .btn-retro { margin-top: 12px; width: 100%; min-height: 46px; border: 0; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 700; font-size: 15px; color: #fff;
+    background: linear-gradient(135deg, #163a64, #7c3aed); display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: var(--ombre-haute); }
+  .btn-retro:hover { filter: brightness(1.08); }
+  .parent-graphes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  @media (max-width: 640px) { .pm-tuiles { grid-template-columns: 1fr 1fr; } .parent-graphes { grid-template-columns: 1fr; } }
+
+  /* ── Modèles de messages ── */
+  .modeles-msg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -4px 0 14px; }
+  .modeles-msg > span { font-size: 12px; font-weight: 700; color: var(--gris-txt); margin-right: 2px; }
+  .modele-chip { border: 1px solid var(--gris-bord); background: var(--gris-bg); color: inherit; font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 20px; cursor: pointer; min-height: 34px; }
+  .modele-chip:hover { border-color: var(--bleu-clair); background: var(--bleu-pale); }
+
+  /* ── Fiche : actions ── */
+  .fj-actions { flex-wrap: wrap; }
+  .fj-actions .btn-cancel { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ── Tableaux en cartes sur téléphone ── */
+  .lien-tel { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
+  @media (max-width: 640px) {
+    .tableau-cartes thead { display: none; }
+    .tableau-cartes, .tableau-cartes tbody { display: block; }
+    .tableau-cartes tbody tr { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--gris-bord); }
+    .tableau-cartes tbody tr.empty-row { display: block; }
+    .tableau-cartes td { padding: 0; border: 0; }
+    .tableau-cartes td[data-label] { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 3px 0 3px 44px; }
+    .tableau-cartes td[data-label]::before { content: attr(data-label); color: var(--gris-txt); font-weight: 600; font-size: 12px; }
+    .cartes-jsp td:nth-child(2) { font-size: 15px; }
+    .cartes-jsp td[data-label="Adresse"] { display: none; }
+    .cartes-jsp .cellule-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 6px; padding-top: 6px; }
+    .cartes-rapide tbody tr { display: flex; flex-wrap: wrap; gap: 10px 8px; }
+    .cartes-rapide td:first-child { flex: 1 1 calc(100% - 90px); }
+    .cartes-rapide td[data-label] { flex: 1 1 0; flex-direction: column; align-items: flex-start; justify-content: flex-start; padding: 0; gap: 3px; }
+    .cartes-rapide td[data-label]::before { font-size: 11px; }
+  }
+
+  /* ── Écrans vides ── */
+  .empty-row td { padding: 36px 20px !important; font-size: 15px; }
+  .vide-ico { display: block; font-size: 34px; margin-bottom: 6px; }
+
+  /* ── Notifications ── */
+  .notif-toast { position: fixed; z-index: 9999; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 10px; max-width: min(440px, calc(100vw - 32px));
+    padding: 12px 18px; border-radius: 12px; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 12px 30px rgba(0,0,0,.28); cursor: pointer;
+    animation: toastEntree .35s cubic-bezier(.2,.8,.2,1); }
+  .notif-toast.succes { background: #166534; } .notif-toast.erreur { background: #b91c1c; }
+  .notif-toast i { font-size: 20px; flex-shrink: 0; }
+  .notif-toast.sortie { opacity: 0; transform: translateY(10px); transition: opacity .3s, transform .3s; }
+  @keyframes toastEntree { from { opacity: 0; transform: translateY(16px) scale(.97); } }
+  @media (max-width: 640px) { .notif-toast { left: 16px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); max-width: none; } }
+  @media (prefers-reduced-motion: reduce) { .notif-toast { animation: none; } }
 </style>
 <script>
 // Ouverture instantanée : copie de l'appli gardée sur l'appareil (voir sw.js)
@@ -3268,7 +3341,7 @@ function ficheJSP(id) {
     </div>
     ${blocDocumentsFiche(j)}
     ${contacts ? `<div class="fj-bloc"><h4><i class="ti ti-address-book" aria-hidden="true"></i> Contacts</h4><div class="fj-contacts">${contacts}</div></div>` : ''}
-    <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Fermer</button><button class="btn-save" onclick="closeModal();modalEditJSP(${j.id})"><i class="ti ti-pencil" aria-hidden="true"></i> Modifier la fiche</button></div>
+    <div class="modal-btns fj-actions"><button class="btn-cancel" onclick="retrospectiveJSP(${j.id})"><i class="ti ti-sparkles" aria-hidden="true"></i> Rétrospective</button><button class="btn-cancel" onclick="modalAttestation(${j.id})"><i class="ti ti-certificate" aria-hidden="true"></i> Attestation</button><span style="flex:1"></span><button class="btn-cancel" onclick="closeModal()">Fermer</button><button class="btn-save" onclick="closeModal();modalEditJSP(${j.id})"><i class="ti ti-pencil" aria-hidden="true"></i> Modifier la fiche</button></div>
   </div>`);
 }
 // ══════════════════════════════════════════
@@ -3627,6 +3700,200 @@ function exporterAgenda() {
   showToast('📅 ' + evts.length + ' événement' + (evts.length > 1 ? 's' : '') + ' — ouvre le fichier pour les ajouter à ton agenda');
 }
 
+// ══════════════════════════════════════════
+//  PRÉSENCE D'UN JSP (séances de formation passées de la saison)
+// ══════════════════════════════════════════
+function presenceJSP(j, depuis) {
+  const auj = dateISOLocale(new Date());
+  const jsp1 = promoClasse(j.promotion) === 'promo-1';
+  const dates = getDimanchesCours().filter(d => d <= auj && getSaisonFromDate(d) === DB.saison && (!depuis || d >= depuis)
+    && !(jsp1 && parseInt(d.slice(5, 7), 10) >= 9));
+  const absentLe = d => DB.absences.some(a => a.jspId == j.id && dateAbsenceNormalisee(a.date) === d && a.statut !== 'retard' && a.statut !== 'excuse_retard');
+  const presents = dates.filter(d => !absentLe(d)).length;
+  return { seances: dates.length, presents, dates };
+}
+
+// ══════════════════════════════════════════
+//  ACCUEIL PARENT : « Ce mois-ci » et « À faire »
+// ══════════════════════════════════════════
+function carteMoisParent(j, presSaison) {
+  const auj = new Date(), debutMois = dateISOLocale(new Date(auj.getFullYear(), auj.getMonth(), 1));
+  const mois = auj.toLocaleDateString('fr-FR', { month: 'long' });
+  const pm = presenceJSP(j, debutMois);
+  const notes = DB.resultats.filter(r => r.jspId == j.id && r.sur).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const felic = DB.comportements.filter(c => c.jspId == j.id && c.type === 'Félicitations').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // ce qui attend la famille
+  const afaire = [];
+  const nbQ = (DB.questionnairesAssignes || []).filter(a => a.jspId == j.id && !a.fait).length;
+  if (nbQ) afaire.push(['ti-help-circle', nbQ + ' questionnaire' + (nbQ > 1 ? 's' : '') + ' à faire', 'parent-questionnaires']);
+  const nbM = typeof countUnreadMessages === 'function' ? countUnreadMessages() : 0;
+  if (nbM) afaire.push(['ti-mail', nbM + ' message' + (nbM > 1 ? 's' : '') + ' à lire', 'parent-messages']);
+  const vReg = DB.reglement ? DB.reglement.version : 1;
+  if (!(DB.validationsReglement || []).some(v => v.jspId == j.id && v.version === vReg)) afaire.push(['ti-file-text', 'Règlement intérieur à valider', 'reglement']);
+  if (docsSaison()) { const m = docsManquants(j); if (m.length) afaire.push(['ti-file-alert', 'Documents à fournir : ' + m.map(p => p.label.toLowerCase()).join(', '), null]); }
+  const tuile = (ico, val, lbl, cls) => `<div class="pm-tuile ${cls || ''}"><i class="ti ${ico}" aria-hidden="true"></i><b>${val}</b><span>${lbl}</span></div>`;
+  return `<div class="parent-mois">
+    <div class="pm-titre"><i class="ti ti-calendar-stats" aria-hidden="true"></i> ${escTexte(j.prenom)} en ${mois}</div>
+    <div class="pm-tuiles">
+      ${tuile('ti-user-check', pm.seances ? pm.presents + '/' + pm.seances : '—', pm.seances ? 'séance' + (pm.seances > 1 ? 's' : '') + ' ce mois-ci' : 'pas encore de séance ce mois-ci', pm.seances && pm.presents === pm.seances ? 'vert' : '')}
+      ${tuile('ti-chart-donut', presSaison.seances ? Math.round(presSaison.presents / presSaison.seances * 100) + ' %' : '—', 'de présence sur la saison', presSaison.seances && presSaison.presents / presSaison.seances >= .8 ? 'vert' : '')}
+      ${tuile('ti-school', notes.length ? notes[0].note + '/' + notes[0].sur : '—', notes.length ? 'dernière note · ' + escTexte(notes[0].matiere || '') : 'pas encore de note', notes.length ? noteColor(notes[0].note, notes[0].sur) : '')}
+      ${tuile('ti-star', felic.length, 'félicitation' + (felic.length > 1 ? 's' : '') + ' cette saison', felic.length ? 'or' : '')}
+    </div>
+    ${felic.length ? `<div class="pm-felic">⭐ <b>Dernières félicitations :</b> ${escTexte(felic[0].description || '')} <small>(${fmtDate(felic[0].date)})</small></div>` : ''}
+    ${afaire.length ? `<div class="pm-afaire"><b><i class="ti ti-list-check" aria-hidden="true"></i> À faire</b>${afaire.map(x => x[2] ? `<button onclick="showSection('${x[2]}')"><i class="ti ${x[0]}" aria-hidden="true"></i>${escTexte(x[1])}<i class="ti ti-chevron-right" aria-hidden="true"></i></button>` : `<div><i class="ti ${x[0]}" aria-hidden="true"></i>${escTexte(x[1])}</div>`).join('')}</div>`
+      : '<div class="pm-ok"><i class="ti ti-circle-check" aria-hidden="true"></i> Rien à faire pour l\'instant, tout est à jour 👍</div>'}
+    <button class="btn-retro" onclick="retrospectiveJSP(${j.id})"><i class="ti ti-sparkles" aria-hidden="true"></i> Voir la saison de ${escTexte(j.prenom)} en résumé</button>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+//  MODÈLES DE MESSAGES (carnet de liaison)
+// ══════════════════════════════════════════
+function prochainEvenement(types) {
+  const auj = dateISOLocale(new Date());
+  return (DB.planning || []).filter(p => p.date >= auj && (!types || types.includes(p.type))).sort((a, b) => a.date.localeCompare(b.date))[0] || null;
+}
+const jourLong = iso => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : '[date]';
+const MODELES_MESSAGES = [
+  { nom: 'Rappel de séance', ico: '📅', fn: () => { const p = prochainEvenement(['formation']); return ['Rappel : séance du ' + jourLong(p && p.date),
+    'Bonjour,\n\nPetit rappel : la prochaine séance JSP a lieu ' + jourLong(p && p.date) + (p && p.lieu ? ' à ' + p.lieu : ' à la caserne') + '.\n\nMerci de prévenir via le carnet en cas d\'absence.\n\nÀ bientôt,\nLe chef de section']; } },
+  { nom: 'Tenue à prévoir', ico: '👕', fn: () => { const p = prochainEvenement(); return ['Tenue à prévoir — ' + jourLong(p && p.date),
+    'Bonjour,\n\nPour ' + (p ? 'la séance « ' + p.titre + ' » du ' + jourLong(p.date) : 'la prochaine séance') + ', merci de prévoir :\n• tenue de sport complète\n• baskets propres\n• gourde d\'eau\n• [à compléter]\n\nMerci,\nLe chef de section']; } },
+  { nom: 'Convocation', ico: '📣', fn: () => { const p = prochainEvenement(['ceremonie', 'sortie', 'controle', 'exercice']); return ['Convocation — ' + (p ? p.titre : '[événement]'),
+    'Bonjour,\n\nVotre enfant est convoqué(e) pour ' + (p ? '« ' + p.titre + ' » le ' + jourLong(p.date) + (p.lieu ? ' à ' + p.lieu : '') : '[événement, date, lieu]') + '.\n\nRendez-vous à la caserne à [heure], en tenue [tenue].\nRetour prévu vers [heure].\n\nMerci de confirmer sa présence via le carnet.\n\nLe chef de section']; } },
+  { nom: 'Félicitations', ico: '⭐', fn: () => ['Félicitations !',
+    'Bonjour,\n\nNous tenons à féliciter votre enfant pour [motif : son investissement, sa réussite, son esprit d\'équipe…].\n\nBravo et continuez comme ça !\n\nLe chef de section'] },
+  { nom: 'Séance annulée', ico: '❌', fn: () => { const p = prochainEvenement(['formation']); return ['Séance annulée — ' + jourLong(p && p.date),
+    'Bonjour,\n\nLa séance JSP prévue ' + jourLong(p && p.date) + ' est annulée [raison].\n\nRendez-vous à la séance suivante. Désolé pour ce changement.\n\nLe chef de section']; } },
+  { nom: 'Documents à fournir', ico: '📄', fn: () => ['Documents à fournir — saison ' + (DB.saison || ''),
+    'Bonjour,\n\nPour compléter le dossier de la saison ' + (DB.saison || '') + ', merci de nous remettre :\n• certificat médical\n• attestation de responsabilité civile\n• [à compléter]\n\nÀ apporter à la prochaine séance. Merci !\n\nLe chef de section'] }
+];
+function appliquerModeleMessage(k) {
+  const m = MODELES_MESSAGES[k]; if (!m) return;
+  const su = document.getElementById('msg_sujet'), co = document.getElementById('msg_corps'); if (!su || !co) return;
+  if ((su.value.trim() || co.value.trim()) && !confirm('Remplacer le message en cours par le modèle « ' + m.nom + ' » ?')) return;
+  const [sujet, corps] = m.fn();
+  su.value = sujet; co.value = corps;
+  co.focus(); const i = corps.indexOf('['); if (i >= 0) co.setSelectionRange(i, corps.indexOf(']', i) + 1);
+}
+
+// ══════════════════════════════════════════
+//  DOCUMENTS IMPRIMABLES (rétrospective, attestations)
+// ══════════════════════════════════════════
+function ouvrirDocumentImprimable(titre, corps, couleur) {
+  const w = window.open('', '_blank');
+  if (!w) { alert('Le navigateur a bloqué la fenêtre : autorise les fenêtres pour ce site.'); return; }
+  const c = couleur || '#163a64';
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escTexte(titre)}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+  :root{--c:${c}} *{box-sizing:border-box;margin:0;padding:0} body{font-family:Barlow,Arial,sans-serif;color:#13263d;background:#eef1f6;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .barre{position:sticky;top:0;display:flex;gap:10px;justify-content:center;padding:12px;background:#163a64} .barre button{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;background:#cf1419;color:#fff} .barre button.sec{background:rgba(255,255,255,.18)}
+  .page{width:210mm;min-height:297mm;margin:20px auto;background:#fff;padding:16mm 16mm 14mm;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.12);overflow:hidden}
+  .tete{display:flex;align-items:center;gap:14px;padding-bottom:10px;border-bottom:3px solid #163a64} .tete img{height:62px} .tete b{display:block;font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:24px;color:#163a64} .tete span{font-size:13px;color:#5b6b80}
+  .tri{display:flex;height:5px;margin:0 0 18px} .tri i{flex:1} .tri i:nth-child(1){background:#163a64} .tri i:nth-child(2){background:#fff;border:1px solid #dde2ec} .tri i:nth-child(3){background:#cf1419}
+  h1{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:40px;line-height:1.05;color:var(--c)} .sous{font-size:16px;color:#5b6b80;margin:4px 0 20px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 18px} .kpi{border-radius:14px;padding:14px;background:color-mix(in srgb,var(--c) 9%,#fff);border:1px solid color-mix(in srgb,var(--c) 25%,#fff)}
+  .kpi b{display:block;font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:38px;line-height:1;color:var(--c)} .kpi span{font-size:13px;font-weight:600;color:#3b4a5e}
+  h2{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:22px;color:#163a64;margin:18px 0 8px;display:flex;align-items:center;gap:8px} h2::after{content:'';flex:1;height:1px;background:#dde2ec}
+  ul.liste{list-style:none;display:grid;gap:6px} ul.liste li{padding:8px 12px;border-radius:10px;background:#f5f7fb;font-size:14px} ul.liste li small{color:#5b6b80}
+  .mot{margin-top:20px;padding:16px 18px;border-radius:14px;background:#163a64;color:#fff;font-size:16px;line-height:1.5} .mot b{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:22px;display:block;margin-bottom:4px}
+  .attest{font-size:16px;line-height:1.75;margin-top:28px;text-align:justify} .attest p+p{margin-top:14px}
+  .titre-attest{text-align:center;font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:42px;letter-spacing:3px;color:#163a64;margin-top:26px}
+  .signature{margin-top:46px;display:flex;justify-content:flex-end} .signature div{width:260px;text-align:center;font-size:15px} .signature .ligne{margin-top:70px;border-top:1px solid #13263d;padding-top:6px;font-size:13px;color:#5b6b80}
+  .pied{position:absolute;left:16mm;right:16mm;bottom:10mm;font-size:11px;color:#8a97a8;display:flex;justify-content:space-between;border-top:1px solid #e5e9f0;padding-top:6px}
+  @media print{body{background:#fff}.barre{display:none}.page{margin:0;box-shadow:none;width:auto;min-height:0;height:297mm}@page{size:A4;margin:0}}
+  @media (max-width:820px){.page{width:auto;min-height:0;margin:10px;padding:18px}.kpis{grid-template-columns:1fr 1fr}.pied{position:static;margin-top:24px}}
+</style></head><body><div class="barre"><button onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button><button class="sec" onclick="window.close()">Fermer</button></div>
+<div class="page"><div class="tete"><img src="${LOGO_JSP_BASE64}" alt=""><div><b>Section des Jeunes Sapeurs-Pompiers</b><span>CIS Cruzy-Quarante</span></div></div><div class="tri"><i></i><i></i><i></i></div>
+${corps}<div class="pied"><span>Carnet JSP · CIS Cruzy-Quarante</span><span>Édité le ${new Date().toLocaleDateString('fr-FR')}</span></div></div></body></html>`);
+  w.document.close();
+}
+const COULEURS_PROMO = { 'promo-1': '#7c3aed', 'promo-2': '#ea580c', 'promo-3': '#0d9488', 'promo-4': '#db2777' };
+
+// ══════════════════════════════════════════
+//  RÉTROSPECTIVE DE LA SAISON (par JSP)
+// ══════════════════════════════════════════
+function retrospectiveJSP(id) {
+  const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  const e = escTexte, sais = DB.saison || '';
+  const dansSaison = d => d && getSaisonFromDate(d) === sais;
+  const pres = presenceJSP(j), taux = pres.seances ? Math.round(pres.presents / pres.seances * 100) : null;
+  const notes = DB.resultats.filter(r => r.jspId == j.id && r.sur && dansSaison(r.date)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sur20 = r => r.note / r.sur * 20;
+  const moy = notes.length ? notes.reduce((s, r) => s + sur20(r), 0) / notes.length : null;
+  const meilleure = notes.length ? notes.reduce((m, r) => sur20(r) > sur20(m) ? r : m) : null;
+  let progression = null;
+  if (notes.length >= 4) { const mi = Math.floor(notes.length / 2), m1 = notes.slice(0, mi).reduce((s, r) => s + sur20(r), 0) / mi, m2 = notes.slice(mi).reduce((s, r) => s + sur20(r), 0) / (notes.length - mi); progression = m2 - m1; }
+  const felic = DB.comportements.filter(c => c.jspId == j.id && c.type === 'Félicitations' && dansSaison(c.date));
+  const quiz = (DB.questionnaireReponses || []).filter(q => q.jspId == j.id && dansSaison(q.date));
+  const auj = dateISOLocale(new Date());
+  const absentLe = d => DB.absences.some(a => a.jspId == j.id && dateAbsenceNormalisee(a.date) === d && a.statut !== 'retard' && a.statut !== 'excuse_retard');
+  const moments = (DB.planning || []).filter(p => p.type !== 'formation' && p.date <= auj && dansSaison(p.date) && !absentLe(p.date)).sort((a, b) => a.date.localeCompare(b.date));
+  const mot = taux == null ? 'Une saison qui ne fait que commencer : on compte sur toi !'
+    : taux >= 90 ? 'Une assiduité exemplaire : bravo pour ton engagement tout au long de la saison !'
+    : taux >= 75 ? 'Une belle saison, sérieuse et régulière. Continue comme ça !'
+    : 'Chaque séance compte : on t\'attend encore plus présent(e) la saison prochaine !';
+  const corps = `<h1>La saison ${e(sais)} de ${e(j.prenom)}</h1><div class="sous">${e(j.prenom)} ${e(j.nom)} · ${e(j.promotion || '')}</div>
+    <div class="kpis">
+      <div class="kpi"><b>${pres.presents}</b><span>séance${pres.presents > 1 ? 's' : ''} de formation suivie${pres.presents > 1 ? 's' : ''}${pres.seances ? ' sur ' + pres.seances : ''}</span></div>
+      <div class="kpi"><b>${taux == null ? '—' : taux + ' %'}</b><span>d'assiduité</span></div>
+      <div class="kpi"><b>${moy == null ? '—' : moy.toFixed(1).replace('.', ',')}</b><span>de moyenne /20${notes.length ? ' sur ' + notes.length + ' note' + (notes.length > 1 ? 's' : '') : ''}</span></div>
+      <div class="kpi"><b>${meilleure ? meilleure.note + '/' + meilleure.sur : '—'}</b><span>meilleure note${meilleure ? ' · ' + e(meilleure.matiere || '') : ''}</span></div>
+      <div class="kpi"><b>${progression == null ? '—' : (progression >= 0 ? '+' : '') + progression.toFixed(1).replace('.', ',')}</b><span>points de progression${progression == null ? '' : ' (2ᵉ moitié vs 1ʳᵉ)'}</span></div>
+      <div class="kpi"><b>${felic.length}</b><span>félicitation${felic.length > 1 ? 's' : ''}</span></div>
+    </div>
+    ${felic.length ? `<h2>⭐ Félicitations</h2><ul class="liste">${felic.map(c => `<li>${e(c.description || 'Félicitations')} <small>· ${fmtDate(c.date)}</small></li>`).join('')}</ul>` : ''}
+    ${moments.length ? `<h2>🚒 Moments forts</h2><ul class="liste">${moments.slice(0, 8).map(p => `<li><b>${e(p.titre || '')}</b> <small>· ${fmtDate(p.date)}${p.lieu ? ' · ' + e(p.lieu) : ''}</small></li>`).join('')}</ul>` : ''}
+    ${quiz.length ? `<h2>🧠 Questionnaires de culture</h2><ul class="liste"><li>${quiz.length} questionnaire${quiz.length > 1 ? 's' : ''} réalisé${quiz.length > 1 ? 's' : ''}${quiz.some(q => q.sur) ? ' · moyenne ' + (quiz.filter(q => q.sur).reduce((s, q) => s + q.note / q.sur * 20, 0) / quiz.filter(q => q.sur).length).toFixed(1).replace('.', ',') + '/20' : ''}</li></ul>` : ''}
+    <div class="mot"><b>Le mot du chef</b>${mot}</div>`;
+  ouvrirDocumentImprimable('Saison ' + sais + ' — ' + j.prenom + ' ' + j.nom, corps, COULEURS_PROMO[promoClasse(j.promotion)]);
+}
+
+// ══════════════════════════════════════════
+//  ATTESTATIONS (admin)
+// ══════════════════════════════════════════
+function modalAttestation(id) {
+  const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  const auj = dateISOLocale(new Date());
+  const evts = (DB.planning || []).filter(p => p.date <= auj).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40);
+  openModal(`<h3><i class="ti ti-certificate"></i> Attestation — ${escTexte(j.prenom)} ${escTexte(j.nom)}</h3>
+    <div class="form-group"><label>Type d'attestation</label><select id="at_type" onchange="document.getElementById('at_evt_g').hidden = this.value !== 'evenement'">
+      <option value="saison">Assiduité sur la saison ${escTexte(DB.saison || '')}</option><option value="evenement">Participation à un événement</option><option value="inscription">Inscription à la section</option></select></div>
+    <div class="form-group" id="at_evt_g" hidden><label>Événement</label><select id="at_evt">${evts.map((p, k) => `<option value="${k}">${fmtDate(p.date)} — ${escTexte(p.titre || '')}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Signataire</label><input id="at_sign" value="${escTexte((currentUser && currentUser.nom) || '')}"></div>
+    <div class="form-group"><label>Qualité</label><input id="at_qual" value="Chef de section JSP"></div>
+    <div class="form-group"><label>Fait à</label><input id="at_lieu" value="Cruzy"></div>
+    <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="genererAttestation(${j.id})"><i class="ti ti-file-certificate"></i> Créer l'attestation</button></div>`);
+  window._attestEvts = evts;
+}
+function genererAttestation(id) {
+  const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  const e = escTexte, v = k => (document.getElementById(k) || {}).value || '';
+  const type = v('at_type'), sign = v('at_sign').trim() || '[nom du signataire]', qual = v('at_qual').trim() || 'Chef de section JSP', lieu = v('at_lieu').trim() || 'Cruzy';
+  const ne = j.sexe === 'F' || j.sexe === 'Fille' ? 'née' : j.sexe === 'M' || j.sexe === 'Garçon' ? 'né' : 'né(e)';
+  const qui = `<b>${e(j.prenom)} ${e((j.nom || '').toUpperCase())}</b>${j.dateNaissance ? ', ' + ne + ' le ' + fmtDate(j.dateNaissance) : ''}${j.ville ? ', domicilié(e) à ' + e(j.ville) : ''}`;
+  let texte = '';
+  if (type === 'saison') {
+    const pres = presenceJSP(j);
+    texte = `<p>atteste que ${qui}, est inscrit(e) en <b>${e(j.promotion || '')}</b> à la section des Jeunes Sapeurs-Pompiers du CIS Cruzy-Quarante pour la saison <b>${e(DB.saison || '')}</b>.</p>
+      <p>À ce jour, ${e(j.prenom)} a suivi <b>${pres.presents} séance${pres.presents > 1 ? 's' : ''} de formation</b>${pres.seances ? ' sur ' + pres.seances + ' (' + Math.round(pres.presents / pres.seances * 100) + ' % d\'assiduité)' : ''}.</p>`;
+  } else if (type === 'evenement') {
+    const p = (window._attestEvts || [])[+v('at_evt')];
+    texte = `<p>atteste que ${qui}, JSP en <b>${e(j.promotion || '')}</b> à la section du CIS Cruzy-Quarante, a participé à <b>« ${e(p ? p.titre : '[événement]')} »</b> le <b>${p ? jourLong(p.date) : '[date]'}</b>${p && p.lieu ? ' à ' + e(p.lieu) : ''}.</p>`;
+  } else {
+    texte = `<p>atteste que ${qui}, est régulièrement inscrit(e) à la section des Jeunes Sapeurs-Pompiers du CIS Cruzy-Quarante, en <b>${e(j.promotion || '')}</b>, pour la saison <b>${e(DB.saison || '')}</b>.</p>`;
+  }
+  const corps = `<div class="titre-attest">ATTESTATION</div>
+    <div class="attest"><p>Je soussigné(e) <b>${e(sign)}</b>, ${e(qual)} au CIS Cruzy-Quarante,</p>${texte}
+    <p>Cette attestation est délivrée pour servir et valoir ce que de droit.</p></div>
+    <div class="signature"><div>Fait à ${e(lieu)}, le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}<div class="ligne">${e(sign)} — signature et cachet</div></div></div>`;
+  closeModal();
+  ouvrirDocumentImprimable('Attestation — ' + j.prenom + ' ' + j.nom, corps);
+}
+function lienTel(n) { return n ? `<a href="tel:${escTexte(String(n).replace(/[^\d+]/g, ''))}" class="lien-tel">${escTexte(n)}</a>` : '—'; }
+
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
 // ══════════════════════════════════════════
@@ -3667,7 +3934,7 @@ function renderDashboard() {
     ${carteAssiduite()}
     <div style="margin-top:24px" class="section-header"><h2><i class="ti ti-users" aria-hidden="true"></i> Liste rapide des JSP</h2></div>
     <div class="table-card">
-      <table>
+      <table class="tableau-cartes cartes-rapide">
         <thead><tr><th>JSP</th><th>Promotion</th><th>Abs. excusées</th><th>Abs. non exc.</th><th>Retards</th><th>Résultats</th></tr></thead>
         <tbody>
           ${DB.jsps.map(j => {
@@ -3682,10 +3949,10 @@ function renderDashboard() {
           ${stats.alerte ? '<i class="ti ti-alert-triangle" style="color:#b91c1c;font-size:15px" title="Seuil alerte absences atteint"></i>' : ''}
           </td>
               <td>${promoBadge(j.promotion)}</td>
-              <td><span class="badge ${stats.exc>0?'badge-orange':'badge-vert'}">${stats.exc}</span></td>
-              <td><span class="badge ${stats.nonExc>0?'badge-rouge':'badge-vert'}">${stats.nonExc}</span></td>
-              <td><span class="badge ${ret>0?'badge-orange':'badge-vert'}">${ret}</span></td>
-              <td>${moy !== '—' ? `<span class="badge badge-${noteColor(parseFloat(moy),20)}">${moy}/20</span>` : '—'}</td>
+              <td data-label="Abs. exc."><span class="badge ${stats.exc>0?'badge-orange':'badge-vert'}">${stats.exc}</span></td>
+              <td data-label="Non exc."><span class="badge ${stats.nonExc>0?'badge-rouge':'badge-vert'}">${stats.nonExc}</span></td>
+              <td data-label="Retards"><span class="badge ${ret>0?'badge-orange':'badge-vert'}">${ret}</span></td>
+              <td data-label="Moyenne">${moy !== '—' ? `<span class="badge badge-${noteColor(parseFloat(moy),20)}">${moy}/20</span>` : '—'}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -3838,7 +4105,7 @@ function renderJSPs() {
       </div>
     </div>
 
-    <div class="table-card"><table>
+    <div class="table-card"><table class="tableau-cartes cartes-jsp">
       <thead><tr><th></th><th>Prénom Nom</th><th>Grade</th><th>Ville</th><th>Adresse</th><th>Tél. père</th><th>Tél. mère</th><th>Tél. JSP</th><th>Email</th><th>Actions</th></tr></thead>
       <tbody id="jsp_tbody">
         ${renderLignesJSPs(DB.jsps)}
@@ -3854,13 +4121,13 @@ function renderLignesJSPs(jsps) {
       : '<div style="width:34px;height:34px;border-radius:50%;background:var(--promo, var(--bleu));color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">'+j.prenom[0]+j.nom[0]+'</div>'}</td>
     <td class="cellule-fiche" onclick="ficheJSP(${j.id})" title="Voir la fiche"><strong>${j.prenom} ${j.nom}</strong></td>
     <td>${promoBadge(j.promotion)}</td>
-    <td>${j.ville||'—'}</td>
-    <td style="font-size:12px;color:var(--gris-txt)">${j.adresse||'—'}</td>
-    <td style="font-size:12px">${j.telPere||'—'}</td>
-    <td style="font-size:12px">${j.telMere||'—'}</td>
-    <td style="font-size:13px">${j.telJSP||'—'}</td>
-    <td style="font-size:12px;color:var(--bleu-clair)">${j.email?'<a href="mailto:'+j.email+'" style="color:var(--bleu-clair)">'+j.email+'</a>':'—'}</td>
-    <td>
+    <td data-label="Ville">${j.ville||'—'}</td>
+    <td data-label="Adresse" style="font-size:12px;color:var(--gris-txt)">${j.adresse||'—'}</td>
+    <td data-label="Tél. père" style="font-size:12px">${lienTel(j.telPere)}</td>
+    <td data-label="Tél. mère" style="font-size:12px">${lienTel(j.telMere)}</td>
+    <td data-label="Tél. JSP" style="font-size:13px">${lienTel(j.telJSP)}</td>
+    <td data-label="E-mail" style="font-size:12px;color:var(--bleu-clair)">${j.email?'<a href="mailto:'+j.email+'" style="color:var(--bleu-clair)">'+j.email+'</a>':'—'}</td>
+    <td class="cellule-actions">
       <button class="btn-add" style="padding:5px 10px;font-size:12px;background:#7c3aed" title="Dossier de candidature" onclick="modalCandidatureJSP(${j.id})"><i class="ti ti-file-certificate"></i></button>
       <button class="btn-add" style="padding:5px 10px;font-size:12px;margin-left:6px" onclick="modalEditJSP(${j.id})"><i class="ti ti-edit"></i></button>
       <button class="btn-danger" style="padding:5px 10px;font-size:12px;margin-left:6px;border-radius:6px" onclick="deleteJSP(${j.id})"><i class="ti ti-trash"></i></button>
@@ -4524,7 +4791,7 @@ function renderAbsences(jspFilt, toutesSaisons) {
           <td style="color:var(--gris-txt);font-size:13px">${a.remarque||'—'}</td>
           <td><button onclick="deleteItem('absences',${a.id},'absences')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
         </tr>`;
-        }).join('') : `<tr class="empty-row"><td colspan="8">Aucune absence enregistrée</td></tr>`}
+        }).join('') : `<tr class="empty-row"><td colspan="8"><span class="vide-ico">🎉</span>Aucune absence enregistrée</td></tr>`}
       </tbody>
     </table></div>
     <div id="abs_barre_sel" style="display:none;position:sticky;bottom:12px;margin-top:12px;background:var(--bleu);color:#fff;border-radius:10px;padding:10px 14px;align-items:center;gap:12px;box-shadow:0 4px 14px rgba(0,0,0,.2)">
@@ -4645,7 +4912,7 @@ function renderRetards() {
           <td><span class="badge badge-orange">${r.duree}</span></td>
           <td>${r.motif}</td>
           <td><button onclick="deleteItem('retards',${r.id},'retards')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="5">Aucun retard enregistré</td></tr>`}
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="5"><span class="vide-ico">⏱️</span>Aucun retard : tout le monde est à l'heure 🎉</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -4693,7 +4960,7 @@ function renderComportement() {
           <td><span class="badge ${c.gravite==='grave'?'badge-rouge':c.gravite==='serieuse'?'badge-orange':'badge-gris'}">${c.gravite}</span></td>
           <td style="font-size:13px">${c.description}</td>
           <td><button onclick="deleteItem('comportements',${c.id},'comportement')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Aucun comportement enregistré</td></tr>`}
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="6"><span class="vide-ico">🙂</span>Rien à signaler pour l'instant</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -4752,7 +5019,7 @@ function renderResultats() {
           <td><span class="badge badge-${noteColor(r.note,r.sur)}">${r.note}/${r.sur}</span> ${noteDots(r.note,r.sur)}</td>
           <td style="font-size:13px">${r.appreciation||'—'}</td>
           <td><button onclick="deleteItem('resultats',${r.id},'resultats')" style="background:none;border:none;cursor:pointer;color:var(--rouge)"><i class="ti ti-trash"></i></button></td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="6">Aucun résultat enregistré</td></tr>`}
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="6"><span class="vide-ico">📝</span>Aucune note pour l'instant</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -13213,9 +13480,9 @@ function renderParentAccueil() {
   const _dateProchaine = _futurs.length ? _futurs[0].date : null;
   const prochains = _futurs.filter(p => p.date !== _dateProchaine).slice(0,3);
 
-  // Calcul assiduité %
-  const totalSeances = abs.length || 1;
-  const tauxPresence = Math.max(0, Math.round((1 - absNE/Math.max(totalSeances,1))*100));
+  // Assiduité : séances de formation passées de la saison (même calcul que le tableau de bord)
+  const _pres = presenceJSP(j);
+  const tauxPresence = _pres.seances ? Math.round(_pres.presents / _pres.seances * 100) : 100;
 
   // Graphique barres résultats (SVG inline)
   function genGraphResultats() {
@@ -13267,6 +13534,9 @@ function renderParentAccueil() {
   // Carte « Prochaine séance » (ou bouton simple s'il n'y a rien de prévu)
   html2 += renderCarteProchaineSeance(j);
 
+  // « Ce mois-ci » + ce qui attend la famille
+  html2 += carteMoisParent(j, _pres);
+
   // Stats cards
   html2 += '<div class="stats-grid" style="margin-bottom:20px">';
   html2 += '<div class="stat-card '+(absNE>0?'rouge':'vert')+'"><div class="stat-val">'+abs.length+'</div><div class="stat-lbl">Absences ('+absNE+' non excusées)</div></div>';
@@ -13276,10 +13546,10 @@ function renderParentAccueil() {
   html2 += '</div>';
 
   // Graphiques côte à côte
-  html2 += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">';
+  html2 += '<div class="parent-graphes">';
 
   // Graphique assiduité
-  html2 += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">';
+  html2 += '<div style="background:var(--blanc);border-radius:12px;border:1px solid var(--gris-bord);padding:16px">';
   html2 += '<div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:12px"><i class="ti ti-chart-pie" aria-hidden="true"></i> Assiduité</div>';
   html2 += '<div style="display:flex;align-items:center;gap:16px">';
   html2 += genDonut(tauxPresence, tauxPresence >= 80 ? '#166534' : tauxPresence >= 60 ? '#b45309' : '#b91c1c', '#e5e7eb');
@@ -13290,7 +13560,7 @@ function renderParentAccueil() {
   html2 += '</div></div></div>';
 
   // Graphique résultats
-  html2 += '<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:16px">';
+  html2 += '<div style="background:var(--blanc);border-radius:12px;border:1px solid var(--gris-bord);padding:16px">';
   html2 += '<div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:12px"><i class="ti ti-chart-bar" aria-hidden="true"></i> Résultats de contrôles</div>';
   html2 += genGraphResultats();
   html2 += '</div>';
@@ -13384,7 +13654,7 @@ function renderParentAbsences() {
           <td>${fmtDate(a.date)}</td><td>${a.motif}</td>
           <td><span class="badge ${a.excusee?'badge-vert':'badge-rouge'}">${a.excusee?'Oui':'Non'}</span></td>
           <td style="font-size:13px;color:var(--gris-txt)">${a.remarque||'—'}</td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="4"><i class="ti ti-check"></i> Aucune absence</td></tr>`}
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="4"><span class="vide-ico">🎉</span>Aucune absence cette saison, bravo !</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -13400,7 +13670,7 @@ function renderParentRetards() {
           <td>${fmtDate(r.date)}</td>
           <td><span class="badge badge-orange">${r.duree}</span></td>
           <td>${r.motif}</td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="3"><i class="ti ti-check"></i> Aucun retard</td></tr>`}
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="3"><span class="vide-ico">⏱️</span>Toujours à l'heure, bravo !</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -13417,7 +13687,7 @@ function renderParentComportement() {
           <td><span class="badge badge-rouge">${c.type}</span></td>
           <td><span class="badge ${c.gravite==='grave'?'badge-rouge':c.gravite==='serieuse'?'badge-orange':'badge-gris'}">${c.gravite}</span></td>
           <td style="font-size:13px">${c.description}</td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="4"><i class="ti ti-check"></i> Aucune mention</td></tr>`}
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="4"><span class="vide-ico">👍</span>Rien à signaler</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -13438,7 +13708,7 @@ function renderParentResultats() {
           <td>${r.matiere}</td>
           <td><span class="badge badge-${noteColor(r.note,r.sur)}">${r.note}/${r.sur}</span> ${noteDots(r.note,r.sur)}</td>
           <td style="font-size:13px">${r.appreciation||'—'}</td>
-        </tr>`).join('') : `<tr class="empty-row"><td colspan="4">Aucun résultat enregistré</td></tr>`}
+        </tr>`).join('') : `<tr class="empty-row"><td colspan="4"><span class="vide-ico">📝</span>Pas encore de note cette saison</td></tr>`}
       </tbody>
     </table></div>`;
 }
@@ -15776,16 +16046,15 @@ function showNotifToast(msg, isError) {
   if (existing) existing.remove();
   const toast = document.createElement('div');
   toast.id = 'notif-toast';
-  toast.style.cssText = `
-    position:fixed;bottom:24px;right:24px;z-index:9999;
-    background:${isError ? '#b91c1c' : '#166534'};color:white;
-    padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;
-    box-shadow:0 4px 20px rgba(0,0,0,0.3);font-family:Arial,sans-serif;
-    animation:fadeIn .3s ease;
-  `;
-  toast.textContent = msg;
+  toast.className = 'notif-toast ' + (isError ? 'erreur' : 'succes');
+  toast.setAttribute('role', isError ? 'alert' : 'status');
+  // icône seulement si le message ne commence pas déjà par un emoji
+  const avecIcone = /^[\p{L}\d«"(]/u.test(String(msg));
+  toast.innerHTML = (avecIcone ? `<i class="ti ti-${isError ? 'alert-triangle' : 'circle-check'}" aria-hidden="true"></i>` : '') + '<span></span>';
+  toast.querySelector('span').textContent = msg;
+  toast.onclick = () => toast.remove();
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
+  setTimeout(() => { toast.classList.add('sortie'); setTimeout(() => toast.remove(), 300); }, 4000);
 }
 
 // ══════════════════════════════════════════
@@ -18097,6 +18366,7 @@ function renderMessagerie() {
   return `<div class="section-header"><h2><i class="ti ti-message" aria-hidden="true"></i> Carnet de liaison</h2></div>
     <div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);padding:20px;margin-bottom:16px">
       <div style="font-size:14px;font-weight:700;color:var(--bleu);margin-bottom:14px"><i class="ti ti-send"></i> Nouveau message</div>
+      <div class="modeles-msg"><span>Modèles :</span>${MODELES_MESSAGES.map((m, k) => `<button type="button" class="modele-chip" onclick="appliquerModeleMessage(${k})">${m.ico} ${escTexte(m.nom)}</button>`).join('')}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
         <div class="form-group"><label>Destinataire</label>
           <select id="msg_dest" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px">${optsGroupes}</select>
