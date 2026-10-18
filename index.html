@@ -618,6 +618,84 @@
   .hy-fiche-tete { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
   .hy-grade { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 24px; }
   .hy-etoiles { margin-left: auto; font-weight: 700; font-size: 18px; color: #B8860B; }
+
+  /* ── FINITIONS VISUELLES (2026) ─────────────────── */
+  :root { --ombre: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06); --ombre-haute: 0 10px 24px -8px rgba(22,58,100,.25); --violet: #6b21a8; --violet-pale: #f3e8ff; }
+  [data-theme="dark"] { --ombre: 0 1px 2px rgba(0,0,0,.3); --ombre-haute: 0 12px 26px -10px rgba(0,0,0,.6); --violet: #c4b5fd; --violet-pale: #2e1065; }
+  .badge-violet { background: var(--violet-pale); color: var(--violet); }
+
+  /* Entrée en douceur d'une rubrique */
+  .content.entree > * { animation: fadeIn .35s cubic-bezier(.2,.8,.2,1) both; }
+  .content.entree > *:nth-child(2) { animation-delay: .04s; } .content.entree > *:nth-child(3) { animation-delay: .08s; }
+  .content.entree > *:nth-child(4) { animation-delay: .12s; } .content.entree > *:nth-child(5) { animation-delay: .16s; }
+  .content.entree > *:nth-child(n+6) { animation-delay: .2s; }
+
+  /* Menu : onglet actif en « pilule » */
+  .nav-item { margin: 1px 10px; padding: 9px 12px; border-radius: 10px; border-left: 0; }
+  .nav-item.active { position: relative; background: var(--bleu-pale); }
+  .nav-item.active::before { content: ''; position: absolute; left: -10px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: #cf1419; }
+  .nav-item i { transition: transform .15s; }
+  .nav-item:hover i { transform: scale(1.12); }
+  @media (max-width: 640px) { .nav-item { margin: 1px 6px; padding: 10px; } .nav-item.active::before { left: -6px; } }
+
+  /* Titres de section : icône dans une pastille */
+  .section-header h2 > i.ti { width: 36px; height: 36px; border-radius: 10px; display: inline-grid; place-items: center; font-size: 20px; background: var(--bleu-pale); color: var(--bleu); }
+
+  /* Boutons : léger relief au survol */
+  .btn-add, .btn-save, .btn-danger, .btn-primary { box-shadow: var(--ombre); transition: transform .15s, box-shadow .15s, background .15s, filter .15s; }
+  .btn-add:hover, .btn-save:hover, .btn-danger:hover, .btn-primary:hover { transform: translateY(-1px); box-shadow: var(--ombre-haute); filter: brightness(1.06); }
+  .btn-add:active, .btn-save:active, .btn-danger:active, .btn-primary:active { transform: translateY(0) scale(.98); }
+
+  /* Cartes de chiffres */
+  .stat-card { position: relative; overflow: hidden; border-radius: 14px; border: 1px solid var(--gris-bord); box-shadow: var(--ombre); padding: 18px 16px 16px; transition: transform .2s, box-shadow .2s; --c: var(--bleu-clair); --cp: var(--bleu-pale); }
+  .stat-card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--c); }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: var(--ombre-haute); }
+  .stat-card.rouge { --c: var(--rouge); --cp: var(--rouge-pale); }
+  .stat-card.orange { --c: var(--orange); --cp: var(--orange-pale); }
+  .stat-card.vert { --c: var(--vert); --cp: var(--vert-pale); }
+  .stat-ico { display: grid; place-items: center; width: 40px; height: 40px; margin: 0 auto 8px; border-radius: 12px; font-size: 22px; background: var(--cp); color: var(--c); }
+  .stat-card .stat-lbl { font-size: 13px; font-weight: 500; }
+  .stat-alerte { animation: alertePulse 2.4s ease-in-out infinite; }
+  @keyframes alertePulse { 50% { box-shadow: 0 0 0 4px var(--rouge-pale), var(--ombre); } }
+
+  /* Prochains événements : feuillet de calendrier */
+  .planning-item { background: var(--blanc); border-radius: 12px; box-shadow: var(--ombre); transition: transform .15s, box-shadow .15s; }
+  .planning-item:hover { transform: translateX(3px); box-shadow: var(--ombre-haute); }
+  .evt-item { border-left: 0; border: 1px solid var(--gris-bord); padding: 10px 16px 10px 10px; }
+  .evt-date { flex: 0 0 54px; border-radius: 10px; overflow: hidden; text-align: center; background: var(--bleu); color: #fff; box-shadow: 0 2px 0 #cf1419; }
+  .evt-mois { display: block; background: #cf1419; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 2px 0; }
+  .evt-date b { display: block; font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 26px; line-height: 1; padding: 4px 0 6px; }
+  .evt-quand { display: flex; flex-direction: column; gap: 3px; min-width: 96px; }
+  .evt-jour { font-size: 13px; font-weight: 600; color: var(--gris-txt); text-transform: capitalize; }
+  .evt-rebours { align-self: flex-start; font-size: 12px; font-weight: 700; padding: 1px 9px; border-radius: 20px; background: var(--bleu-pale); color: var(--bleu); white-space: nowrap; }
+  .evt-rebours.bientot { background: #cf1419; color: #fff; }
+  .evt-infos { flex: 1; min-width: 0; }
+  .evt-infos .planning-titre { font-size: 15px; }
+  .evt-infos .planning-type i { font-size: 13px; vertical-align: -1px; }
+  @media (max-width: 560px) { .evt-quand { display: none; } .evt-item { flex-wrap: wrap; } }
+  @media (max-width: 640px) { .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } .stat-card { padding: 14px 10px 12px; } .stat-card .stat-val { font-size: 30px; } .stat-ico { width: 34px; height: 34px; font-size: 18px; margin-bottom: 6px; } }
+
+  /* Tableaux */
+  .table-card { border: 1px solid var(--gris-bord); box-shadow: var(--ombre); }
+  thead { background: linear-gradient(135deg, #163a64 0%, #1d4b80 100%); }
+  [data-theme="dark"] thead { background: #1e3a5f; }
+  thead th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .4px; }
+  tbody tr { transition: background .12s; }
+  tbody tr:nth-child(even) { background: color-mix(in srgb, var(--gris-bg) 55%, transparent); }
+  tbody tr:hover { background: var(--bleu-pale); }
+  [data-theme="dark"] tbody tr:hover { background: #374151; }
+  tbody tr:last-child { border-bottom: 0; }
+  tbody td img { box-shadow: 0 0 0 2px var(--blanc), 0 0 0 4px var(--bleu-pale); }
+
+  /* Fenêtres : apparition */
+  .modal-bg { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: fondu .2s ease; }
+  .modal { box-shadow: 0 24px 48px -12px rgba(16,24,40,.35); animation: fadeIn .25s cubic-bezier(.2,.8,.2,1); }
+  @keyframes fondu { from { opacity: 0; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .content.entree > *, .modal, .modal-bg, .stat-alerte { animation: none !important; }
+    .stat-card, .planning-item, .btn-add, .btn-save, .btn-danger, .btn-primary { transition: none; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -2673,6 +2751,7 @@ function hyCoche(date, id, champ, val) {
 }
 
 function showSection(sec) {
+  const changement = currentSection !== sec;
   currentSection = sec;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const all = document.querySelectorAll('.nav-item');
@@ -2720,6 +2799,7 @@ function showSection(sec) {
     case 'organigramme': c.innerHTML = renderOrganigramme(); break;
     case 'subventions': c.innerHTML = renderSubventions(); break;
   }
+  if (changement) { c.classList.remove('entree'); void c.offsetWidth; c.classList.add('entree'); }
   try { majBadgeDemandesAbsence(); } catch (e) {}
   if (sec === 'absences' || sec === 'parent-absences') rafraichirDemandesAbsence();
 }
@@ -2753,8 +2833,16 @@ function noteDots(n, sur) {
 const LIBELLES_TYPE_PLANNING = { formation:'Formation', exercice:'Exercice', ceremonie:'Cérémonie', controle:'Contrôle', sortie:'Sortie' };
 function libelleTypePlanning(t) { return LIBELLES_TYPE_PLANNING[t] || t; }
 function planningTypeBadge(t) {
-  const map = { formation: 'badge-bleu', exercice: 'badge-orange', controle: 'badge-rouge', ceremonie: 'badge-vert' };
+  const map = { formation: 'badge-bleu', exercice: 'badge-orange', controle: 'badge-rouge', ceremonie: 'badge-vert', sortie: 'badge-violet' };
   return `<span class="badge ${map[t]||'badge-gris'}">${libelleTypePlanning(t)}</span>`;
+}
+// Mini feuillet de calendrier (jour + mois) et compte à rebours pour le tableau de bord
+function evtFeuillet(iso) {
+  const d = new Date(iso + 'T12:00:00'), auj = new Date(); auj.setHours(12, 0, 0, 0);
+  const n = Math.round((d - auj) / 86400000);
+  const rebours = n <= 0 ? "Aujourd'hui" : n === 1 ? 'Demain' : 'Dans ' + n + ' j';
+  return `<div class="evt-date"><span class="evt-mois">${d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '')}</span><b>${d.getDate()}</b></div>`
+    + `<div class="evt-quand"><span class="evt-jour">${d.toLocaleDateString('fr-FR', { weekday: 'long' })}</span><span class="evt-rebours${n <= 1 ? ' bientot' : ''}">${rebours}</span></div>`;
 }
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
@@ -2775,18 +2863,18 @@ function renderDashboard() {
       <button id="btnSyncAppel" class="btn-add btn-sync-appel" style="background:#16a34a;font-size:13px" onclick="syncAbsencesFromAppel()"><i class="ti ti-refresh"></i> Synchroniser avec l\'appli d\'appel</button>
     </div></div>
     <div class="stats-grid">
-      <div class="stat-card bleu"><div class="stat-val">${totalJSP}</div><div class="stat-lbl">JSP inscrits</div></div>
-      <div class="stat-card rouge"><div class="stat-val">${absNE}</div><div class="stat-lbl">Absences non excusées</div></div>
-      <div class="stat-card orange"><div class="stat-val">${retards}</div><div class="stat-lbl">Retards</div></div>
-      <div class="stat-card rouge"><div class="stat-val">${reprimandes}</div><div class="stat-lbl">Comportements</div></div>
-      ${jspsEnAlerte > 0 ? `<div class="stat-card rouge" style="cursor:pointer" onclick="showSection('absences')"><div class="stat-val">⚠️ ${jspsEnAlerte}</div><div class="stat-lbl">JSP en alerte absences</div></div>` : ''}
+      <div class="stat-card bleu"><i class="ti ti-users stat-ico" aria-hidden="true"></i><div class="stat-val">${totalJSP}</div><div class="stat-lbl">JSP inscrits</div></div>
+      <div class="stat-card ${absNE ? 'rouge' : 'vert'}"><i class="ti ti-calendar-x stat-ico" aria-hidden="true"></i><div class="stat-val">${absNE}</div><div class="stat-lbl">Absences non excusées</div></div>
+      <div class="stat-card ${retards ? 'orange' : 'vert'}"><i class="ti ti-clock-exclamation stat-ico" aria-hidden="true"></i><div class="stat-val">${retards}</div><div class="stat-lbl">Retards</div></div>
+      <div class="stat-card ${reprimandes ? 'rouge' : 'vert'}"><i class="ti ti-alert-triangle stat-ico" aria-hidden="true"></i><div class="stat-val">${reprimandes}</div><div class="stat-lbl">Comportements</div></div>
+      ${jspsEnAlerte > 0 ? `<div class="stat-card rouge stat-alerte" style="cursor:pointer" onclick="showSection('absences')"><i class="ti ti-urgent stat-ico" aria-hidden="true"></i><div class="stat-val">${jspsEnAlerte}</div><div class="stat-lbl">JSP en alerte absences</div></div>` : ''}
     </div>
     <div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Prochains événements</h2></div>
     <div class="planning-grid">
       ${prochains.length ? prochains.map(p => `
-        <div class="planning-item">
-          <div class="planning-date"><i class="ti ti-calendar" aria-hidden="true"></i> ${fmtDate(p.date)}</div>
-          <div><div class="planning-titre">${p.titre}</div><div class="planning-type">${p.lieu}</div></div>
+        <div class="planning-item evt-item">
+          ${evtFeuillet(p.date)}
+          <div class="evt-infos"><div class="planning-titre">${p.titre}</div><div class="planning-type">${p.lieu ? '<i class="ti ti-map-pin" aria-hidden="true"></i> ' + p.lieu : ''}</div></div>
           ${planningTypeBadge(p.type)}
         </div>`).join('') : '<p style="color:var(--gris-txt);font-size:14px">Aucun événement à venir</p>'}
     </div>
