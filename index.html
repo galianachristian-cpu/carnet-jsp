@@ -905,6 +905,54 @@
   .ca-txt b { font-size: 14px; } .ca-txt small { font-size: 12px; color: var(--gris-txt); }
   .ca-txt small::first-letter { text-transform: uppercase; }
   @media (prefers-reduced-motion: reduce) { .ca-gateau, .etat-pt.rouge, .recherche-fond.ouvert, .recherche-boite { animation: none !important; } }
+
+  /* ── Assiduité de la saison ── */
+  .as-carte { background: var(--blanc); border: 1px solid var(--gris-bord); border-radius: 14px; box-shadow: var(--ombre); padding: 18px 20px 14px; }
+  .as-haut { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 36px; }
+  .as-hero { display: flex; align-items: center; gap: 12px; }
+  .as-hero b { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 48px; line-height: 1; color: var(--bleu); }
+  .as-hero span { font-size: 13px; color: var(--gris-txt); line-height: 1.35; }
+  .as-promos { flex: 1; min-width: 240px; display: grid; gap: 7px; }
+  .as-promo { display: grid; grid-template-columns: 52px 1fr 46px; align-items: center; gap: 10px; font-size: 13px; }
+  .as-p-nom { font-weight: 700; color: var(--promo, var(--bleu)); }
+  .as-p-barre { height: 10px; border-radius: 0 4px 4px 0; background: var(--gris-bg); overflow: hidden; }
+  .as-p-barre i { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--promo, var(--bleu-clair)); }
+  .as-promo b { text-align: right; font-variant-numeric: tabular-nums; }
+  .as-graph { position: relative; height: 150px; margin: 0 56px 0 38px; }
+  .as-grille span, .as-moy { position: absolute; left: 0; right: 0; bottom: var(--y); border-top: 1px solid var(--gris-bord); }
+  .as-grille em { position: absolute; left: -38px; top: -7px; width: 32px; text-align: right; font-style: normal; font-size: 11px; line-height: 1; color: var(--gris-txt); }
+  .as-moy { border-top: 2px dashed var(--bleu); z-index: 2; pointer-events: none; }
+  .as-moy span { position: absolute; right: -56px; top: -9px; font-size: 11px; font-weight: 700; color: var(--bleu); background: var(--blanc); padding: 0 2px; white-space: nowrap; }
+  .as-barres { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; z-index: 1; }
+  .as-barre { flex: 1; height: 100%; min-width: 3px; border: 0; padding: 0; background: none; cursor: pointer; display: flex; align-items: flex-end; }
+  .as-barre i { display: block; width: 100%; height: var(--h); border-radius: 4px 4px 0 0; background: var(--bleu-clair); transition: background .15s; }
+  .as-barre:hover i, .as-barre:focus-visible i { background: var(--bleu); }
+  .as-barre:focus-visible { outline: 2px solid var(--bleu); outline-offset: 2px; }
+  .as-tip { position: absolute; top: -34px; transform: translateX(-50%); z-index: 3; white-space: nowrap; pointer-events: none;
+    background: #13263d; color: #fff; font-size: 12px; font-weight: 600; padding: 5px 9px; border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+  .as-axe { display: flex; justify-content: space-between; font-size: 11px; color: var(--gris-txt); margin: 6px 56px 0 38px; }
+  .as-note { font-size: 12px; color: var(--gris-txt); margin-top: 10px; }
+  [data-theme="dark"] .as-hero b, [data-theme="dark"] .as-moy span { color: #93c5fd; }
+  [data-theme="dark"] .as-moy { border-top-color: #93c5fd; }
+  [data-theme="dark"] .as-barre:hover i { background: #93c5fd; }
+
+  /* ── Sauvegardes ── */
+  .sauv-carte { background: var(--blanc); border: 1px solid var(--gris-bord); border-radius: 14px; box-shadow: var(--ombre); padding: 18px 20px; }
+  .sauv-intro { font-size: 14px; line-height: 1.5; margin-bottom: 14px; }
+  .sauv-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .sauv-fichier { background: #475569; cursor: pointer; }
+  .sauv-liste { display: grid; gap: 6px; }
+  .sauv-ligne { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--gris-bg); }
+  .sauv-ligne > i { font-size: 20px; color: var(--vert); }
+  .sauv-ligne:not(:first-child) > i { color: var(--gris-txt); }
+  .sauv-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .sauv-txt b { font-size: 14px; } .sauv-txt b::first-letter { text-transform: uppercase; }
+  .sauv-txt small { font-size: 12px; color: var(--gris-txt); }
+  .sauv-btn { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--gris-bord); background: var(--blanc); color: var(--bleu); font: inherit; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 8px; cursor: pointer; min-height: 36px; }
+  .sauv-btn:hover { border-color: var(--bleu-clair); }
+  .sauv-vide { font-size: 13px; color: var(--gris-txt); }
+  [data-theme="dark"] .sauv-btn { color: #93c5fd; }
+  @media (max-width: 640px) { .sauv-btn span { display: none; } .as-hero b { font-size: 40px; } }
 </style>
 <script>
 // Ouverture instantanée : copie de l'appli gardée sur l'appareil (voir sw.js)
@@ -1942,6 +1990,7 @@ async function doLogin() {
     // Chargement cloud au démarrage
     // (données déjà chargées par la connexion : pas de rechargement, qui effaçait le journal de connexion)
     Promise.resolve().then(() => { migrerQuestionsCultureSiNecessaire(); migrerQuestionsCultureV2(); showSection('dashboard'); });
+    setTimeout(() => sauvegardeAuto().catch(() => {}), 1500);
   } else if (user.role === 'special') {
     buildSidebarSpecial(user);
     document.getElementById('sidebarSpecial').classList.remove('hidden');
@@ -3293,6 +3342,141 @@ document.addEventListener('keydown', ev => {
   }
 });
 
+// ══════════════════════════════════════════
+//  ASSIDUITÉ DE LA SAISON (tableau de bord)
+// ══════════════════════════════════════════
+// Séances = dimanches de formation du planning, passés, de la saison en cours.
+// Absent = une absence (excusée ou non) ce jour-là ; un retard compte comme présent.
+// Les JSP 1 n'entrent qu'en janvier : ils ne comptent pas pour les séances de septembre à décembre.
+function statsAssiduite() {
+  const auj = dateISOLocale(new Date());
+  const dates = getDimanchesCours().filter(d => d <= auj && getSaisonFromDate(d) === DB.saison);
+  const concerne = (j, d) => !(promoClasse(j.promotion) === 'promo-1' && parseInt(d.slice(5, 7), 10) >= 9);
+  const promos = {};
+  const seances = dates.map(d => {
+    const absents = new Set(DB.absences.filter(a => dateAbsenceNormalisee(a.date) === d && a.statut !== 'retard' && a.statut !== 'excuse_retard').map(a => String(a.jspId)));
+    const attendus = DB.jsps.filter(j => concerne(j, d));
+    const presents = attendus.filter(j => !absents.has(String(j.id)));
+    attendus.forEach(j => { const k = j.promotion || 'Autre'; promos[k] = promos[k] || { att: 0, pres: 0 }; promos[k].att++; if (!absents.has(String(j.id))) promos[k].pres++; });
+    return { d, att: attendus.length, pres: presents.length, taux: attendus.length ? presents.length / attendus.length : 0 };
+  }).filter(x => x.att);
+  const att = seances.reduce((s, x) => s + x.att, 0), pres = seances.reduce((s, x) => s + x.pres, 0);
+  return { seances, moyenne: att ? pres / att : null, promos: Object.keys(promos).sort().map(k => ({ promo: k, taux: promos[k].pres / promos[k].att })) };
+}
+function carteAssiduite() {
+  const st = statsAssiduite();
+  if (!st.seances.length) return '';
+  const pc = v => Math.round(v * 100) + ' %';
+  const barres = st.seances.map(x => `<button class="as-barre" style="--h:${Math.max(2, x.taux * 100)}%" data-tip="${fmtDate(x.d)} · ${x.pres}/${x.att} présents · ${pc(x.taux)}"
+      aria-label="${fmtDate(x.d)} : ${x.pres} présents sur ${x.att}, ${pc(x.taux)}" onmouseenter="assidTip(this)" onfocus="assidTip(this)" onmouseleave="assidTip()" onblur="assidTip()"><i></i></button>`).join('');
+  const premier = st.seances[0].d, dernier = st.seances[st.seances.length - 1].d;
+  return `<div class="section-header" style="margin-top:24px"><h2><i class="ti ti-chart-bar" aria-hidden="true"></i> Assiduité de la saison</h2></div>
+  <div class="as-carte">
+    <div class="as-haut">
+      <div class="as-hero"><b>${pc(st.moyenne)}</b><span>de présence en moyenne<br>sur ${st.seances.length} séance${st.seances.length > 1 ? 's' : ''} de formation</span></div>
+      <div class="as-promos">${st.promos.map(p => `<div class="as-promo ${promoClasse(p.promo)}"><span class="as-p-nom">${escTexte(p.promo)}</span><span class="as-p-barre"><i style="width:${Math.round(p.taux * 100)}%"></i></span><b>${pc(p.taux)}</b></div>`).join('')}</div>
+    </div>
+    <div class="as-graph" role="group" aria-label="Taux de présence par séance">
+      <div class="as-grille" aria-hidden="true"><span style="--y:100%"><em>100 %</em></span><span style="--y:75%"><em>75 %</em></span><span style="--y:50%"><em>50 %</em></span><span style="--y:0%"></span></div>
+      <div class="as-moy" style="--y:${st.moyenne * 100}%"><span>moy. ${pc(st.moyenne)}</span></div>
+      <div class="as-barres">${barres}</div>
+      <div class="as-tip" id="asTip" hidden></div>
+    </div>
+    <div class="as-axe"><span>${fmtDate(premier)}</span><span>${fmtDate(dernier)}</span></div>
+    <p class="as-note">Un retard compte comme une présence. Les absences viennent du carnet et de l'appli d'appel.</p>
+  </div>`;
+}
+function assidTip(el) {
+  const t = document.getElementById('asTip'); if (!t) return;
+  if (!el) { t.hidden = true; return; }
+  const g = el.closest('.as-graph').getBoundingClientRect(), b = el.getBoundingClientRect();
+  t.textContent = el.dataset.tip; t.hidden = false;
+  const x = Math.min(Math.max(b.left - g.left + b.width / 2, t.offsetWidth / 2), g.width - t.offsetWidth / 2);
+  t.style.left = x + 'px';
+}
+
+// ══════════════════════════════════════════
+//  SAUVEGARDES (copies datées sur l'appareil + fichier)
+// ══════════════════════════════════════════
+// Les mots de passe ne sont jamais copiés ; à la restauration, les comptes actuels (et leurs mots de passe) sont conservés.
+const SAUV_MAX = 14;
+function sauvDB() {
+  return new Promise((ok, ko) => {
+    const r = indexedDB.open('carnet-jsp-sauvegardes', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('copies', { keyPath: 'ts' });
+    r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+  });
+}
+async function sauvOp(mode, fn) {
+  const db = await sauvDB();
+  return new Promise((ok, ko) => { const tx = db.transaction('copies', mode), st = tx.objectStore('copies'); const req = fn(st); tx.oncomplete = () => ok(req && req.result); tx.onerror = () => ko(tx.error); });
+}
+function copieSansMotsDePasse(src) {
+  const c = JSON.parse(JSON.stringify(src));
+  c.users = (c.users || []).map(u => { delete u.pass; return u; });
+  return c;
+}
+async function sauvegardeAuto(forcer) {
+  if (!currentUser || currentUser.role !== 'admin' || !DB.jsps || !DB.jsps.length || !window.indexedDB) return;
+  const liste = (await sauvOp('readonly', st => st.getAll())) || [];
+  const derniere = liste.reduce((m, x) => Math.max(m, x.ts), 0);
+  if (!forcer && Date.now() - derniere < 20 * 3600 * 1000) return;
+  const contenu = JSON.stringify(copieSansMotsDePasse(DB));
+  await sauvOp('readwrite', st => st.put({ ts: Date.now(), saison: DB.saison, nbJSP: DB.jsps.length, taille: contenu.length, contenu }));
+  const vieilles = liste.sort((a, b) => b.ts - a.ts).slice(SAUV_MAX - 1);
+  if (vieilles.length) await sauvOp('readwrite', st => { vieilles.forEach(v => st.delete(v.ts)); });
+}
+function fmtTaille(n) { return n > 1e6 ? (n / 1e6).toFixed(1).replace('.', ',') + ' Mo' : Math.round(n / 1e3) + ' Ko'; }
+function fmtQuand(ts) { return new Date(ts).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' à ' + new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+async function afficherSauvegardes() {
+  const zone = document.getElementById('sauvListe'); if (!zone) return;
+  if (!window.indexedDB) { zone.innerHTML = '<p class="sauv-vide">Ce navigateur ne permet pas les copies automatiques : utilise le téléchargement.</p>'; return; }
+  const liste = ((await sauvOp('readonly', st => st.getAll())) || []).sort((a, b) => b.ts - a.ts);
+  zone.innerHTML = liste.length ? liste.map((x, i) => `<div class="sauv-ligne"><i class="ti ti-${i === 0 ? 'shield-check' : 'history'}" aria-hidden="true"></i>
+      <span class="sauv-txt"><b>${fmtQuand(x.ts)}</b><small>${x.nbJSP} JSP · saison ${escTexte(x.saison || '')} · ${fmtTaille(x.taille)}</small></span>
+      <button class="sauv-btn" onclick="telechargerSauvegarde(${x.ts})" title="Télécharger cette copie"><i class="ti ti-download"></i><span>Télécharger</span></button>
+      <button class="sauv-btn" onclick="restaurerCopie(${x.ts})" title="Revenir à cette copie"><i class="ti ti-restore"></i><span>Restaurer</span></button></div>`).join('')
+    : '<p class="sauv-vide">Aucune copie sur cet appareil pour l\'instant : la première sera faite à la prochaine connexion.</p>';
+}
+async function telechargerSauvegarde(ts) {
+  let contenu, quand = new Date();
+  if (ts) { const x = await sauvOp('readonly', st => st.get(ts)); if (!x) return; contenu = x.contenu; quand = new Date(x.ts); }
+  else { contenu = JSON.stringify(copieSansMotsDePasse(DB)); sauvegardeAuto(true).then(afficherSauvegardes).catch(() => {}); }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ type: 'carnet-jsp-sauvegarde', version: 1, date: quand.toISOString(), donnees: JSON.parse(contenu) })], { type: 'application/json' }));
+  a.download = 'carnet-jsp-sauvegarde-' + dateISOLocale(quand) + '.json';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  showToast('Copie téléchargée');
+}
+async function restaurerCopie(ts) {
+  const x = await sauvOp('readonly', st => st.get(ts)); if (!x) return;
+  restaurerDonnees(JSON.parse(x.contenu), fmtQuand(x.ts));
+}
+function restaurerDepuisFichier(input) {
+  const f = input.files && input.files[0]; input.value = ''; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const o = JSON.parse(r.result), d = o && o.type === 'carnet-jsp-sauvegarde' ? o.donnees : o;
+      restaurerDonnees(d, o && o.date ? fmtQuand(Date.parse(o.date)) : f.name);
+    } catch (e) { alert('Ce fichier n\'est pas une sauvegarde du carnet.'); }
+  };
+  r.readAsText(f);
+}
+function restaurerDonnees(d, libelle) {
+  if (!d || !Array.isArray(d.jsps) || !d.jsps.length) { alert('Cette sauvegarde ne contient aucun JSP : restauration annulée.'); return; }
+  if (!confirm('Revenir à la copie du ' + libelle + ' ?\n\n' + d.jsps.length + ' JSP, ' + (d.absences || []).length + ' absences, ' + (d.resultats || []).length + ' notes.\n\n'
+    + 'Tout ce qui a été saisi depuis sera remplacé. Les comptes et mots de passe actuels sont conservés.\nUne copie de l\'état actuel est faite avant, au cas où.')) return;
+  sauvegardeAuto(true).catch(() => {}).then(() => {
+    const garde = { users: DB.users, connexionsLog: DB.connexionsLog };
+    DB = Object.assign({}, d, garde);
+    normaliserAbsences(DB);
+    saveData();
+    showToast('Copie restaurée');
+    showSection('export');
+  });
+}
+
 function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
 
 // ══════════════════════════════════════════
@@ -3329,6 +3513,7 @@ function renderDashboard() {
           ${planningTypeBadge(p.type)}
         </div>`).join('') : '<p style="color:var(--gris-txt);font-size:14px">Aucun événement à venir</p>'}
     </div>
+    ${carteAssiduite()}
     <div style="margin-top:24px" class="section-header"><h2><i class="ti ti-users" aria-hidden="true"></i> Liste rapide des JSP</h2></div>
     <div class="table-card">
       <table>
@@ -17184,7 +17369,14 @@ function resetMdpParent_go(btn) { const login = btn ? btn.dataset.login : '';
 //  EXPORT EXCEL
 // ══════════════════════════════════════════
 function renderExport() {
-  return '<div class="section-header"><h2><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Export Excel</h2></div>'
+  setTimeout(() => afficherSauvegardes().catch(() => {}), 0);
+  return '<div class="section-header"><h2><i class="ti ti-shield-check" aria-hidden="true"></i> Sauvegardes</h2></div>'
+    + '<div class="sauv-carte"><p class="sauv-intro">Une copie complète du carnet est faite <b>automatiquement chaque jour</b> à la connexion d\'un admin, sur cet appareil (les 14 dernières sont gardées). '
+    + 'Pour une sécurité maximale, télécharge aussi régulièrement une copie sur ton ordinateur ou ton drive.</p>'
+    + '<div class="sauv-actions"><button class="btn-add" onclick="telechargerSauvegarde()"><i class="ti ti-download"></i> Télécharger une copie maintenant</button>'
+    + '<label class="btn-add sauv-fichier"><i class="ti ti-upload"></i> Restaurer depuis un fichier<input type="file" accept=".json,application/json" onchange="restaurerDepuisFichier(this)" hidden></label></div>'
+    + '<div id="sauvListe" class="sauv-liste"><p class="sauv-vide">Chargement…</p></div></div>'
+    + '<div class="section-header" style="margin-top:28px"><h2><i class="ti ti-file-spreadsheet" aria-hidden="true"></i> Export Excel</h2></div>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
 
     // Card Listing JSP
