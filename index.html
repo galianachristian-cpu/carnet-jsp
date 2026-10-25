@@ -1314,12 +1314,19 @@ const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_U
 // Les tables ne sont plus lisibles directement. Identifiants gardés en mémoire
 // seulement (jamais sur l'appareil).
 let identifiants = null;
+// Compte déjà ouvert sur un appareil quand le changement est devenu obligatoire : retour à la connexion
+let alerteMdpAffichee = false;
+function mdpAChangerEnCours() {
+  if (alerteMdpAffichee) return; alerteMdpAffichee = true;
+  alert('Pour la sécurité des informations des jeunes, vous devez choisir un nouveau mot de passe. Reconnectez-vous avec votre mot de passe actuel : le carnet vous demandera d\'en choisir un nouveau.');
+  location.reload();
+}
 async function cloudLire(champs) {
   if (!supabaseClient || !identifiants) throw new Error('hors-ligne');
   const { data, error } = await supabaseClient.rpc('carnet_lire',
     { p_login: identifiants.login, p_pass: identifiants.pass, p_champs: champs || null });
   if (error) throw error;
-  if (!data || !data.ok) throw new Error((data && data.erreur) || 'lecture');
+  if (!data || !data.ok) { if (data && data.erreur === 'mdp_a_changer' && currentUser) mdpAChangerEnCours(); throw new Error((data && data.erreur) || 'lecture'); }
   return data; // { data, updated_at, compte }
 }
 async function cloudEcrire(contenu, siTs) {
@@ -1327,7 +1334,7 @@ async function cloudEcrire(contenu, siTs) {
   const { data, error } = await supabaseClient.rpc('carnet_ecrire',
     { p_login: identifiants.login, p_pass: identifiants.pass, p_data: contenu, p_si_ts: siTs || null });
   if (error) throw error;
-  if (!data || !data.ok) throw new Error((data && data.erreur) || 'ecriture');
+  if (!data || !data.ok) { if (data && data.erreur === 'mdp_a_changer' && currentUser) mdpAChangerEnCours(); throw new Error((data && data.erreur) || 'ecriture'); }
   // Mot de passe changé par l'utilisateur lui-même : les prochains appels utilisent le nouveau
   const moi = data.ecrit && (contenu.users || []).find(x => x.login === identifiants.login);
   if (moi && moi.pass && moi.pass !== identifiants.pass) identifiants.pass = moi.pass;
@@ -2076,6 +2083,56 @@ function togglePasswordField(inputId, iconId) {
 }
 
 let connexionEnCours = false;
+// ── Nouveau mot de passe obligatoire ──
+// Les anciens mots de passe ont pu être vus : le serveur bloque le compte tant que la personne
+// n'en a pas choisi un nouveau (fonction carnet_changer_mdp).
+function demanderNouveauMdp(login, ancien) {
+  let ov = document.getElementById('nouveauMdpOverlay');
+  if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'nouveauMdpOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px';
+  ov.innerHTML = '<div style="background:#fff;color:#1e293b;border-radius:16px;max-width:420px;width:100%;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.3)">'
+    + '<h3 style="margin:0 0 8px;font-size:19px">🔒 Choisissez un nouveau mot de passe</h3>'
+    + '<p style="font-size:14px;line-height:1.5;margin:0 0 14px;color:#475569">Pour la sécurité des informations des jeunes, chaque compte doit choisir un nouveau mot de passe. Cela ne prend qu\'un instant, et vous l\'utiliserez dès maintenant pour vous connecter.</p>'
+    + '<label style="font-size:13px;font-weight:600">Nouveau mot de passe (' + MDP_MIN + ' caractères minimum)</label>'
+    + '<input type="password" id="nm_nouveau" autocomplete="new-password" style="width:100%;padding:11px;margin:4px 0 10px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;box-sizing:border-box">'
+    + '<label style="font-size:13px;font-weight:600">Confirmez-le</label>'
+    + '<input type="password" id="nm_confirm" autocomplete="new-password" style="width:100%;padding:11px;margin:4px 0 6px;border:1px solid #cbd5e1;border-radius:10px;font-size:16px;box-sizing:border-box">'
+    + '<label style="display:flex;gap:6px;align-items:center;font-size:13px;margin:4px 0 10px;color:#475569"><input type="checkbox" onchange="document.getElementById(\'nm_nouveau\').type=document.getElementById(\'nm_confirm\').type=this.checked?\'text\':\'password\'"> Afficher</label>'
+    + '<div id="nm_erreur" style="display:none;color:#b91c1c;font-size:13px;margin-bottom:10px"></div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" id="nm_annuler" style="padding:10px 14px;border-radius:10px;border:1px solid #cbd5e1;background:#fff;cursor:pointer">Annuler</button>'
+    + '<button type="button" id="nm_valider" style="padding:10px 16px;border-radius:10px;border:0;background:#1d4ed8;color:#fff;font-weight:700;cursor:pointer">Enregistrer et me connecter</button></div></div>';
+  document.body.appendChild(ov);
+  const err = msg => { const d = document.getElementById('nm_erreur'); d.textContent = msg; d.style.display = 'block'; };
+  document.getElementById('nm_annuler').onclick = () => ov.remove();
+  document.getElementById('nm_nouveau').focus();
+  document.getElementById('nm_valider').onclick = async () => {
+    const n1 = document.getElementById('nm_nouveau').value, n2 = document.getElementById('nm_confirm').value;
+    if (n1.length < MDP_MIN) return err('Le mot de passe doit faire au moins ' + MDP_MIN + ' caractères.');
+    if (n1 !== n2) return err('Les deux mots de passe ne correspondent pas.');
+    if (n1 === ancien) return err('Choisissez un mot de passe différent de l\'ancien.');
+    const bt = document.getElementById('nm_valider'); bt.disabled = true; bt.textContent = 'Enregistrement…';
+    try {
+      const { data, error } = await supabaseClient.rpc('carnet_changer_mdp', { p_login: login, p_pass: ancien, p_nouveau: n1 });
+      if (error) throw error;
+      if (!data || !data.ok) {
+        const e2 = data && data.erreur;
+        bt.disabled = false; bt.textContent = 'Enregistrer et me connecter';
+        return err(e2 === 'court' ? 'Le mot de passe doit faire au moins 8 caractères.' : e2 === 'identique' ? 'Choisissez un mot de passe différent de l\'ancien.'
+          : e2 === 'bloque' ? 'Trop d\'essais : réessayez dans 15 minutes.' : 'Identifiant ou ancien mot de passe incorrect.');
+      }
+      ov.remove();
+      document.getElementById('loginUser').value = login;
+      document.getElementById('loginPass').value = n1;
+      if (typeof showNotifToast === 'function') showNotifToast('✅ Nouveau mot de passe enregistré. Retenez-le bien !');
+      doLogin();
+    } catch (e) {
+      bt.disabled = false; bt.textContent = 'Enregistrer et me connecter';
+      err('Connexion internet nécessaire.');
+    }
+  };
+}
 async function doLogin() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
@@ -2096,6 +2153,7 @@ async function doLogin() {
   } catch (e) {
     identifiants = null;
     const m = e && e.message;
+    if (m === 'mdp_a_changer') { demanderNouveauMdp(u, p); return; }
     errEl.textContent = m === 'identifiants' ? 'Identifiant ou mot de passe incorrect.'
       : m === 'bloque' ? 'Trop d\'essais : réessayez dans 15 minutes.'
       : 'Connexion internet nécessaire pour se connecter.';
