@@ -894,6 +894,8 @@
   .ca-titre { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--bleu); }
   .ca-gateau { font-size: 22px; display: inline-block; animation: float 3s ease-in-out infinite; }
   @keyframes float { 50% { transform: translateY(-3px) rotate(-6deg); } }
+  .ca-option { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gris-txt); margin: -2px 0 12px; cursor: pointer; }
+  .ca-jour { font-size: 16px; padding: 10px 14px; margin-bottom: 12px; border-radius: 12px; background: color-mix(in srgb, #f59e0b 18%, var(--blanc)); border: 1px solid #f59e0b; }
   .ca-liste { display: flex; flex-wrap: wrap; gap: 10px; }
   .ca-item { display: flex; align-items: center; gap: 10px; padding: 7px 14px 7px 7px; border-radius: 40px; border: 1px solid var(--gris-bord); background: var(--blanc);
     color: inherit; font: inherit; cursor: pointer; text-align: left; transition: transform .15s, box-shadow .15s; }
@@ -3478,9 +3480,40 @@ function carteAnniversaires() {
   const quand = x => x.dans === 0 ? "Aujourd'hui 🎉" : x.dans === 1 ? 'Demain' : x.pro.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   return `<div class="carte-anniv">
     <div class="ca-titre"><span class="ca-gateau" aria-hidden="true">🎂</span> Anniversaires des 15 prochains jours</div>
+    <label class="ca-option"><input type="checkbox" ${anniversairesFamillesActifs() ? 'checked' : ''} onchange="basculerAnniversairesFamilles(this.checked)"> Montrer aussi les anniversaires aux familles et aux JSP (prénom et jour seulement, sans âge)</label>
     <div class="ca-liste">${liste.map(x => `<button class="ca-item ${promoClasse(x.j.promotion)}${x.dans === 0 ? ' aujourdhui' : ''}" onclick="ficheJSP(${x.j.id})">
       <span class="ca-av">${x.j.photo ? `<img src="${x.j.photo}" alt="">` : escTexte((x.j.prenom || '?')[0] + (x.j.nom || '?')[0])}</span>
       <span class="ca-txt"><b>${escTexte(x.j.prenom)} ${escTexte(x.j.nom)}</b><small>${quand(x)} · ${x.age} ans</small></span></button>`).join('')}</div>
+  </div>`;
+}
+
+function anniversairesFamillesActifs() { return !!(DB.options && DB.options.anniversairesFamilles); }
+function basculerAnniversairesFamilles(on) {
+  DB.options = DB.options || {};
+  DB.options.anniversairesFamilles = !!on;
+  saveData();
+  showToast(on ? 'Les familles verront les anniversaires' : 'Anniversaires masqués pour les familles');
+}
+// Version famille / JSP : prénom + jour, sans âge. La photo n'apparaît que si le droit à l'image « interne » est accordé.
+function carteAnniversairesFamille() {
+  if (!anniversairesFamillesActifs()) return '';
+  const auj = new Date(); auj.setHours(0, 0, 0, 0);
+  const liste = DB.jsps.filter(j => j.dateNaissance && /^\d{4}-\d{2}-\d{2}/.test(j.dateNaissance)).map(j => {
+    const [, m, d] = j.dateNaissance.slice(0, 10).split('-').map(Number);
+    let pro = new Date(auj.getFullYear(), m - 1, d); if (pro < auj) pro = new Date(auj.getFullYear() + 1, m - 1, d);
+    return { j, pro, dans: Math.round((pro - auj) / 86400000) };
+  }).filter(x => x.dans <= 14).sort((x, y) => x.dans - y.dans);
+  if (!liste.length) return '';
+  const aujourdhui = liste.filter(x => x.dans === 0);
+  const quand = x => x.dans === 0 ? "Aujourd'hui 🎉" : x.dans === 1 ? 'Demain' : x.pro.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const av = j => (j.photo && j.droitImage && j.droitImage.interne) ? `<img src="${j.photo}" alt="">` : escTexte((j.prenom || '?')[0]);
+  const bandeau = aujourdhui.length ? `<div class="ca-jour">🎉 Aujourd'hui, c'est l'anniversaire de ${aujourdhui.map(x => '<b>' + escTexte(x.j.prenom) + '</b>').join(' et ')} !</div>` : '';
+  return `<div class="carte-anniv">
+    <div class="ca-titre"><span class="ca-gateau" aria-hidden="true">🎂</span> Anniversaires à venir</div>
+    ${bandeau}
+    <div class="ca-liste">${liste.map(x => `<div class="ca-item ${promoClasse(x.j.promotion)}${x.dans === 0 ? ' aujourdhui' : ''}" style="cursor:default">
+      <span class="ca-av">${av(x.j)}</span>
+      <span class="ca-txt"><b>${escTexte(x.j.prenom)}</b><small>${quand(x)}</small></span></div>`).join('')}</div>
   </div>`;
 }
 
@@ -13609,6 +13642,9 @@ function renderParentAccueil() {
 
   // Carte « Prochaine séance » (ou bouton simple s'il n'y a rien de prévu)
   html2 += renderCarteProchaineSeance(j);
+
+  // Anniversaires (si activés par le chef de section)
+  html2 += carteAnniversairesFamille();
 
   // « Ce mois-ci » + ce qui attend la famille
   html2 += carteMoisParent(j, _pres);
