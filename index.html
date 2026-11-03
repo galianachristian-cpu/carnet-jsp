@@ -2447,7 +2447,7 @@ function renderAnimSeance() {
              : (peut ? '<button class="an-btn" onclick="animEditerFiche(\''+animJs(cle)+'\',\''+animJs(it.bloc)+'\')"><i class="ti ti-plus"></i> Créer la fiche</button>' : ''))
         + (nq ? '<button class="an-btn an-btn-quiz" onclick="animLancerQuizFiche(\''+animJs(cle)+'\')"><i class="ti ti-player-play"></i> Quiz ('+nq+')</button>' : '')
         + animBoutonsSupport(c, it.bloc, it.item)
-        + '<button class="an-btn" onclick="animRetour(\''+animJs(cle)+'\',\''+date+'\')"><i class="ti ti-message-check"></i> Retour</button>'
+        + '<button class="an-btn" onclick="animRetour(\''+animJs(cle)+'\',\''+date+'\')"><i class="ti ti-message-check"></i> Retour animateur</button>'
         + '</div></div>';
     });
     h += '</div>';
@@ -2567,17 +2567,17 @@ function animImprimerFiche(cle) {
 function animRetour(cle, date) {
   const f = getAnim().fiches[cle];
   const titre = f ? f.item : cle.split('|')[1];
-  openModal('<div class="an-modal"><h3>Retour après séance</h3><p class="an-muted">'+escTexte(titre)+' · '+fmtDate(date)+'</p>'
+  openModal('<div class="an-modal"><h3>Retour animateur après la séance</h3><p class="an-muted">'+escTexte(titre)+' · '+fmtDate(date)+'</p>'
     + '<label class="an-check"><input type="checkbox" id="an-ret-fait" checked> Le cours a été fait</label>'
     + '<label class="an-label" for="an-ret-note">Ce qui a marché, ce qu\'il faudrait changer</label>'
     + '<textarea id="an-ret-note" class="an-textarea" rows="4" placeholder="Ex. la chasse au matériel a bien marché, prévoir plus de temps pour le quiz"></textarea>'
     + '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Annuler</button>'
-    + '<button class="an-btn an-btn-plein" onclick="animEnregistrerRetour(\''+animJs(cle)+'\',\''+date+'\')">Enregistrer le retour</button></div></div>');
+    + '<button class="an-btn an-btn-plein" onclick="animEnregistrerRetour(\''+animJs(cle)+'\',\''+date+'\')">Enregistrer le retour animateur</button></div></div>');
 }
 function animEnregistrerRetour(cle, date) {
   getAnim().retours.push({ cle, date, fait: document.getElementById('an-ret-fait').checked,
     note: document.getElementById('an-ret-note').value.trim(), auteur: currentUser.nom, le: new Date().toISOString() });
-  saveData(); closeModal(); showToast('Retour enregistré');
+  saveData(); closeModal(); showToast('Retour animateur enregistré');
 }
 
 // ── Édition d'une fiche ──
