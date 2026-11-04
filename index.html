@@ -1216,6 +1216,12 @@
 
   /* ── Mots de passe ── */
   .mdp-info { font-size: 13px; padding: 10px 16px; margin: 0; background: var(--bleu-pale); color: var(--bleu); line-height: 1.45; }
+
+  .wa-btn { border:0; background:#25D366; color:#fff; font:inherit; font-size:12px; font-weight:800; padding:5px 11px; border-radius:999px; cursor:pointer; display:inline-flex; gap:5px; align-items:center; white-space:nowrap; }
+  .wa-btn:hover { background:#1ebe5b; }
+  .carte-id-apercu { display:block; max-width:100%; max-height:62vh; margin:0 auto 12px; border-radius:16px; box-shadow:0 10px 30px rgba(15,35,66,.35); }
+  .carte-id-tels { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 12px; align-items:center; font-size:13px; }
+  .carte-id-tels button { border:1.5px solid #25D366; background:#fff; color:#166534; font:inherit; font-size:13px; font-weight:700; padding:6px 12px; border-radius:999px; cursor:pointer; }
   .mdp-voir { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gris-txt); margin-bottom:6px; }
   .mdp-voir code { background:var(--gris-bg); border-radius:6px; padding:3px 9px; font-size:13px; color:var(--bleu); font-weight:700; letter-spacing:.5px; }
   .mdp-voir button { border:1px solid var(--gris-bord); background:#fff; border-radius:6px; cursor:pointer; padding:2px 8px; font-size:14px; }
@@ -16492,7 +16498,7 @@ function renderEnvoiIdentifiants() {
     <h2><i class="ti ti-key"></i> Envoi des identifiants</h2>
   </div>
   <p style="font-size:13px;color:var(--gris-txt);margin-bottom:18px">
-    Sélectionne un ou plusieurs destinataires : un <b>nouveau mot de passe</b> est créé pour chacun et envoyé par email (les mots de passe sont chiffrés, l'ancien ne peut pas être renvoyé).
+    Sélectionne un ou plusieurs destinataires : pour l'email, un <b>nouveau mot de passe</b> est créé pour chacun. Le bouton <b>WhatsApp</b> prépare une belle carte avec l'emblème, le lien, l'identifiant et le mot de passe <b>actuel</b> (rien n'est modifié).
   </p>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
@@ -16505,13 +16511,14 @@ function renderEnvoiIdentifiants() {
       </div>
       <div class="table-card" style="max-height:380px;overflow-y:auto">
         <table>
-          <thead><tr><th style="width:30px"></th><th>JSP</th><th>Email</th></tr></thead>
+          <thead><tr><th style="width:30px"></th><th>JSP</th><th>Email</th><th>WhatsApp</th></tr></thead>
           <tbody>
             ${destinatairesJSP.map(d => `
               <tr>
                 <td><input type="checkbox" class="jsp-dest" value="${d.id}" data-login="${d.login}" data-jsp="${d.jspId}" data-email="${d.email}" data-label="${d.label.replace(/"/g,'&quot;')}" ${!d.email ? 'disabled' : ''}></td>
                 <td>${d.label}</td>
                 <td style="font-size:12px;color:${d.email ? 'inherit' : 'var(--gris-txt)'}">${d.email || "Pas d'email"}</td>
+                <td><button class="wa-btn" onclick="carteIdentifiants('${d.login}')"><i class="ti ti-brand-whatsapp"></i> Carte</button></td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -16522,15 +16529,16 @@ function renderEnvoiIdentifiants() {
       <div class="section-header" style="margin-bottom:10px"><h3 style="font-size:14px"><i class="ti ti-shield"></i> Comptes spéciaux</h3></div>
       <div class="table-card">
         <table>
-          <thead><tr><th style="width:30px"></th><th>Compte</th><th>Login</th></tr></thead>
+          <thead><tr><th style="width:30px"></th><th>Compte</th><th>Login</th><th>WhatsApp</th></tr></thead>
           <tbody>
             ${comptesSpeciaux.map(u => `
               <tr>
                 <td><input type="checkbox" class="special-dest" value="${u.login}" data-login="${u.login}" data-label="${u.nom}"></td>
                 <td>${u.nom}</td>
                 <td style="font-size:12px">${u.login}</td>
+                <td><button class="wa-btn" onclick="carteIdentifiants('${u.login}')"><i class="ti ti-brand-whatsapp"></i> Carte</button></td>
               </tr>`).join('')}
-            ${comptesSpeciaux.length === 0 ? '<tr><td colspan="3" style="text-align:center;color:var(--gris-txt);padding:16px">Aucun compte spécial créé</td></tr>' : ''}
+            ${comptesSpeciaux.length === 0 ? '<tr><td colspan="4" style="text-align:center;color:var(--gris-txt);padding:16px">Aucun compte spécial créé</td></tr>' : ''}
           </tbody>
         </table>
       </div>
@@ -16543,6 +16551,101 @@ function renderEnvoiIdentifiants() {
   <div style="margin-top:20px;text-align:center">
     <button class="btn-add" style="background:var(--bleu);padding:10px 24px" onclick="apercuEnvoiIdentifiants()"><i class="ti ti-send"></i> Préparer l'envoi</button>
   </div>`;
+}
+
+// ══ Carte d'identifiants (WhatsApp) : belle image avec l'emblème + message prêt à envoyer ══
+const LIEN_APP_JSP = 'https://galianachristian-cpu.github.io/carnet-jsp/';
+function waNumero(t) {
+  let n = String(t || '').replace(/[^\d+]/g, ''); if (!n) return '';
+  if (n.charAt(0) === '+') return n.slice(1); if (n.indexOf('00') === 0) return n.slice(2); if (n.charAt(0) === '0') return '33' + n.slice(1); return n;
+}
+function carteContexte(login) {
+  const u = DB.users.find(x => x.login === login); if (!u) return null;
+  const j = u.role === 'parent' ? DB.jsps.find(x => x.id == u.jspId) : null;
+  const tels = [];
+  if (j) { [['Maman', j.telMere], ['Papa', j.telPere], [j.prenom, j.telJSP]].forEach(t => { const n = waNumero(t[1]); if (n && !tels.some(x => x.num === n)) tels.push({ lbl: t[0], num: n }); }); }
+  return { login: u.login, pass: u.pass || '', nom: u.nom || u.login, jsp: j, tels: tels,
+    accroche: j ? 'Accès de la famille de ' + j.prenom : u.nom };
+}
+function carteTexte(c) {
+  return '🚒 *Carnet JSP · CIS Cruzy-Quarante*\n\n'
+    + (c.jsp ? 'Bonjour ! Voici l\'accès au carnet de *' + c.jsp.prenom + '* :' : 'Bonjour ! Voici votre accès au Carnet JSP :') + '\n\n'
+    + '🔗 ' + LIEN_APP_JSP + '\n👤 Identifiant : *' + c.login + '*\n🔑 Mot de passe : *' + c.pass + '*\n\n'
+    + (c.jsp ? 'Vous y retrouvez le planning, les cours à réviser, les questionnaires et les bilans.\n' : '')
+    + '_Astuce : ajoutez la page à l\'écran d\'accueil de votre téléphone pour la retrouver facilement._\n\nChef Galiana · Section JSP Cruzy-Quarante';
+}
+function carteImageCharger(src) { return new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = src; }); }
+async function carteDessiner(c) {
+  try { await document.fonts.load('800 90px "Barlow Condensed"'); await document.fonts.load('600 30px "Barlow Condensed"'); } catch (e) {}
+  const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  const F = '"Barlow Condensed","Arial Narrow",Arial,sans-serif', M = '"Courier New",Consolas,monospace';
+  const rr = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
+  let g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0b1d3a'); g.addColorStop(1, '#1d4580'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.save(); x.globalAlpha = .055; x.strokeStyle = '#fff'; x.lineWidth = 2; for (let i = -H; i < W; i += 46) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + H, H); x.stroke(); } x.restore();
+  g = x.createRadialGradient(W / 2, 250, 20, W / 2, 250, 470); g.addColorStop(0, 'rgba(255,255,255,.22)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, W, 760);
+  x.fillStyle = '#c62828'; x.fillRect(0, 0, W, 16); x.fillRect(0, H - 16, W, 16);
+  // emblème
+  x.save(); x.shadowColor = 'rgba(0,0,0,.4)'; x.shadowBlur = 40; x.shadowOffsetY = 12; x.beginPath(); x.arc(W / 2, 235, 152, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.restore();
+  x.beginPath(); x.arc(W / 2, 235, 152, 0, Math.PI * 2); x.lineWidth = 9; x.strokeStyle = '#c62828'; x.stroke();
+  const img = await carteImageCharger(LOGO_JSP_BASE64);
+  if (img) { const h = 238, w = h * img.width / img.height; x.drawImage(img, W / 2 - w / 2, 235 - h / 2, w, h); }
+  x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = '800 112px ' + F; if ('letterSpacing' in x) x.letterSpacing = '8px'; x.fillText('CARNET JSP', W / 2, 520);
+  if ('letterSpacing' in x) x.letterSpacing = '3px';
+  x.font = '600 38px ' + F; x.fillStyle = 'rgba(255,255,255,.9)'; x.fillText('SECTION DES JEUNES SAPEURS-POMPIERS', W / 2, 574);
+  x.font = '700 40px ' + F; x.fillStyle = '#fca5a5'; x.fillText('CIS CRUZY-QUARANTE', W / 2, 622);
+  if ('letterSpacing' in x) x.letterSpacing = '0px';
+  [['#c62828', -90], ['#ffffff', 0], ['#2f6fd0', 90]].forEach(b => { x.fillStyle = b[0]; rr(W / 2 + b[1] - 36, 650, 72, 8, 4); x.fill(); });
+  // carte blanche
+  x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 36; x.shadowOffsetY = 14; x.fillStyle = '#fff'; rr(80, 700, 920, 500, 38); x.fill(); x.restore();
+  x.fillStyle = '#475569'; x.font = '600 38px ' + F; x.fillText(c.accroche, W / 2, 762);
+  x.textAlign = 'left'; x.fillStyle = '#94a3b8'; x.font = '700 26px ' + F; if ('letterSpacing' in x) x.letterSpacing = '3px'; x.fillText('LIEN DE CONNEXION', 130, 825);
+  x.fillStyle = '#1d4ed8'; x.font = '700 34px ' + F; if ('letterSpacing' in x) x.letterSpacing = '0px'; x.fillText(LIEN_APP_JSP.replace('https://', '').replace(/\/$/, ''), 130, 868);
+  const champ = (Y, lbl, val, col) => {
+    x.fillStyle = '#f1f5f9'; rr(120, Y, 840, 128, 22); x.fill(); x.fillStyle = '#c62828'; rr(120, Y, 10, 128, 5); x.fill();
+    x.fillStyle = '#94a3b8'; x.font = '700 24px ' + F; if ('letterSpacing' in x) x.letterSpacing = '3px'; x.fillText(lbl, 156, Y + 38); if ('letterSpacing' in x) x.letterSpacing = '0px';
+    let fs = 64; x.font = 'bold ' + fs + 'px ' + M; while (x.measureText(val).width > 770 && fs > 28) { fs -= 2; x.font = 'bold ' + fs + 'px ' + M; }
+    x.fillStyle = col; x.fillText(val, 156, Y + 100);
+  };
+  champ(900, 'IDENTIFIANT', c.login, '#0f2342'); champ(1044, 'MOT DE PASSE', c.pass || '—', '#0f2342');
+  x.textAlign = 'center'; x.fillStyle = 'rgba(255,255,255,.92)'; x.font = '600 32px ' + F; x.fillText('Planning · Cours à réviser · Questionnaires · Bilans', W / 2, 1262);
+  x.fillStyle = 'rgba(255,255,255,.65)'; x.font = '500 27px ' + F; x.fillText('Astuce : ajoutez la page à l\'écran d\'accueil de votre téléphone', W / 2, 1304);
+  c.canvas = cv; return cv;
+}
+async function carteIdentifiants(login) {
+  const c = carteContexte(login); if (!c) return; window._carteId = c;
+  openModalWide('<h3 style="margin:0 0 10px"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i> Carte d\'identifiants · ' + escTexte(c.nom) + '</h3><div id="carteZone" style="text-align:center;color:var(--gris-txt);padding:40px 0">Préparation de la carte…</div>');
+  await carteRafraichir();
+}
+async function carteRafraichir() {
+  const c = window._carteId; if (!c) return;
+  const cv = await carteDessiner(c), zone = document.getElementById('carteZone'); if (!zone) return;
+  const tels = c.tels.length ? '<div class="carte-id-tels"><b>Envoyer directement à :</b>' + c.tels.map(t => '<button onclick="carteWhatsApp(\'' + t.num + '\')"><i class="ti ti-brand-whatsapp"></i> ' + escTexte(t.lbl) + '</button>').join('') + '</div>' : '';
+  zone.outerHTML = '<div id="carteZone"><img class="carte-id-apercu" alt="Carte d\'identifiants" src="' + cv.toDataURL('image/png') + '">'
+    + (c.pass ? '' : '<p style="color:#b91c1c;font-size:13px;text-align:center">Aucun mot de passe enregistré pour ce compte : crée-en un nouveau ci-dessous.</p>')
+    + tels
+    + '<div class="modal-btns" style="flex-wrap:wrap;gap:8px;justify-content:center"><button class="btn-cancel" onclick="carteNouveauMdp()"><i class="ti ti-dice-5"></i> Nouveau mot de passe</button>'
+    + '<button class="btn-cancel" onclick="carteCopier()"><i class="ti ti-copy"></i> Copier le message</button>'
+    + '<button class="btn-cancel" onclick="carteTelecharger()"><i class="ti ti-download"></i> Télécharger l\'image</button>'
+    + '<button class="btn-save" style="background:#25D366" onclick="cartePartager()"><i class="ti ti-share"></i> Partager sur WhatsApp</button></div>'
+    + '<p style="font-size:11px;color:var(--gris-txt);text-align:center;margin:8px 0 0">« Partager » envoie l\'image + le message : tu choisis le contact dans WhatsApp. Sur ordinateur, l\'image est téléchargée pour que tu la joignes.</p></div>';
+}
+function carteBlob() { return new Promise(r => window._carteId.canvas.toBlob(r, 'image/png')); }
+async function cartePartager() {
+  const c = window._carteId; if (!c || !c.pass) { showToast('Pas de mot de passe à partager', true); return; }
+  const blob = await carteBlob(), file = new File([blob], 'Identifiants_Carnet_JSP_' + c.login + '.png', { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], text: carteTexte(c) }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  carteTelecharger(); window.open('https://wa.me/?text=' + encodeURIComponent(carteTexte(c)), '_blank');
+}
+function carteWhatsApp(num) { const c = window._carteId; if (!c || !c.pass) return; window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(carteTexte(c)), '_blank'); }
+function carteTelecharger() { const c = window._carteId; if (!c) return; const a = document.createElement('a'); a.href = c.canvas.toDataURL('image/png'); a.download = 'Identifiants_Carnet_JSP_' + c.login + '.png'; a.click(); }
+function carteCopier() { const c = window._carteId; if (!c) return; if (navigator.clipboard) navigator.clipboard.writeText(carteTexte(c)).then(() => showToast('Message copié : colle-le dans WhatsApp')); }
+async function carteNouveauMdp() {
+  const c = window._carteId; if (!c) return;
+  if (!confirm('Créer un nouveau mot de passe pour ' + c.nom + ' ? L\'ancien ne fonctionnera plus.')) return;
+  const u = DB.users.find(x => x.login === c.login); if (!u) return;
+  u.pass = motDePasseAleatoire(); c.pass = u.pass; await saveData(); showToast('Nouveau mot de passe enregistré'); await carteRafraichir();
 }
 
 function toggleTousDestinataires(className, checked) {
@@ -16653,7 +16756,7 @@ Le Chef de section`;
   openModal(`<h3><i class="ti ti-key"></i> Identifiants à transmettre</h3>
     ${ok ? `<p style="font-size:14px;margin-bottom:10px">✅ ${ok} email${ok > 1 ? 's' : ''} envoyé${ok > 1 ? 's' : ''}.</p>` : ''}
     <p style="font-size:13px;color:var(--gris-txt);margin-bottom:10px">À transmettre toi-même (SMS, WhatsApp…). <b>Note-les maintenant : ils ne seront plus affichés.</b></p>
-    <div class="mdp-recap">${aTransmettre.map(d => `<div><b>${escTexte(d.label)}</b>${echecs.includes(d) ? ' <span class="badge badge-rouge">email non parti</span>' : ''}<code>Identifiant : ${escTexte(d.login)}\nMot de passe : ${escTexte(d.pass)}</code></div>`).join('')}</div>
+    <div class="mdp-recap">${aTransmettre.map(d => `<div><b>${escTexte(d.label)}</b>${echecs.includes(d) ? ' <span class="badge badge-rouge">email non parti</span>' : ''}<code>Identifiant : ${escTexte(d.login)}\nMot de passe : ${escTexte(d.pass)}</code><button class="wa-btn" style="margin-top:6px" onclick="carteIdentifiants('${escTexte(d.login)}')"><i class="ti ti-brand-whatsapp"></i> Carte WhatsApp</button></div>`).join('')}</div>
     <div class="modal-btns"><button class="btn-cancel" onclick="navigator.clipboard && navigator.clipboard.writeText(document.querySelector('.mdp-recap').innerText).then(() => showToast('Copié'))"><i class="ti ti-copy"></i> Tout copier</button><button class="btn-save" onclick="closeModal()">J'ai noté</button></div>`);
 }
 
@@ -18481,7 +18584,7 @@ function renderAdminMdp() {
 let mdpVoirTimers = {};
 function mdpVoirHtml(u) {
   const id = 'mdpv_' + u.login.replace(/[^a-z0-9]/gi, '_');
-  return '<div class="mdp-voir">Actuel : <code id="' + id + '">••••••••</code><button type="button" title="Voir / cacher" onclick="mdpVoir(\'' + escTexte(u.login) + '\')"><i class="ti ti-eye"></i></button>'
+  return '<div class="mdp-voir">Actuel : <code id="' + id + '">••••••••</code><button type="button" title="Voir / cacher" onclick="mdpVoir(\'' + escTexte(u.login) + '\')"><i class="ti ti-eye"></i></button><button type="button" title="Envoyer par WhatsApp" onclick="carteIdentifiants(\'' + escTexte(u.login) + '\')" style="color:#16a34a"><i class="ti ti-brand-whatsapp"></i></button>'
     + (u.mdpVerrouille ? '<span class="mdp-verrou" title="Personne d\'autre que toi ne peut changer ce mot de passe"><i class="ti ti-lock"></i> verrouillé</span>' : '') + '</div>';
 }
 function mdpVoir(login) {
