@@ -3254,6 +3254,7 @@ function showSection(sec) {
     case 'questionnaires': c.innerHTML = renderQuestionnaires('questionnaires'); break;
     case 'competitions': c.innerHTML = renderCompetitions(); break;
     case 'questionnaires-bilan': c.innerHTML = renderQuestionnaires('bilan'); break;
+    case 'questionnaires-lacunes': c.innerHTML = renderQuestionnaires('lacunes'); break;
     case 'planning': c.innerHTML = renderPlanning(window._planningMois||null); break;
     case 'bilans': c.innerHTML = renderBilans(window._bilanJspId||null); break;
     case 'livret': c.innerHTML = renderLivret(window._livretJspId||null, window._livretTab||null); break;
@@ -11996,10 +11997,23 @@ function modalEditQuestionCulture(niveau, rang, index) {
         ${[0,1,2,3].map(i => `<option value="${i}" ${q.bonne===i?'selected':''}>${['A','B','C','D'][i]}</option>`).join('')}
       </select>
     </div>
+    <div class="form-group"><label>Cours à réviser si la question est ratée</label>
+      <select id="qc_cours">${optionsCoursQuestion(niveau, q)}</select>
+    </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="modalGererQuestionsMois('${niveau}',${rang})">← Retour</button>
       <button class="btn-save" onclick="saveQuestionCulture('${niveau}',${rang},${index === null ? 'null' : index})">💾 Enregistrer</button>
     </div>`);
+}
+
+// Liste déroulante « cours à réviser » : automatique (étiquette d'origine) ou choix d'un cours précis
+function optionsCoursQuestion(niveau, q) {
+  const auto = q && q.enonce ? (() => { const i = QC_COURS_PAR_QUESTION[qcHashTexte(niveau + '|' + q.enonce)]; return i === undefined ? null : QC_COURS_REFS[i]; })() : null;
+  const refs = QC_COURS_REFS.slice();
+  if (q && q.cours && refs.indexOf(q.cours) < 0) refs.push(q.cours);
+  const libelle = r => { const c = qcInfoCours(r); return c.cycleLabel + ' — ' + c.titre; };
+  return '<option value="">' + (auto ? 'Automatique (' + escTexte(libelle(auto)) + ')' : 'Aucun cours associé') + '</option>'
+    + refs.map(r => '<option value="' + escTexte(r) + '"' + (q && q.cours === r ? ' selected' : '') + '>' + escTexte(libelle(r)) + '</option>').join('');
 }
 
 // Sauvegarde une question (création ou modification) directement dans DB.questionsCulture
@@ -12015,12 +12029,18 @@ function saveQuestionCulture(niveau, rang, index) {
   if (!DB.questionsCulture[niveau][String(rang)]) DB.questionsCulture[niveau][String(rang)] = [];
 
   const tableau = DB.questionsCulture[niveau][String(rang)];
+  let cours = (document.getElementById('qc_cours') || {}).value || '';
+  // Énoncé retouché sans choix de cours : on garde le cours d'origine de la question
+  if (!cours && index !== null && tableau[index] && tableau[index].enonce !== enonce) cours = qcRefCours(niveau, tableau[index]) || '';
   const nouvelleQuestion = { id: niveau.replace(' ','') + '_' + rang + '_' + Date.now(), enonce, choix, bonne };
+  if (cours) nouvelleQuestion.cours = cours;
 
   if (index === null) {
     tableau.push(nouvelleQuestion);
   } else {
-    tableau[index] = Object.assign({}, tableau[index], { enonce, choix, bonne });
+    const modifiee = Object.assign({}, tableau[index], { enonce, choix, bonne });
+    if (cours) modifiee.cours = cours; else delete modifiee.cours;
+    tableau[index] = modifiee;
   }
   saveData();
   showToast(index === null ? 'Question ajoutée' : 'Question modifiée');
@@ -12051,6 +12071,245 @@ function reinitialiserQuestionsMois(niveau, rang) {
   modalGererQuestionsMois(niveau, rang);
 }
 
+// ══════════════════════════════════════════
+//  LACUNES : questions ratées → cours à réviser
+//  - QC_COURS_PAR_QUESTION : « niveau|énoncé » (haché) → index dans QC_COURS_REFS (cours du programme, avec son support PDF).
+//  - Un champ q.cours sur la question (réglé dans l'éditeur de questions) prime sur cette table.
+//  - Pour chaque question, seule la DERNIÈRE réponse du JSP compte : une erreur corrigée plus tard disparaît des lacunes.
+// ══════════════════════════════════════════
+const QC_COURS_REFS = [
+  "I|JSP1|Protection",
+  "I|JSP1|Alerte et protection des populations",
+  "I|JSP1|Obstruction aigue des voies aériennes",
+  "I|JSP1|Hémorragie",
+  "I|JSP1|Perte de connaissances",
+  "I|JSP1|Arrêt cardiaque",
+  "I|JSP1|Malaise",
+  "I|JSP1|Plaies",
+  "I|JSP1|Brûlures",
+  "I|JSP1|Traumatismes",
+  "I|JSP1|Valeurs et éthiques des sapeurs-pompiers, la charte du JSP",
+  "I|JSP1|L'engagement citoyen",
+  "I|JSP1|L'information préventive aux comportements qui sauvent",
+  "I|JSP1|Protocole et cérémonie",
+  "I|JSP1|Le réseau associatif, son rôle et ses valeurs",
+  "I|JSP1|La combustion et les modes de propagation",
+  "I|JSP1|Les phases de la MGO de lutte contre les incendies",
+  "I|JSP1|La composition et le fonctionnement de l'ARI",
+  "I|JSP1|Les matériels de lutte contre l'incendie",
+  "I|JSP1|La DECI, les réseaux d'eaux et les réserves incendies",
+  "I|JSP1|La description du lot de sauvetage et de protection contre les chutes",
+  "I|JSP1|L'entretien et le contrôle du lot de sauvetage et de protection contre les chutes",
+  "I|JSP1|La description des échelles à mains",
+  "I|JSP1|La connaissance théorique des EPI",
+  "I|JSP1|Les grades des sapeurs-pompiers civils et militaires",
+  "I|JSP1|L'organisation nationale de la sécurité civile",
+  "I|JSP1|Les objectifs de l'activité physique",
+  "I|JSP2|Les engins d'incendie et de secours. Contrôle et reconditionnement",
+  "I|JSP2|Les établissements de lances de plein pied",
+  "I|JSP2|Les règles et précautions d'emploi des tuyaux",
+  "I|JSP2|Les moyens de production de mousse",
+  "I|JSP2|La toxicité des fumées d'incendies",
+  "I|JSP2|Les contraintes physiologiques de l'ARI",
+  "I|JSP2|L'équipement en binôme (RAPACE)",
+  "I|JSP2|Le comportement et la réaction au feu des matériaux",
+  "I|JSP2|L'évolution au moyen du LSPCC",
+  "I|JSP2|Les règles d'emploi et de sécurité de l'échelle à coulisse",
+  "I|JSP2|Les matériels d'épuisement",
+  "I|JSP2|Les matériels électriques portatifs",
+  "I|JSP2|Les différents statuts des sapeurs-pompiers",
+  "I|JSP2|Les risques d'incendie",
+  "I|JSP2|Les risques domestiques",
+  "S|JSP2|La combustion",
+  "S|JSP2|Les modes de propagation",
+  "S|JSP2|Les procédés d'extinction",
+  "I|JSP3|Les risques liés à la toxicité des fumées d'incendies",
+  "I|JSP3|Les moyens facilitant l'action des secours",
+  "I|JSP3|Explosimétrie et la coupure des fluides",
+  "I|JSP3|L'appareil respiratoire isolant",
+  "I|JSP3|Notions élémentaires d'hydraulique",
+  "I|JSP3|La mise en oeuvre des dispositifs d'alimentation",
+  "I|JSP3|Les manœuvres d'alimentation en binôme",
+  "I|JSP3|Les différents binômes",
+  "I|JSP3|Les agents extincteurs et les procédés d'extinction",
+  "I|JSP3|Les phases de développement du feu",
+  "I|JSP3|Les sauvetages au moyen du LSPCC",
+  "I|JSP3|Les règles d'emploi et de sécurité de l'échelle à crochet",
+  "I|JSP3|Le matériel d'épuisement hydraulique et thermique",
+  "I|JSP3|Typologie des ascenseurs",
+  "I|JSP3|Organisation et missions du SDIS 34",
+  "I|JSP3|Les moyens radio",
+  "I|JSP3|L'hygiène de vie",
+  "I|JSP3|Préserver son potentiel psychologique",
+  "I|JSP3|Les risques majeurs",
+  "I|JSP4|Les différents types de risques et actions adaptées",
+  "I|JSP4|Les premières mesures conservatoires et techniques d'autoprotection",
+  "I|JSP4|Les fumées d'incendie",
+  "I|JSP4|Préservation des traces et indices",
+  "I|JSP4|Rôle de l'équipier au sein du binôme de reconnaissance",
+  "I|JSP4|Sauvetage du sauveteur",
+  "I|JSP4|Sauvetage, mise en sécurité, confinement, évacuation",
+  "I|JSP4|Notions de prévention appliquées à l'opération",
+  "I|JSP4|Phénomènes thermiques",
+  "I|JSP4|Techniques d'intervention",
+  "I|JSP4|Le prompt secours (bilans, traumatismes, noyade, relevage)",
+  "I|JSP4|Etablissements et établissements spécifiques",
+  "I|JSP4|Établissement sur un moyen élévateur aérien",
+  "I|JSP4|Evolution sur une échelle aérienne",
+  "I|JSP4|Matériel de calage temporaire et de protection des biens",
+  "I|JSP4|La gestion du stress",
+  "I|JSP4|Matériel de forcement et de dégagement",
+  "I|JSP4|Les valeurs et l'éthique des sapeurs-pompiers",
+  "I|JSP4|Procédure d'intervention sur ascenseur",
+  "I|JSP4|Les différentes espèces d'animaux",
+  "I|JSP4|Les EPI et le matériel de capture",
+  "I|JSP4|Les hyménoptères",
+  "I|JSP4|Les principaux risques locaux",
+  "I|JSP4|Prévention des risques routiers",
+  "I|JSP4|Les indicateurs de la condition physique",
+  "I|JSP4|La préparation physique aux épreuves du brevet de JSP",
+  "I|JSP4|La prise de garde",
+  "I|JSP4|L'intégration en centre d'incendie et de secours"
+];
+const QC_COURS_PAR_QUESTION = {838496:77,3870912:39,10373352:4,13246919:10,22431995:0,31335149:91,33403486:44,35248057:35,38045573:6,41626669:0,42190273:53,43132664:74,45731164:63,51101217:38,54074872:64,54799828:32,59269183:66,63979116:18,66229276:47,75964356:17,81567795:46,86163218:71,93314992:69,101296141:19,114502481:84,145120711:17,149097205:10,182614892:10,200437623:58,202357546:50,215670358:63,220192046:44,222959354:64,230111896:28,233513210:17,239164409:42,241718062:35,252315180:17,269527549:83,269997725:33,276511441:66,280711006:34,287362981:74,292144732:81,295957680:15,312643541:56,316542955:53,325190707:33,337257287:37,340459332:27,344373363:46,344499522:27,376315340:55,391446880:63,392208831:18,392735653:63,395220183:71,405202976:63,422354596:39,425824887:37,436689394:34,438311462:85,447632102:29,461363194:37,469122621:14,470875389:10,472133308:65,476631220:30,496380057:17,499851825:35,500865130:18,504303739:55,505457797:18,506482278:28,506868255:19,525567732:33,532479210:70,557704213:16,569477832:38,569654338:35,582732560:3,596274940:27,610466463:31,611017942:42,620888135:27,621073968:69,621278586:59,622282837:1,626278004:29,628626496:34,642080434:27,642586897:16,653984503:13,670784742:28,671331057:36,674591356:79,678829545:59,681252812:31,688701641:26,691313593:23,706709287:88,719465646:22,734697645:55,736585536:69,741524396:15,759724879:86,761899424:20,762733140:29,768873687:53,769947151:50,774738657:47,800838946:75,808614442:20,809529462:38,831555212:54,841437585:82,853837536:45,859275858:50,863235230:15,864906593:52,865071441:23,866174406:46,868502151:59,870716015:53,874235717:81,883140758:79,885831505:15,886977580:75,893426639:32,904210955:19,907525278:36,912774372:17,918336372:24,918432622:17,919188989:50,921876770:60,925216215:5,934188458:40,938259096:72,942210308:23,951306156:83,954857573:78,968702392:60,976085188:30,986860868:18,1000262850:49,1003961907:24,1006070224:25,1021249390:28,1023089960:79,1037020925:5,1047700441:39,1057922433:22,1058714466:19,1059776293:19,1060245935:33,1074928169:80,1086495583:72,1108336534:51,1110640209:14,1113338209:8,1118157510:18,1120280410:61,1126844761:47,1131386570:8,1138950158:18,1142789547:41,1148494096:37,1149697478:31,1156903737:63,1166095569:71,1167422867:1,1175771845:40,1201453270:46,1208477267:17,1211419745:5,1213149077:23,1215099601:89,1221033437:18,1222319546:16,1223638163:1,1226923107:91,1228081567:66,1234721640:36,1236594274:67,1249001344:50,1252169592:28,1257275559:35,1257738530:69,1260371903:48,1260860217:52,1262797540:10,1277816219:56,1284297533:43,1295170359:69,1303595646:65,1317199971:73,1336594026:53,1336604440:87,1338971218:54,1345605106:19,1351429072:4,1352996954:67,1353062752:69,1353698120:72,1358759126:28,1359711994:13,1373391864:48,1373812060:74,1391367423:46,1391836262:58,1399114206:24,1416400542:53,1416559292:53,1423936109:72,1437126959:63,1439350023:46,1442947994:13,1446669473:59,1454238210:63,1454443635:25,1457153277:4,1460209354:1,1464202014:59,1469689555:12,1477061951:33,1485695937:19,1485764147:19,1490536631:67,1504120994:16,1504935383:51,1514334800:64,1518773345:56,1519302066:79,1526942442:38,1534753302:37,1535900149:64,1546524114:61,1548944041:49,1549616746:55,1552255179:0,1553075561:16,1555834773:74,1564730043:35,1565354282:37,1566609053:74,1568637693:27,1575260512:41,1576817337:33,1577155884:70,1579033700:39,1582815523:48,1597712425:23,1620449675:50,1620785535:88,1623374291:57,1627317681:16,1631277916:36,1639650923:23,1640982379:60,1655450405:25,1673090126:47,1674815683:26,1675504587:71,1679540383:80,1680099328:8,1681359002:35,1693412410:0,1699832371:49,1701576832:29,1710188704:84,1712914000:30,1724964198:46,1730006958:80,1740427009:47,1740476061:48,1743191664:0,1761099512:4,1761715849:68,1764937930:5,1774724533:63,1777171138:55,1781155792:60,1782808505:44,1794885480:46,1813306375:71,1814694698:16,1827846011:45,1831291405:37,1832317330:76,1840376601:53,1855785303:67,1858613703:48,1861474194:15,1863833793:27,1867900194:48,1871628896:53,1872344231:48,1874969194:40,1876562206:38,1878759143:45,1882477473:43,1882920283:89,1894041764:63,1895563390:8,1898716976:16,1908205227:70,1910138496:63,1910268684:33,1912676177:56,1912932906:25,1917416881:34,1928581372:80,1957676899:23,1958774749:31,1960975653:29,1966879885:27,1970291148:36,1971197857:85,1979819668:35,1981961501:40,1983981032:16,1984518227:39,1987051221:10,1993210934:23,1995972231:24,2004031769:85,2004802626:68,2005349042:81,2006218825:16,2006340689:79,2027929854:91,2031502652:1,2031941804:68,2041138837:72,2043350708:17,2045536743:55,2046678063:42,2060593821:41,2068459156:75,2078995210:49,2086661236:30,2087977841:18,2091665454:38,2097197127:86,2107810511:48,2111242014:40,2114888938:64,2116438778:74,2119664747:85,2131714437:75,2138652543:35,2151844154:19,2161559258:55,2162521786:37,2162960864:47,2176261524:58,2176524105:56,2178317811:67,2179505530:33,2179562879:23,2200685961:19,2207363224:6,2208359428:30,2213770287:87,2215034693:13,2215809531:89,2223746998:74,2224842987:12,2225060299:32,2229081670:89,2233892846:61,2236379825:50,2243554660:16,2260001792:48,2282277772:22,2282341181:55,2286966708:90,2289001687:56,2291523619:60,2309384770:68,2316046015:35,2317297241:38,2322062436:65,2322616525:49,2350972870:44,2353444076:23,2360851094:81,2365360918:72,2372676691:56,2405251918:42,2410038416:73,2425455351:64,2426978314:64,2428551955:22,2429769958:75,2430754198:83,2435262889:39,2435536323:78,2436884659:47,2439852792:74,2442435905:27,2444327591:28,2450801972:61,2453090722:31,2456497747:62,2462414254:17,2473324815:50,2478361321:1,2483569072:29,2484492916:61,2505569606:11,2517189751:23,2522546939:60,2538257803:10,2542892358:16,2554379230:28,2555426772:10,2577846889:89,2587845238:32,2589568977:28,2593525485:14,2604050099:79,2610163636:19,2614640717:89,2631843046:75,2639958876:60,2651284817:36,2654652978:43,2655383339:36,2657143333:62,2662978044:74,2663509909:55,2667021246:79,2672519707:24,2672522974:24,2673040171:63,2677012049:60,2681598771:33,2681961377:58,2682515998:47,2684258141:51,2690730729:16,2692673321:31,2700988271:54,2704025608:75,2709845218:76,2709943896:60,2711418479:74,2717361570:7,2727972862:88,2731125205:88,2739078644:72,2740487934:48,2741665406:58,2742318074:63,2753877096:32,2766739074:75,2767668085:81,2779505798:19,2788244042:50,2795275938:47,2798708672:68,2805697422:1,2805720227:19,2810161997:90,2815223248:58,2839611303:21,2839930540:16,2857272157:85,2857534506:63,2857830456:15,2861412647:17,2874887294:30,2881357858:73,2898311239:35,2903306029:50,2905603100:27,2905844598:18,2913741589:68,2925864526:60,2928032362:57,2938935637:72,2948224242:56,2955523938:38,2966509256:60,2973972657:29,2974511177:89,2997888473:39,3009591014:79,3021083851:73,3040649275:42,3048062647:16,3055028180:59,3056001959:56,3059694245:75,3060551724:89,3063061964:21,3068021778:35,3069112315:20,3072834654:64,3088794369:22,3092578375:66,3106382158:64,3118751286:37,3137298182:68,3141697068:20,3151084909:73,3158976589:19,3160731918:56,3162711105:70,3173599690:90,3179976724:81,3186975160:61,3189462232:61,3189943387:0,3196496396:5,3203126959:34,3203798604:5,3209901876:21,3225511398:70,3231379370:37,3235746167:60,3236283985:12,3275693742:40,3279917631:15,3304579499:19,3307123483:72,3312364345:64,3318994720:24,3330978219:13,3337347170:37,3343159365:60,3343209422:53,3345837119:2,3351270658:31,3351412062:60,3357292076:24,3362304031:87,3373572938:70,3375285418:48,3382637280:1,3383661457:79,3387927331:27,3388690759:34,3391859099:51,3394671865:70,3407648728:27,3408549030:65,3415254548:57,3418212016:36,3433928932:74,3457122570:41,3472258951:48,3480140053:27,3488227603:64,3497374762:82,3508779889:9,3511806170:32,3514286275:24,3538427525:19,3549069559:67,3556718983:3,3557385995:28,3580619455:38,3581052429:35,3587184135:1,3589143752:45,3624796892:85,3628814303:82,3635862868:86,3637616016:91,3658353158:51,3660076054:9,3668744601:85,3674517658:62,3677473625:61,3688129316:49,3690514670:5,3695349325:39,3698634829:49,3722982703:34,3734930851:82,3736823879:49,3752951491:48,3756564144:71,3757019800:33,3773666639:11,3776466995:47,3776550097:32,3779114675:49,3781041520:39,3785668203:59,3791175092:14,3795791282:91,3797020331:33,3798956875:70,3810954886:48,3821878216:33,3822681777:86,3854484638:60,3894558572:45,3904722624:34,3909931603:83,3913738287:19,3933634046:48,3940938982:47,3950276172:23,3951049200:1,3958909191:5,3964251247:89,3966768817:19,3988672451:38,3990823481:90,3993850265:27,4002468923:48,4006298910:70,4014052002:87,4031333593:32,4042198140:75,4049931690:11,4051570893:5,4053887858:47,4068337433:38,4087392050:23,4087785388:79,4089851782:57,4100610726:41,4100815977:70,4108405474:54,4111117919:68,4124969140:4,4137349503:51,4144207939:5,4153134468:79,4154234715:47,4175096570:59,4184847052:1,4189860305:91,4203189364:51,4204488472:52,4211243697:46,4213523381:41,4218411195:14,4224509427:50,4224729766:31,4225421517:91,4227260484:43,4238286565:88,4247069105:15,4250779490:15,4251483955:74,4254409616:81,4269826338:89,4272032305:14,4276527297:36,4278345901:16,4278959526:46};
+function qcHashTexte(t) { let x = 5381; for (let i = 0; i < t.length; i++) x = ((x * 33) + t.charCodeAt(i)) >>> 0; return x; }
+function qcRefCours(niveau, q) {
+  if (!q) return null;
+  if (q.cours) return q.cours;
+  const i = QC_COURS_PAR_QUESTION[qcHashTexte(niveau + '|' + (q.enonce || ''))];
+  return i === undefined ? null : QC_COURS_REFS[i];
+}
+// ref = "I|JSP2|Nom de l'item du programme"  ou  "S|JSP2|Titre d'un support sans item"
+function qcInfoCours(ref) {
+  const p = String(ref).split('|'), type = p[0], cycle = p[1], nom = p.slice(2).join('|');
+  const cycleLabel = (cycle || '').replace('JSP', 'JSP ');
+  if (type === 'S') {
+    const s = (SUPPORTS_COURS_2026[cycle] || []).find(x => x.titre === nom);
+    return { ref: ref, cycle: cycle, cycleLabel: cycleLabel, titre: nom, lien: s ? lienDrive(s.pdf) : LIEN_COURS_JSP_DRIVE };
+  }
+  const it = (LIVRET_CONNAISSANCES[cycle] || []).find(x => x.item === nom);
+  return { ref: ref, cycle: cycle, cycleLabel: cycleLabel, titre: nom, lien: getLienCours(cycle, it ? it.bloc : '', nom) };
+}
+function qcQuestionsParId() {
+  const m = {};
+  Object.keys(DB.questionsCulture || {}).forEach(n => Object.keys(DB.questionsCulture[n] || {}).forEach(r =>
+    (DB.questionsCulture[n][r] || []).forEach(q => { if (q && q.id) m[q.id] = { q: q, niveau: n, rang: r }; })));
+  return m;
+}
+// Dernière réponse de ce JSP à chaque question : [{ ok, date, entree, q, niveau, rang, choisie }]
+function qcReponsesJSP(jspId, idx) {
+  idx = idx || qcQuestionsParId();
+  const dern = {};
+  (DB.questionnaireReponses || []).filter(r => r.jspId == jspId && Array.isArray(r.reponses))
+    .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.id - b.id))
+    .forEach(r => {
+      let liste = null;
+      if (Array.isArray(r.qids)) liste = r.qids.map(id => idx[id]);
+      else if (!r.annuel && r.rang !== 'annuel') { // anciens questionnaires : mêmes questions, même ordre que le mois
+        const qs = getQuestionsCulture(r.niveau, r.rang);
+        if (qs.length === r.reponses.length) liste = qs.map(q => ({ q: q, niveau: r.niveau, rang: r.rang }));
+      }
+      if (!liste) return;
+      liste.forEach((e, i) => {
+        if (!e || !e.q) return;
+        dern[e.q.id] = { ok: r.reponses[i] === e.q.bonne, choisie: r.reponses[i], date: r.date, entree: r.id, q: e.q, niveau: e.niveau || r.niveau, rang: e.rang };
+      });
+    });
+  return Object.keys(dern).map(k => dern[k]);
+}
+// Cours à réviser pour un JSP, du plus raté au moins raté. options.entree : ne regarder qu'un passage précis.
+function qcLacunesJSP(jspId, options) {
+  options = options || {};
+  const g = {};
+  qcReponsesJSP(jspId, options.idx).forEach(e => {
+    if (options.entree && e.entree !== options.entree) return;
+    const ref = qcRefCours(e.niveau, e.q) || '?';
+    const o = g[ref] || (g[ref] = { ref: ref, total: 0, fautes: [] });
+    o.total++; if (!e.ok) o.fautes.push(e);
+  });
+  return Object.keys(g).map(k => g[k]).filter(o => o.fautes.length)
+    .sort((a, b) => b.fautes.length - a.fautes.length || (b.fautes.length / b.total) - (a.fautes.length / a.total));
+}
+function qcNbQuestionsRepondues(jspId, options) {
+  options = options || {};
+  return qcReponsesJSP(jspId, options.idx).filter(e => !options.entree || e.entree === options.entree).length;
+}
+
+// Bloc « À réviser » vu par le JSP et sa famille : cours + thèmes, JAMAIS les bonnes réponses.
+function qcBlocRevision(jspId, options) {
+  options = options || {};
+  const nbRep = qcNbQuestionsRepondues(jspId, options);
+  if (!nbRep) return '';
+  const lac = qcLacunesJSP(jspId, options);
+  const titre = '<div class="section-header" style="margin-top:4px"><h3 style="font-size:15px"><i class="ti ti-book-2"></i> À réviser</h3></div>';
+  if (!lac.length) return titre + '<div class="table-card" style="padding:16px;text-align:center;color:var(--gris-txt);margin-bottom:16px"><i class="ti ti-circle-check"></i> Bravo, aucune erreur à revoir pour le moment 🎉</div>';
+  const cartes = lac.map(o => {
+    const themes = '<ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--gris-txt)">' + o.fautes.map(e => '<li>' + escTexte(e.q.enonce) + '</li>').join('') + '</ul>';
+    const n = o.fautes.length;
+    if (o.ref === '?') {
+      return '<div class="table-card" style="padding:14px 16px;margin-bottom:10px"><div style="font-size:14px;font-weight:600">Autres questions à retravailler</div>'
+        + '<div style="font-size:12px;color:var(--gris-txt)">' + n + ' question' + (n > 1 ? 's' : '') + ' à revoir avec ton chef de section</div>' + themes + '</div>';
+    }
+    const c = qcInfoCours(o.ref);
+    return '<div class="table-card" style="padding:14px 16px;margin-bottom:10px;border-left:4px solid #b45309">'
+      + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">'
+      + '<div><div style="font-size:14px;font-weight:700">' + escTexte(c.titre) + '</div>'
+      + '<div style="font-size:12px;color:var(--gris-txt)">' + c.cycleLabel + ' · ' + n + ' question' + (n > 1 ? 's' : '') + ' à revoir</div></div>'
+      + '<a class="btn-add" href="' + c.lien + '" target="_blank" rel="noopener" style="text-decoration:none;white-space:nowrap"><i class="ti ti-book-2"></i> Ouvrir le cours</a></div>'
+      + '<div style="font-size:12px;margin-top:8px;font-weight:600">Questions à retravailler :</div>' + themes + '</div>';
+  }).join('');
+  return titre
+    + '<p style="color:var(--gris-txt);font-size:13px;margin:-4px 0 12px">Voici les cours à relire d\'après les questions où il y a eu des erreurs. Les bonnes réponses ne sont pas affichées : relis le cours, tu les retrouveras 😉</p>'
+    + cartes;
+}
+
+// Onglet « Lacunes » (chef de section) : cours les plus ratés par niveau + détail par JSP, avec les corrections.
+function renderLacunesQuestionnaires(promos) {
+  if (!(DB.questionnaireReponses || []).length) {
+    return '<div class="table-card" style="padding:24px;text-align:center;color:var(--gris-txt)"><i class="ti ti-target-arrow" style="font-size:32px;opacity:.3"></i><br>Aucun questionnaire passé pour le moment — les lacunes s\'afficheront au fur et à mesure.</div>';
+  }
+  const idx = qcQuestionsParId();
+  const lettres = ['A', 'B', 'C', 'D'];
+  const lienCours = ref => { const c = qcInfoCours(ref); return '<a href="' + c.lien + '" target="_blank" rel="noopener" style="font-weight:600;color:var(--bleu)">' + escTexte(c.titre) + '</a> <span style="font-size:11px;color:var(--gris-txt)">(' + c.cycleLabel + ')</span>'; };
+  const blocs = promos.map(niveau => {
+    const jspsNiveau = DB.jsps.filter(j => j.promotion === niveau);
+    if (!jspsNiveau.length) return '';
+    const agg = {}; let avecDonnees = 0;
+    const cartesJSP = jspsNiveau.map(j => {
+      const nbRep = qcNbQuestionsRepondues(j.id, { idx: idx });
+      if (!nbRep) return '';
+      avecDonnees++;
+      const lac = qcLacunesJSP(j.id, { idx: idx });
+      qcReponsesJSP(j.id, idx).forEach(e => {
+        const ref = qcRefCours(e.niveau, e.q) || '?';
+        const a = agg[ref] || (agg[ref] = { ref: ref, total: 0, fautes: 0, jsps: {} });
+        a.total++; if (!e.ok) { a.fautes++; a.jsps[j.id] = j.prenom; }
+      });
+      const detail = lac.map(o => {
+        const entete = o.ref === '?' ? '<b>Cours non précisé</b> <span style="font-size:11px;color:#b45309">(à rattacher dans l\'éditeur de questions)</span>' : lienCours(o.ref);
+        return '<div style="margin:8px 0 2px">' + entete + ' — <b>' + o.fautes.length + '</b> erreur' + (o.fautes.length > 1 ? 's' : '') + ' sur ' + o.total + '</div>'
+          + '<ul style="margin:2px 0 0;padding-left:18px;font-size:12px">' + o.fautes.map(e =>
+            '<li>' + escTexte(e.q.enonce) + '<br><span style="color:#b91c1c">Réponse donnée : ' + (e.choisie === null || e.choisie === undefined ? '—' : escTexte(e.q.choix[e.choisie] || '—')) + '</span> · <span style="color:#166534">Bonne réponse : ' + escTexte(e.q.choix[e.q.bonne]) + '</span></li>').join('') + '</ul>';
+      }).join('');
+      const resume = lac.length
+        ? lac.slice(0, 3).map(o => (o.ref === '?' ? 'Cours non précisé' : qcInfoCours(o.ref).titre) + ' (' + o.fautes.length + ')').map(escTexte).join(' · ')
+        : 'Aucune erreur 👍';
+      return '<details style="border:1px solid var(--gris-bord);border-radius:8px;padding:8px 12px;margin-bottom:8px;background:white">'
+        + '<summary style="cursor:pointer;font-size:13px"><b>' + escTexte(j.prenom + ' ' + j.nom) + '</b> — <span style="color:' + (lac.length ? '#b91c1c' : '#166534') + '">' + resume + '</span></summary>'
+        + (lac.length ? detail : '<p style="font-size:12px;color:var(--gris-txt)">Rien à revoir.</p>') + '</details>';
+    }).join('');
+    if (!avecDonnees) return '';
+    const top = Object.keys(agg).map(k => agg[k]).filter(a => a.fautes).sort((a, b) => b.fautes - a.fautes || (b.fautes / b.total) - (a.fautes / a.total)).slice(0, 6);
+    const topHtml = top.length
+      ? '<div class="table-card" style="padding:12px 16px;margin-bottom:10px"><div style="font-size:13px;font-weight:700;margin-bottom:6px"><i class="ti ti-target-arrow"></i> Cours à reprendre en séance</div>'
+        + top.map(a => '<div style="font-size:12px;margin-bottom:4px">' + (a.ref === '?' ? '<b>Cours non précisé</b>' : lienCours(a.ref)) + ' — <b>' + a.fautes + '</b> erreur' + (a.fautes > 1 ? 's' : '') + ' sur ' + a.total + ' réponses (' + Math.round(a.fautes / a.total * 100) + ' %) · ' + Object.keys(a.jsps).map(id => escTexte(a.jsps[id])).join(', ') + '</div>').join('') + '</div>'
+      : '';
+    return '<div class="section-header" style="margin-top:20px"><h3 style="font-size:15px"><i class="ti ti-users"></i> ' + niveau + '</h3></div>' + topHtml + cartesJSP;
+  }).join('');
+  return '<p style="font-size:12px;color:var(--gris-txt);margin:-6px 0 12px">Seule la dernière réponse à chaque question compte : une erreur corrigée plus tard disparaît. Les jeunes et les familles voient les cours à réviser, sans les bonnes réponses.</p>'
+    + (blocs || '<div class="table-card" style="padding:24px;text-align:center;color:var(--gris-txt)">Pas encore de réponses exploitables.</div>');
+}
+
 function renderQuestionnaires(onglet) {
   onglet = onglet || 'questionnaires';
   const promos = ['JSP 1','JSP 2','JSP 3','JSP 4'];
@@ -12060,11 +12319,16 @@ function renderQuestionnaires(onglet) {
   const onglets = `<div style="display:flex;gap:6px;margin-bottom:20px">
     <button onclick="showSection('questionnaires')" style="padding:7px 18px;border-radius:8px;border:1.5px solid ${onglet==='questionnaires'?'var(--bleu)':'var(--gris-bord)'};background:${onglet==='questionnaires'?'var(--bleu)':'white'};color:${onglet==='questionnaires'?'white':'#374151'};font-size:13px;font-weight:${onglet==='questionnaires'?'700':'500'};cursor:pointer"><i class="ti ti-clipboard-text"></i> Questionnaires</button>
     <button onclick="showSection('questionnaires-bilan')" style="padding:7px 18px;border-radius:8px;border:1.5px solid ${onglet==='bilan'?'var(--bleu)':'var(--gris-bord)'};background:${onglet==='bilan'?'var(--bleu)':'white'};color:${onglet==='bilan'?'white':'#374151'};font-size:13px;font-weight:${onglet==='bilan'?'700':'500'};cursor:pointer"><i class="ti ti-chart-bar"></i> Bilan annuel</button>
+    <button onclick="showSection('questionnaires-lacunes')" style="padding:7px 18px;border-radius:8px;border:1.5px solid ${onglet==='lacunes'?'var(--bleu)':'var(--gris-bord)'};background:${onglet==='lacunes'?'var(--bleu)':'white'};color:${onglet==='lacunes'?'white':'#374151'};font-size:13px;font-weight:${onglet==='lacunes'?'700':'500'};cursor:pointer"><i class="ti ti-target-arrow"></i> Lacunes</button>
   </div>`;
 
   const header = `<div class="section-header">
     <h2><i class="ti ti-clipboard-text"></i> Questionnaires culture JSP</h2>
   </div>`;
+
+  if (onglet === 'lacunes') {
+    return header + onglets + renderLacunesQuestionnaires(promos);
+  }
 
   if (onglet === 'bilan') {
     return header + onglets + renderBilanQuestionnaires(promos, estAdmin);
@@ -12362,7 +12626,8 @@ function finaliserQuestionnaire(niveau, rang, jspId, reponsesData, note) {
   const entry = { id: nextId(DB.questionnaireReponses),
     jspId: jspId, niveau: niveau, rang: rang,
     date: new Date().toISOString().slice(0,10),
-    reponses: reponsesData, note: note };
+    reponses: reponsesData, note: note,
+    qids: getQuestionsCulture(niveau, rang).map(q => q.id) };
   DB.questionnaireReponses.push(entry);
   saveData();
   closeModal();
@@ -12687,7 +12952,8 @@ function finaliserControleAnnuel(niveau, jspId, questions, reponsesData, bonnes)
     jspId: jspId, niveau: niveau, rang: 'annuel',
     date: new Date().toISOString().slice(0, 10),
     reponses: reponsesData, note: noteSur20, sur: 20,
-    nbQuestions: questions.length, annuel: true
+    nbQuestions: questions.length, annuel: true,
+    qids: questions.map(q => q.id)
   };
   DB.questionnaireReponses.push(entry);
   saveData();
@@ -13868,6 +14134,7 @@ function renderParentQuestionnaires() {
   return `<div class="section-header"><h2><i class="ti ti-clipboard-text"></i> Questionnaires de ${j.prenom}</h2></div>
     <p style="color:var(--gris-txt);font-size:13px;margin:-6px 0 18px">Fais tes questionnaires assignés par ton chef de section directement depuis cette page.</p>
     ${blocAttente}
+    ${qcBlocRevision(j.id)}
     ${blocHistorique}`;
 }
 
@@ -13923,8 +14190,8 @@ function finaliserQuestionnairePourJSP(assignation, questions, reponsesData) {
   const sur = assignation.annuel ? 20 : 10;
   const note = Math.round((bonnes / questions.length) * sur * 10) / 10;
 
-  // Enregistre le résultat
-  DB.questionnaireReponses.push({
+  // Enregistre le résultat (qids = questions posées, pour retrouver les lacunes même si la banque change)
+  const nouvelleEntree = {
     id: nextId(DB.questionnaireReponses),
     jspId: assignation.jspId,
     niveau: assignation.niveau,
@@ -13932,8 +14199,10 @@ function finaliserQuestionnairePourJSP(assignation, questions, reponsesData) {
     date: new Date().toISOString().slice(0, 10),
     reponses: reponsesData,
     note, sur,
-    annuel: !!assignation.annuel
-  });
+    annuel: !!assignation.annuel,
+    qids: questions.map(q => q.id)
+  };
+  DB.questionnaireReponses.push(nouvelleEntree);
   // Marque l'assignation comme faite
   assignation.fait = true;
   saveData();
@@ -13955,6 +14224,7 @@ function finaliserQuestionnairePourJSP(assignation, questions, reponsesData) {
       <div style="font-size:16px;color:var(--gris-txt);margin:8px 0">${bonnes} bonne${bonnes>1?'s':''} réponse${bonnes>1?'s':''} sur ${questions.length} (${pct}%)</div>
       <div style="font-size:14px;margin-top:8px">${pct>=80?'Excellent travail ! 🎉':pct>=50?'Bon travail, continue comme ça 👍':'Révise bien pour la prochaine fois 💪'}</div>
     </div>
+    <div style="max-height:40vh;overflow-y:auto;padding-right:4px">${qcBlocRevision(assignation.jspId, { entree: nouvelleEntree.id })}</div>
     <div class="modal-btns">
       <button class="btn-save" onclick="closeModal();showSection('parent-questionnaires')">Voir mes questionnaires</button>
     </div>`);
