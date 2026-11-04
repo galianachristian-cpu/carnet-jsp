@@ -4513,12 +4513,17 @@ function updateJSP(id) {
 }
 
 function deleteJSP(id) {
-  if (!confirm('Supprimer ce JSP et toutes ses données ?')) return;
+  if (!confirm('Supprimer ce JSP, son compte famille et toutes ses données ?')) return;
   DB.jsps = DB.jsps.filter(x=>x.id!=id);
   DB.absences = DB.absences.filter(x=>x.jspId!=id);
   DB.retards = DB.retards.filter(x=>x.jspId!=id);
   DB.comportements = DB.comportements.filter(x=>x.jspId!=id);
   DB.resultats = DB.resultats.filter(x=>x.jspId!=id);
+  // Compte famille et données liées : sinon ils restent orphelins (ex. dans « Connexions »)
+  DB.users = DB.users.filter(u => !(u.role === 'parent' && u.jspId == id));
+  ['icp', 'bilans', 'questionnaireReponses', 'questionnairesAssignes', 'validationsReglement', 'demandesAbsence'].forEach(k => {
+    if (Array.isArray(DB[k])) DB[k] = DB[k].filter(x => x.jspId != id);
+  });
   saveData(); showSection('jsps');
 }
 
