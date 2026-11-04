@@ -1216,6 +1216,10 @@
 
   /* ── Mots de passe ── */
   .mdp-info { font-size: 13px; padding: 10px 16px; margin: 0; background: var(--bleu-pale); color: var(--bleu); line-height: 1.45; }
+  .mdp-voir { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--gris-txt); margin-bottom:6px; }
+  .mdp-voir code { background:var(--gris-bg); border-radius:6px; padding:3px 9px; font-size:13px; color:var(--bleu); font-weight:700; letter-spacing:.5px; }
+  .mdp-voir button { border:1px solid var(--gris-bord); background:#fff; border-radius:6px; cursor:pointer; padding:2px 8px; font-size:14px; }
+  .mdp-verrou { display:inline-block; font-size:11px; font-weight:700; background:#fef3c7; color:#92400e; border-radius:999px; padding:2px 9px; margin-left:6px; }
   .mdp-saisie { display: inline-flex; gap: 4px; }
   .mdp-saisie input { border: 1px solid var(--gris-bord); border-radius: 6px; padding: 5px 8px; font-size: 13px; width: 160px; background: inherit; color: inherit; }
   .mdp-saisie button { border: 1px solid var(--gris-bord); border-radius: 6px; background: var(--gris-bg); cursor: pointer; padding: 0 8px; font-size: 15px; }
@@ -2282,7 +2286,7 @@ function demanderNouveauMdp(login, ancien) {
         const e2 = data && data.erreur;
         bt.disabled = false; bt.textContent = 'Enregistrer et me connecter';
         return err(e2 === 'court' ? 'Le mot de passe doit faire au moins 8 caractères.' : e2 === 'identique' ? 'Choisissez un mot de passe différent de l\'ancien.'
-          : e2 === 'bloque' ? 'Trop d\'essais : réessayez dans 15 minutes.' : 'Identifiant ou ancien mot de passe incorrect.');
+          : e2 === 'bloque' ? 'Trop d\'essais : réessayez dans 15 minutes.' : e2 === 'verrouille' ? 'Ce mot de passe est géré par le chef de section : demandez-lui.' : 'Identifiant ou ancien mot de passe incorrect.');
       }
       ov.remove();
       document.getElementById('loginUser').value = login;
@@ -18441,14 +18445,14 @@ function renderAdminMdp() {
     +'</div>'
     +'<div style="background:white;border-radius:12px;border:.5px solid var(--gris-bord);overflow:hidden">'
     +'<div style="background:var(--bleu);color:white;padding:12px 16px;font-size:14px;font-weight:700"><i class="ti ti-users"></i> Mots de passe des parents</div>'
-    +'<p class="mdp-info"><i class="ti ti-lock" aria-hidden="true"></i> Les mots de passe sont <b>chiffrés</b> : personne ne peut les relire, pas même l\'admin. Pour en donner un à une famille, choisis-en un nouveau ici (bouton 🎲 pour en générer un), ou passe par <b>Envoi identifiants</b>.</p>'
+    +'<p class="mdp-info"><i class="ti ti-lock" aria-hidden="true"></i> Seul toi peux voir les mots de passe actuels (bouton 👁, ils se recachent au bout de 15 secondes). Pour en changer un, saisis le nouveau ici (bouton 🎲 pour en générer un), ou passe par <b>Envoi identifiants</b>.</p>'
     +'<table style="width:100%;border-collapse:collapse;font-size:14px">'
     +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Famille</th><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
     +'<tbody>'
     + parents.map((u,i) => '<tr style="border-bottom:.5px solid var(--gris-bord);background:'+(i%2?'var(--gris-bg)':'white')+'">'
       +'<td style="padding:9px 14px;font-weight:600">'+u.nom+'</td>'
       +'<td style="padding:9px 14px;color:var(--bleu)">'+u.login+'</td>'
-      +'<td style="padding:9px 14px"><span class="mdp-saisie"><input type="text" id="mdp_parent_'+u.login+'" value="" placeholder="Nouveau mot de passe" autocomplete="off"><button type="button" title="Générer un mot de passe" onclick="document.getElementById(\'mdp_parent_'+u.login+'\').value = motDePasseAleatoire()">🎲</button></span></td>'
+      +'<td style="padding:9px 14px">'+mdpVoirHtml(u)+'<span class="mdp-saisie"><input type="text" id="mdp_parent_'+u.login+'" value="" placeholder="Nouveau mot de passe" autocomplete="off"><button type="button" title="Générer un mot de passe" onclick="document.getElementById(\'mdp_parent_'+u.login+'\').value = motDePasseAleatoire()">🎲</button></span></td>'
       +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+u.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
       +'</tr>'
     ).join('')
@@ -18464,13 +18468,29 @@ function renderAdminMdp() {
             +'<thead><tr style="background:var(--gris-bg)"><th style="padding:10px 14px;text-align:left;font-size:13px">Login</th><th style="padding:10px 14px;text-align:left;font-size:13px">Mot de passe</th><th style="padding:10px 14px;text-align:left;font-size:13px">Accès</th><th style="padding:10px 14px;font-size:13px">Action</th></tr></thead>'
             +'<tbody><tr>'
             +'<td style="padding:9px 14px;color:var(--bleu)">'+u.login+'</td>'
-            +'<td style="padding:9px 14px"><span class="mdp-saisie"><input type="text" id="mdp_parent_'+u.login+'" value="" placeholder="Nouveau mot de passe" autocomplete="off"><button type="button" title="Générer un mot de passe" onclick="document.getElementById(\'mdp_parent_'+u.login+'\').value = motDePasseAleatoire()">🎲</button></span></td>'
+            +'<td style="padding:9px 14px">'+mdpVoirHtml(u)+'<span class="mdp-saisie"><input type="text" id="mdp_parent_'+u.login+'" value="" placeholder="Nouveau mot de passe" autocomplete="off"><button type="button" title="Générer un mot de passe" onclick="document.getElementById(\'mdp_parent_'+u.login+'\').value = motDePasseAleatoire()">🎲</button></span></td>'
             +'<td style="padding:9px 14px;font-size:12px;color:var(--gris-txt)">'+accesLbl+'</td>'
             +'<td style="padding:9px 14px;text-align:center"><button class="btn-add" style="padding:5px 12px;font-size:12px" onclick="resetMdpParent_go(this)" data-login="'+u.login+'"><i class="ti ti-refresh"></i> Appliquer</button></td>'
             +'</tr></tbody></table></div>';
         }).join('')
           + '<p style="font-size:12px;color:var(--gris-txt);margin-top:8px"><i class="ti ti-info-circle"></i> Pour modifier les accès (menus visibles) d\'un compte spécial, rendez-vous dans <strong>Comptes spéciaux</strong>.</p>';
       })();
+}
+
+// ── Voir un mot de passe (admin uniquement : seul l'admin reçoit les mots de passe du serveur) ──
+let mdpVoirTimers = {};
+function mdpVoirHtml(u) {
+  const id = 'mdpv_' + u.login.replace(/[^a-z0-9]/gi, '_');
+  return '<div class="mdp-voir">Actuel : <code id="' + id + '">••••••••</code><button type="button" title="Voir / cacher" onclick="mdpVoir(\'' + escTexte(u.login) + '\')"><i class="ti ti-eye"></i></button>'
+    + (u.mdpVerrouille ? '<span class="mdp-verrou" title="Personne d\'autre que toi ne peut changer ce mot de passe"><i class="ti ti-lock"></i> verrouillé</span>' : '') + '</div>';
+}
+function mdpVoir(login) {
+  const u = DB.users.find(x => x.login === login), el = document.getElementById('mdpv_' + login.replace(/[^a-z0-9]/gi, '_'));
+  if (!u || !el) return;
+  clearTimeout(mdpVoirTimers[login]);
+  if (el.dataset.visible === '1') { el.textContent = '••••••••'; el.dataset.visible = '0'; return; }
+  el.textContent = u.pass ? u.pass : 'non disponible'; el.dataset.visible = '1';
+  mdpVoirTimers[login] = setTimeout(() => { if (el.dataset.visible === '1') { el.textContent = '••••••••'; el.dataset.visible = '0'; } }, 15000);
 }
 
 function changerMdpAdmin() {
@@ -20171,6 +20191,10 @@ function ouvrirModalCompteSpecial(loginExistant) {
       <div class="form-group"><label>Login</label><input type="text" id="cs_login" value="${u ? u.login : ''}" placeholder="Ex : secretariat" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
       <div class="form-group"><label>Mot de passe</label><input type="text" id="cs_pass" value="" autocomplete="off" placeholder="${u ? 'Laisser vide pour ne pas le changer' : 'Mot de passe (8 caractères minimum)'}" style="width:100%;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font-size:14px"></div>
     </div>
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:12px;padding:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;cursor:pointer">
+      <input type="checkbox" id="cs_verrou" ${u && u.mdpVerrouille ? 'checked' : ''} style="margin-top:2px">
+      <span><b><i class="ti ti-lock"></i> Mot de passe réservé au chef de section</b><br><span style="color:var(--gris-txt)">Personne d'autre que toi ne peut le changer (utile pour un compte partagé, comme celui des formateurs).</span></span>
+    </label>
     <div id="cs_erreur" style="color:var(--rouge);font-size:13px;margin-bottom:10px;display:none"></div>
     <div style="max-height:340px;overflow-y:auto;border:.5px solid var(--gris-bord);border-radius:8px;padding:14px;margin-bottom:16px">
       ${grille}
@@ -20217,9 +20241,9 @@ function enregistrerCompteSpecial() {
 
   if (loginOriginal) {
     const u = DB.users.find(x => x.login === loginOriginal);
-    u.nom = nom; u.login = login; if (pass) u.pass = pass; u.acces = acces; u.role = 'special';
+    u.nom = nom; u.login = login; if (pass) u.pass = pass; u.acces = acces; u.role = 'special'; u.mdpVerrouille = document.getElementById('cs_verrou').checked;
   } else {
-    DB.users.push({ login, pass, nom, role: 'special', acces });
+    DB.users.push({ login, pass, nom, role: 'special', acces, mdpVerrouille: document.getElementById('cs_verrou').checked });
   }
   saveData();
   closeModal();
