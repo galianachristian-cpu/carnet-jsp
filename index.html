@@ -794,6 +794,47 @@
   .sn-rep ul { list-style:none; margin:6px 0 4px; padding:0; font-size:12px; }
   .sn-rep li { padding:6px 0; border-top:1px solid var(--gris-bord); }
   .sn-ok { color:#166534; font-weight:700; } .sn-ko { color:#b91c1c; font-weight:700; }
+
+  .sn-pod { background:linear-gradient(160deg,#16325c,#0f2342); border-radius:20px; padding:18px 16px 0; margin-bottom:16px; color:#fff; overflow:hidden; }
+  .sn-pod h3 { margin:0 0 2px; font-size:17px; } .sn-pod .sn-pod-sub { font-size:12px; opacity:.75; margin-bottom:14px; }
+  .sn-pod-grille { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; align-items:end; max-width:620px; margin:0 auto; }
+  .sn-pod-col { text-align:center; display:flex; flex-direction:column; align-items:center; min-width:0; }
+  .sn-pod-av { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px; background:#fff; color:#16325c; border:3px solid var(--m); box-shadow:0 4px 14px rgba(0,0,0,.35); }
+  .sn-pod-col.p1 .sn-pod-av { width:64px; height:64px; font-size:22px; }
+  .sn-pod-couronne { font-size:26px; line-height:1; margin-bottom:2px; color:#fbbf24; }
+  .sn-pod-nom { font-weight:800; font-size:13px; margin:6px 0 0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sn-pod-det { font-size:11px; opacity:.8; margin-bottom:6px; }
+  .sn-pod-bloc { width:100%; border-radius:12px 12px 0 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:8px; background:linear-gradient(180deg,var(--m),var(--m2)); color:#1f2937; }
+  .sn-pod-bloc b { font-size:30px; line-height:1; } .sn-pod-bloc span { font-size:11px; font-weight:800; }
+  .sn-pod-col.p1 .sn-pod-bloc { height:104px; } .sn-pod-col.p2 .sn-pod-bloc { height:78px; } .sn-pod-col.p3 .sn-pod-bloc { height:60px; }
+  .sn-bas { background:#fff7ed; border:1px solid #fed7aa; border-radius:14px; padding:12px 14px; margin-bottom:16px; font-size:13px; }
+  .sn-bas h4 { margin:0 0 8px; color:#9a3412; font-size:14px; }
+  .sn-bas-l { display:flex; flex-wrap:wrap; gap:8px; }
+  .sn-bas-p { background:#fff; border:1px solid #fdba74; border-radius:999px; padding:5px 12px; font-weight:700; color:#9a3412; }
+  .sn-bas-p small { font-weight:600; color:#c2410c; }
+  .sn-sec { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; margin-bottom:16px; }
+  .sn-sec-c { border-radius:18px; overflow:hidden; border:1px solid var(--gris-bord); background:var(--blanc); }
+  .sn-sec-t { padding:12px 14px; background:linear-gradient(135deg,var(--c),var(--c2)); color:var(--fg); display:flex; justify-content:space-between; align-items:center; }
+  .sn-sec-t b { font-size:17px; } .sn-sec-t small { display:block; font-size:11px; opacity:.85; }
+  .sn-sec-t .sn-sec-n { font-size:24px; font-weight:800; text-align:right; line-height:1; }
+  .sn-sec-l { padding:8px 12px 12px; }
+  .sn-rang { display:grid; grid-template-columns:24px minmax(0,1fr) 34px; gap:8px; align-items:center; padding:5px 0; cursor:pointer; font-size:12.5px; }
+  .sn-rang:hover { background:var(--bleu-pale); }
+  .sn-rang .sn-m { text-align:center; font-weight:800; color:var(--gris-txt); }
+  .sn-rang .sn-rn { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sn-rang .sn-bar { height:7px; border-radius:99px; background:#eef1f5; margin-top:3px; overflow:hidden; }
+  .sn-rang .sn-bar i { display:block; height:100%; border-radius:99px; background:var(--a); }
+  .sn-rang .sn-pt { text-align:right; font-weight:800; color:var(--bleu); }
+  .sn-rang.zero .sn-rn { color:#b91c1c; }
+  .sn-tuiles { display:flex; flex-wrap:wrap; gap:5px; margin:6px 0 8px; }
+  .sn-tu { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; }
+  .sn-tu.ok { background:#16a34a; } .sn-tu.ko { background:#dc2626; box-shadow:0 0 0 3px #fecaca; }
+  .sn-err { border:1.5px solid #fca5a5; background:#fef2f2; border-radius:12px; padding:10px 12px; margin:8px 0; font-size:13px; }
+  .sn-err .sn-qn { display:inline-block; background:#dc2626; color:#fff; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:800; margin-bottom:4px; }
+  .sn-err .sn-sa { background:#fee2e2; color:#991b1b; border-radius:8px; padding:6px 10px; margin-top:6px; text-decoration:line-through; text-decoration-color:rgba(153,27,27,.5); }
+  .sn-err .sn-bo { background:#dcfce7; color:#166534; border-radius:8px; padding:6px 10px; margin-top:4px; font-weight:700; }
+  .sn-bravo { background:#f0fdf4; border:1.5px solid #86efac; color:#166534; border-radius:12px; padding:10px 12px; margin:8px 0; font-weight:700; font-size:13px; }
+  .sn-rep.ouvert-ko > summary { color:#991b1b; }
   .sn-note { font-size:12px; color:var(--gris-txt); margin-top:12px; line-height:1.5; }
   .sn-sous { font-size:14px; font-weight:800; margin:18px 0 8px; color:var(--bleu); }
   .promo-1 { --promo: #7c3aed; } .promo-2 { --promo: #ea580c; } .promo-3 { --promo: #0d9488; } .promo-4 { --promo: #db2777; }
@@ -19245,6 +19286,55 @@ function suiviReponsesEntree(r) {
 }
 function suiviClasseCo(n) { return n >= 10 ? 'sn-c3' : n >= 4 ? 'sn-c2' : n >= 1 ? 'sn-c1' : 'sn-c0'; }
 
+function suiviPoints(l) { return l.coTotal + 2 * l.coursTotal; }
+function suiviClasser(liste) {
+  return liste.slice().sort((a, b) => suiviPoints(b) - suiviPoints(a) || (a.jours - b.jours) || (a.j.nom || '').localeCompare(b.j.nom || ''));
+}
+function suiviInitiales(j) { return ((j.prenom || '?')[0] + (j.nom || '')[0]).toUpperCase(); }
+function suiviPodiumHtml(toutes) {
+  const cl = suiviClasser(toutes); if (cl.length < 3) return '';
+  const medal = [{ m: '#fbbf24', m2: '#d97706', t: '1er' }, { m: '#e5e7eb', m2: '#9ca3af', t: '2e' }, { m: '#f0a56b', m2: '#b45309', t: '3e' }];
+  const col = (i, cls) => { const l = cl[i], me = medal[i];
+    return '<div class="sn-pod-col ' + cls + '" style="--m:' + me.m + ';--m2:' + me.m2 + '" onclick="suiviDetail(' + l.j.id + ')">' + (i === 0 ? '<div class="sn-pod-couronne"><i class="ti ti-crown"></i></div>' : '')
+      + '<div class="sn-pod-av">' + escTexte(suiviInitiales(l.j)) + '</div><div class="sn-pod-nom">' + escTexte(l.j.prenom) + '</div>'
+      + '<div class="sn-pod-det">' + suiviPoints(l) + ' pts · ' + escTexte(l.j.promotion || '') + '</div>'
+      + '<div class="sn-pod-bloc"><b>' + (i + 1) + '</b><span>' + me.t + '</span></div></div>'; };
+  let h = '<div class="sn-pod"><h3><i class="ti ti-trophy"></i> Podium des plus assidus</h3><div class="sn-pod-sub">Depuis septembre · 1 connexion = 1 point, 1 cours ouvert = 2 points</div>'
+    + '<div class="sn-pod-grille">' + col(1, 'p2') + col(0, 'p1') + col(2, 'p3') + '</div></div>';
+  if (cl.length >= 6) {
+    const bas = cl.slice(-3).reverse();
+    h += '<div class="sn-bas"><h4><i class="ti ti-alert-triangle"></i> Les moins assidus : à relancer</h4><div class="sn-bas-l">'
+      + bas.map(l => '<span class="sn-bas-p" style="cursor:pointer" onclick="suiviDetail(' + l.j.id + ')">' + escTexte(l.j.prenom + ' ' + l.j.nom) + ' <small>' + suiviPoints(l) + ' pts · ' + escTexte(l.j.promotion || '') + '</small></span>').join('') + '</div></div>';
+  }
+  return h;
+}
+function suiviSectionsHtml(toutes) {
+  const promos = Array.from(new Set(toutes.map(l => l.j.promotion).filter(Boolean))).sort();
+  const max = Math.max.apply(null, [1].concat(toutes.map(suiviPoints)));
+  const medals = ['🥇', '🥈', '🥉'];
+  return '<div class="sn-sec">' + promos.map(pr => {
+    const cle = pr.replace(/\s+/g, ''), th = BIB_THEMES[cle] || BIB_THEMES.JSP1;
+    const cl = suiviClasser(toutes.filter(l => l.j.promotion === pr));
+    const moy = cl.length ? Math.round(cl.reduce((t, l) => t + suiviPoints(l), 0) / cl.length) : 0;
+    const actifs = cl.filter(l => l.co[l.co.length - 1] > 0).length;
+    return '<div class="sn-sec-c" style="' + bibTheme(cle) + '"><div class="sn-sec-t"><div><b>' + escTexte(pr) + '</b><small>' + actifs + ' / ' + cl.length + ' connectés ce mois-ci</small></div><div class="sn-sec-n">' + moy + '<small>pts en moyenne</small></div></div><div class="sn-sec-l">'
+      + cl.map((l, i) => '<div class="sn-rang' + (suiviPoints(l) === 0 ? ' zero' : '') + '" onclick="suiviDetail(' + l.j.id + ')"><div class="sn-m">' + (i < 3 && suiviPoints(l) > 0 ? medals[i] : (i + 1)) + '</div><div><div class="sn-rn">' + escTexte(l.j.prenom + ' ' + l.j.nom) + '</div><div class="sn-bar"><i style="width:' + Math.round(suiviPoints(l) / max * 100) + '%"></i></div></div><div class="sn-pt">' + suiviPoints(l) + '</div></div>').join('') + '</div></div>';
+  }).join('') + '</div>';
+}
+function suiviPassageHtml(r, idx) {
+  const sur = suiviSurNote(r), det = suiviReponsesEntree(r), lettres = ['A', 'B', 'C', 'D'];
+  const entete = '<summary><b>' + fmtDate(r.date) + '</b> · ' + escTexte(r.niveau || '') + ' · ' + escTexte(suiviMoisRang(r)) + ' · <span class="badge badge-' + noteColor(r.note, sur) + '">' + r.note + '/' + sur + '</span></summary>';
+  if (!det) return '<details class="sn-rep">' + entete + '<p style="font-size:12px;color:var(--gris-txt);margin:6px 0">Le détail des réponses n\'est pas disponible pour ce passage (note seule).</p></details>';
+  const nbKo = det.filter(e => !e.ok).length;
+  const tuiles = '<div class="sn-tuiles">' + det.map((e, i) => '<span class="sn-tu ' + (e.ok ? 'ok' : 'ko') + '" title="Question ' + (i + 1) + '">' + (e.ok ? '✓' : (i + 1)) + '</span>').join('') + '</div>';
+  const rep = e => e.choisie === null || e.choisie === undefined ? 'Pas de réponse' : lettres[e.choisie] + '. ' + (e.q.choix[e.choisie] || '');
+  const erreurs = det.map((e, i) => e.ok ? '' : '<div class="sn-err"><span class="sn-qn">Question ' + (i + 1) + '</span><div><b>' + escTexte(e.q.enonce) + '</b></div><div class="sn-sa">✗ ' + escTexte(rep(e)) + '</div><div class="sn-bo">✓ ' + escTexte(lettres[e.q.bonne] + '. ' + e.q.choix[e.q.bonne]) + '</div></div>').join('');
+  const bonnes = det.filter(e => e.ok);
+  const corps = tuiles + (nbKo ? '<div style="font-size:12px;color:#991b1b;font-weight:700">' + nbKo + ' erreur' + (nbKo > 1 ? 's' : '') + ' sur ' + det.length + '</div>' + erreurs : '<div class="sn-bravo">🎉 Sans faute !</div>')
+    + (bonnes.length && nbKo ? '<details style="margin-top:6px"><summary style="cursor:pointer;font-size:12px;color:var(--gris-txt)">Voir les ' + bonnes.length + ' bonnes réponses</summary><ul>' + bonnes.map(e => '<li><span class="sn-ok">✓</span> ' + escTexte(e.q.enonce) + '<br><span style="color:var(--gris-txt)">' + escTexte(rep(e)) + '</span></li>').join('') + '</ul></details>' : '');
+  return '<details class="sn-rep' + (nbKo ? ' ouvert-ko' : '') + '"' + (idx === 0 ? ' open' : '') + '>' + entete + corps + '</details>';
+}
+
 function renderSuiviNumerique() {
   suiviChargerDonnees();
   return '<div id="suiviRacine">' + suiviHtml() + '</div>';
@@ -19316,6 +19406,7 @@ function suiviHtml() {
     + kpi('ti-book-2', kCours, 'cours ouverts ce mois-ci', '#ea580c')
     + kpi('ti-clipboard-text', nbAttente, 'avec un questionnaire en attente', nbAttente ? '#b45309' : '#166534')
     + kpi('ti-moon-stars', nbInactifs, 'sans connexion depuis 30 jours', nbInactifs ? '#b91c1c' : '#6b7280') + '</div>'
+    + suiviPodiumHtml(toutes) + suiviSectionsHtml(toutes)
     + '<div class="sn-barre">' + chip('tous', 'Tous') + promos.map(p => chip(p, escTexte(p))).join('') + chip('inactifs', 'Sans connexion depuis 30 j') + chip('qattente', 'Questionnaire en attente') + '</div>'
     + '<div class="table-card" style="overflow-x:auto"><table class="sn-table"><thead>' + entete + '</thead><tbody>' + corps + '</tbody></table></div>'
     + '<p class="sn-note"><b>Comment lire ce tableau :</b> cliquez sur un JSP pour voir le détail (cours ouverts, jour par jour).<br>'
@@ -19339,12 +19430,7 @@ function suiviDetail(id) {
     + (moisTous.length ? moisTous.map(k => '<tr><td>' + suiviMoisLibelle(k) + '</td><td>' + l.parMois[k].co + '</td><td>' + suiviDuree(l.parMois[k].sec) + '</td></tr>').join('') : '<tr><td colspan="3" style="color:var(--gris-txt)">Aucune donnée</td></tr>') + '</tbody></table>'
     + '<div class="sn-sous">Questionnaires de culture · ' + suiviEtatQuestionnaires(l) + '</div>'
     + (l.att.length ? '<p style="font-size:13px;margin:0 0 8px"><b>En attente :</b> ' + l.att.map(a => escTexte(a.niveau + ' — ' + (a.annuel ? 'Contrôle annuel' : getLabelMoisRang(a.niveau, a.rang))) + ' (assigné le ' + fmtDate(a.dateAssignation) + ')').join(' · ') + '</p>' : '')
-    + (l.reps.length ? l.reps.map(r => {
-        const sur = suiviSurNote(r), det = suiviReponsesEntree(r), lettres = ['A', 'B', 'C', 'D'];
-        const corps = det ? '<ul>' + det.map(e => '<li><span class="' + (e.ok ? 'sn-ok' : 'sn-ko') + '">' + (e.ok ? '✓' : '✗') + '</span> ' + escTexte(e.q.enonce) + '<br><span style="color:var(--gris-txt)">Réponse du JSP : ' + (e.choisie === null || e.choisie === undefined ? 'aucune' : escTexte(lettres[e.choisie] + '. ' + (e.q.choix[e.choisie] || ''))) + '</span>' + (e.ok ? '' : '<br><span class="sn-ok" style="font-weight:600">Bonne réponse : ' + escTexte(lettres[e.q.bonne] + '. ' + e.q.choix[e.q.bonne]) + '</span>') + '</li>').join('') + '</ul>'
-          : '<p style="font-size:12px;color:var(--gris-txt);margin:6px 0">Le détail des réponses n\'est pas disponible pour ce passage (note seule).</p>';
-        return '<details class="sn-rep"><summary><b>' + fmtDate(r.date) + '</b> · ' + escTexte(r.niveau || '') + ' · ' + escTexte(suiviMoisRang(r)) + ' · <span class="badge badge-' + noteColor(r.note, sur) + '">' + r.note + '/' + sur + '</span></summary>' + corps + '</details>';
-      }).join('') : '<p style="color:var(--gris-txt);font-size:13px">Aucun questionnaire passé pour le moment.</p>')
+    + (l.reps.length ? l.reps.map((r, i) => suiviPassageHtml(r, i)).join('') : '<p style="color:var(--gris-txt);font-size:13px">Aucun questionnaire passé pour le moment.</p>')
     + '<div class="sn-sous">Cours ouverts (' + l.coursTotal + ')</div>'
     + (listeCours.length ? '<table class="sn-table"><thead><tr><th>Cours</th><th>Ouvertures</th><th>Dernière fois</th></tr></thead><tbody>' + listeCours.map(c => '<tr style="cursor:default"><td>' + escTexte(c) + '</td><td>' + parCours[c].n + '</td><td>' + jour(parCours[c].der) + '</td></tr>').join('') + '</tbody></table>'
       : '<p style="color:var(--gris-txt);font-size:13px">Aucun cours ouvert depuis le ' + SUIVI_DEBUT_MESURES + '.</p>')
