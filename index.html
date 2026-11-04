@@ -725,28 +725,28 @@
   /* ── Couleurs des promotions ── */
 
   /* ── Bibliothèque de cours (famille / JSP) ── */
-  .bib-hero { position:relative; overflow:hidden; border-radius:18px; padding:20px 20px 16px; color:#fff; background:linear-gradient(135deg,var(--bib-c,#163a64) 0%,#163a64 120%); margin-bottom:14px; box-shadow:0 6px 18px rgba(22,58,100,.22); }
-  .bib-hero::before { content:''; position:absolute; right:-36px; top:-40px; width:150px; height:150px; border-radius:50%; background:rgba(255,255,255,.13); }
-  .bib-hero::after { content:''; position:absolute; right:60px; bottom:-60px; width:110px; height:110px; border-radius:50%; background:rgba(255,255,255,.08); }
+  .bib-hero { position:relative; overflow:hidden; border-radius:18px; padding:20px 20px 16px; background:linear-gradient(135deg,var(--bib-c,#163a64) 0%,var(--bib-c2,#163a64) 120%); color:var(--bib-fg,#fff); border:1px solid var(--bib-b,transparent); margin-bottom:14px; box-shadow:0 6px 18px rgba(22,58,100,.18); }
+  .bib-hero::before { content:''; position:absolute; right:-36px; top:-40px; width:150px; height:150px; border-radius:50%; background:var(--bib-deco,rgba(255,255,255,.13)); }
+  .bib-hero::after { content:''; position:absolute; right:60px; bottom:-60px; width:110px; height:110px; border-radius:50%; background:var(--bib-deco,rgba(255,255,255,.08)); opacity:.6; }
   .bib-hero > * { position:relative; z-index:1; }
   .bib-hero .bib-kicker { font-size:12px; letter-spacing:.08em; text-transform:uppercase; opacity:.85; font-weight:700; }
-  .bib-hero h2 { margin:2px 0 4px; font-size:23px; line-height:1.15; color:#fff; }
+  .bib-hero h2 { margin:2px 0 4px; font-size:23px; line-height:1.15; color:var(--bib-fg,#fff); }
   .bib-hero p { margin:0; font-size:13px; opacity:.92; max-width:520px; }
   .bib-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-  .bib-chip { border:0; cursor:pointer; font:inherit; font-size:13px; font-weight:700; padding:7px 13px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff; display:inline-flex; align-items:center; gap:6px; }
-  .bib-chip.actif { background:#fff; color:var(--bib-c,#163a64); }
+  .bib-chip { border:0; cursor:pointer; font:inherit; font-size:13px; font-weight:700; padding:7px 13px; border-radius:999px; background:var(--bib-chipbg,rgba(255,255,255,.18)); color:var(--bib-fg,#fff); display:inline-flex; align-items:center; gap:6px; }
+  .bib-chip.actif { background:var(--bib-fg,#fff); color:var(--bib-c,#163a64); }
   .bib-barre { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
   .bib-rech { flex:1 1 220px; display:flex; align-items:center; gap:8px; background:var(--blanc); border:1.5px solid var(--gris-bord); border-radius:12px; padding:0 12px; }
   .bib-rech input { flex:1; border:0; outline:0; background:transparent; font:inherit; font-size:15px; padding:12px 0; color:inherit; min-width:0; }
-  .bib-rech:focus-within { border-color:var(--bib-c,#163a64); }
-  .bib-hasard { border:0; cursor:pointer; font:inherit; font-size:14px; font-weight:700; padding:0 16px; min-height:46px; border-radius:12px; background:var(--bib-c,#163a64); color:#fff; display:inline-flex; align-items:center; gap:7px; }
+  .bib-rech:focus-within { border-color:var(--bib-a,#163a64); }
+  .bib-hasard { border:0; cursor:pointer; font:inherit; font-size:14px; font-weight:700; padding:0 16px; min-height:46px; border-radius:12px; background:var(--bib-a,#163a64); color:#fff; display:inline-flex; align-items:center; gap:7px; }
   .bib-hasard:active { transform:scale(.97); }
   .bib-titre { margin:18px 2px 8px; font-size:14px; font-weight:800; color:var(--gris-txt); text-transform:uppercase; letter-spacing:.05em; display:flex; align-items:center; gap:6px; }
   .bib-grille { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
   .bib-carte { display:flex; align-items:center; gap:12px; padding:13px 14px; background:var(--blanc); border:1px solid var(--gris-bord); border-radius:16px; text-decoration:none; color:inherit; transition:transform .15s, box-shadow .15s; min-height:72px; }
   .bib-carte:hover { transform:translateY(-2px); box-shadow:0 8px 18px rgba(0,0,0,.10); }
   .bib-carte.rev { border-color:#f59e0b; background:linear-gradient(0deg,var(--blanc),var(--orange-pale)); }
-  .bib-ico { flex:0 0 46px; width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:24px; color:#fff; background:var(--bib-c,#163a64); box-shadow:0 3px 8px rgba(0,0,0,.18); }
+  .bib-ico { flex:0 0 46px; width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:24px; color:var(--bib-fg,#fff); background:var(--bib-c,#163a64); border:2px solid var(--bib-b,transparent); box-shadow:0 3px 8px rgba(0,0,0,.15); }
   .bib-carte .bib-t { font-size:14px; font-weight:700; line-height:1.25; }
   .bib-carte .bib-s { font-size:12px; color:var(--gris-txt); margin-top:3px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
   .bib-go { margin-left:auto; color:var(--gris-txt); font-size:20px; flex:0 0 auto; }
@@ -12334,6 +12334,17 @@ const BIB_ICONES = [
   [/grade|statut|éthique|valeurs|engagement|protocole|cérémonie|réseau|intégration|organisation|SDIS|sécurité civile|missions/i, 'ti-medal'],
   [/établissement|opérations|reconnaissance|forcement/i, 'ti-building']
 ];
+// Couleurs des grades : JSP 1 blanc, JSP 2 jaune, JSP 3 orange, JSP 4 vert
+const BIB_THEMES = {
+  JSP1: { c: '#ffffff', c2: '#e8eef6', fg: '#163a64', a: '#163a64', b: '#cbd5e1', deco: 'rgba(22,58,100,.07)', chipbg: 'rgba(22,58,100,.10)' },
+  JSP2: { c: '#facc15', c2: '#eab308', fg: '#3f2a05', a: '#a16207', b: 'rgba(0,0,0,.10)', deco: 'rgba(255,255,255,.30)', chipbg: 'rgba(63,42,5,.14)' },
+  JSP3: { c: '#f97316', c2: '#ea580c', fg: '#ffffff', a: '#c2410c', b: 'rgba(0,0,0,.08)', deco: 'rgba(255,255,255,.16)', chipbg: 'rgba(255,255,255,.22)' },
+  JSP4: { c: '#16a34a', c2: '#166534', fg: '#ffffff', a: '#166534', b: 'rgba(0,0,0,.08)', deco: 'rgba(255,255,255,.14)', chipbg: 'rgba(255,255,255,.20)' }
+};
+function bibTheme(cycle) {
+  const t = BIB_THEMES[cycle] || BIB_THEMES.JSP1;
+  return '--bib-c:' + t.c + ';--bib-c2:' + t.c2 + ';--bib-fg:' + t.fg + ';--bib-a:' + t.a + ';--bib-b:' + t.b + ';--bib-deco:' + t.deco + ';--bib-chipbg:' + t.chipbg + ';';
+}
 function bibIcone(titre) { const e = BIB_ICONES.find(x => x[0].test(titre)); return e ? e[1] : 'ti-book-2'; }
 function bibNorm(t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
 
@@ -12353,7 +12364,7 @@ function bibCarte(sup, cycle, st) {
   const rev = s.fautes > 0;
   const pill = rev ? '<span class="bib-pill rev">À relire · ' + s.fautes + ' erreur' + (s.fautes > 1 ? 's' : '') + '</span>'
     : (s.total ? '<span class="bib-pill ok">Bien maîtrisé ✓</span>' : '');
-  return '<a class="bib-carte' + (rev ? ' rev' : '') + '" href="' + lien + '" target="_blank" rel="noopener" data-q="' + escAttr(bibNorm(sup.titre)) + '" data-rev="' + (rev ? 1 : 0) + '" style="--bib-c:' + (CYCLE_COLORS[cycle] || '#163a64') + '">'
+  return '<a class="bib-carte' + (rev ? ' rev' : '') + '" href="' + lien + '" target="_blank" rel="noopener" data-q="' + escAttr(bibNorm(sup.titre)) + '" data-rev="' + (rev ? 1 : 0) + '" style="' + bibTheme(cycle) + '">'
     + '<span class="bib-ico"><i class="ti ' + bibIcone(sup.titre) + '" aria-hidden="true"></i></span>'
     + '<span style="min-width:0"><div class="bib-t">' + escTexte(sup.titre) + '</div><div class="bib-s">' + cycle.replace('JSP', 'JSP ') + (pill ? ' ' + pill : '') + '</div></span>'
     + '<i class="ti ti-external-link bib-go" aria-hidden="true"></i></a>';
@@ -12376,7 +12387,7 @@ function renderParentCours() {
   window._bibARelire = false;
   const phrases = ['Un cours relu par semaine, et le brevet n\'a plus de secrets 🔥', 'Tous tes cours au même endroit, à portée de pouce 📚', 'Relis, retiens, rends-toi fier ! 🚒'];
   const phrase = phrases[(new Date().getDate()) % phrases.length];
-  return '<div style="--bib-c:' + CYCLE_COLORS[cycle] + '">'
+  return '<div style="' + bibTheme(cycle) + '">'
     + '<div class="bib-hero"><div class="bib-kicker">' + escTexte(j.prenom) + ' · ' + cycle.replace('JSP', 'JSP ') + '</div>'
     + '<h2>📚 La bibliothèque de cours</h2><p>' + phrase + '</p>'
     + '<div class="bib-chips"><button type="button" class="bib-chip actif" id="bibChipTous" onclick="bibMode(false)"><i class="ti ti-books" aria-hidden="true"></i> Tous les cours (' + nbCours + ')</button>'
@@ -12387,7 +12398,7 @@ function renderParentCours() {
     + '<div class="bib-titre"><i class="ti ti-star" aria-hidden="true"></i> Mes cours ' + cycle.replace('JSP', 'JSP ') + '</div>'
     + bibGrille(cycle, st, 'bib-actuel')
     + (prec.length ? '<div class="bib-titre"><i class="ti ti-history" aria-hidden="true"></i> Pour revoir les bases</div>'
-      + prec.map(c => '<details class="bib-prec" style="--bib-c:' + CYCLE_COLORS[c] + '"><summary><i class="ti ti-folder" aria-hidden="true"></i> Cours ' + c.replace('JSP', 'JSP ') + ' <span class="bib-pill ok" style="font-weight:700">' + (SUPPORTS_COURS_2026[c] || []).length + '</span></summary>' + bibGrille(c, st, '') + '</details>').join('') : '')
+      + prec.map(c => '<details class="bib-prec" style="' + bibTheme(c) + '"><summary><i class="ti ti-folder" aria-hidden="true"></i> Cours ' + c.replace('JSP', 'JSP ') + ' <span class="bib-pill ok" style="font-weight:700">' + (SUPPORTS_COURS_2026[c] || []).length + '</span></summary>' + bibGrille(c, st, '') + '</details>').join('') : '')
     + '<div id="bibVide" class="bib-vide" style="display:none">🤔 Aucun cours ne correspond. Essaie un autre mot !</div>'
     + '<div class="bib-pied"><a href="' + LIEN_COURS_JSP_DRIVE + '" target="_blank" rel="noopener"><i class="ti ti-brand-google-drive" aria-hidden="true"></i> Ouvrir le dossier complet des cours</a>'
     + (nbRev ? '<br><a href="#" onclick="showSection(\'parent-questionnaires\');return false" style="display:inline-block;margin-top:8px"><i class="ti ti-help-circle" aria-hidden="true"></i> Voir les questions à retravailler</a>' : '') + '</div>'
