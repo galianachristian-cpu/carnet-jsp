@@ -768,6 +768,27 @@
   @keyframes bibFlash { 0%{box-shadow:0 0 0 0 rgba(245,158,11,.9)} 70%{box-shadow:0 0 0 14px rgba(245,158,11,0)} 100%{box-shadow:0 0 0 0 rgba(245,158,11,0)} }
   .bib-flash { animation:bibFlash .9s ease-out 2; border-color:#f59e0b; }
   @media (prefers-reduced-motion: reduce) { .bib-carte, .bib-prec > summary::after { transition:none; } .bib-flash { animation:none; outline:3px solid #f59e0b; } }
+
+  /* ── Assiduité numérique (chef de section) ── */
+  .sn-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:16px; }
+  .sn-kpi { background:var(--blanc); border:1px solid var(--gris-bord); border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:12px; }
+  .sn-kpi .sn-ico { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; color:#fff; background:var(--bleu); flex:0 0 42px; }
+  .sn-kpi b { display:block; font-size:24px; line-height:1; color:var(--bleu); }
+  .sn-kpi span { font-size:12px; color:var(--gris-txt); }
+  .sn-barre { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+  .sn-chip { border:1.5px solid var(--gris-bord); background:var(--blanc); color:inherit; font:inherit; font-size:13px; font-weight:700; padding:7px 13px; border-radius:999px; cursor:pointer; }
+  .sn-chip.actif { background:var(--bleu); border-color:var(--bleu); color:#fff; }
+  .sn-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .sn-table th { background:var(--bleu); color:#fff; padding:9px 8px; text-align:center; font-size:12px; white-space:nowrap; }
+  .sn-table th:first-child, .sn-table td:first-child { text-align:left; padding-left:14px; }
+  .sn-table td { padding:9px 8px; border-bottom:1px solid var(--gris-bord); text-align:center; white-space:nowrap; }
+  .sn-table tbody tr { cursor:pointer; } .sn-table tbody tr:hover { background:var(--bleu-pale); }
+  .sn-nom { font-weight:700; } .sn-promo { font-size:11px; color:var(--gris-txt); }
+  .sn-c { display:inline-block; min-width:30px; padding:3px 6px; border-radius:8px; font-weight:700; }
+  .sn-c0 { color:#9ca3af; background:#f3f4f6; } .sn-c1 { background:#dcfce7; color:#166534; } .sn-c2 { background:#86efac; color:#14532d; } .sn-c3 { background:#16a34a; color:#fff; }
+  .sn-inactif { color:#b91c1c; font-weight:700; }
+  .sn-note { font-size:12px; color:var(--gris-txt); margin-top:12px; line-height:1.5; }
+  .sn-sous { font-size:14px; font-weight:800; margin:18px 0 8px; color:var(--bleu); }
   .promo-1 { --promo: #7c3aed; } .promo-2 { --promo: #ea580c; } .promo-3 { --promo: #0d9488; } .promo-4 { --promo: #db2777; }
   .badge-promo { background: color-mix(in srgb, var(--promo, var(--bleu)) 14%, transparent); color: var(--promo, var(--bleu)); border: 1px solid color-mix(in srgb, var(--promo, var(--bleu)) 30%, transparent); }
   [data-theme="dark"] .badge-promo { color: color-mix(in srgb, var(--promo, var(--bleu)) 60%, #fff); }
@@ -1247,6 +1268,9 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         </div>
         <div class="nav-item" onclick="showSection('connexions')">
           <i class="ti ti-user-check"></i><span>Connexions</span>
+        </div>
+        <div class="nav-item" onclick="showSection('suivi-numerique')">
+          <i class="ti ti-chart-histogram"></i><span>Assiduité numérique</span>
         </div>
         <div class="nav-item" onclick="showSection('reglement')">
           <i class="ti ti-file-text"></i><span>Règlement intérieur</span>
@@ -2264,6 +2288,7 @@ async function doLogin() {
       const badgeReg = document.getElementById('badge-reglement');
       if (badgeReg && !dejaValide) badgeReg.style.display = 'inline';
     }, 100);
+    suiviNoter('connexion'); suiviDemarrer();
     showSection('parent-accueil');
   }
 }
@@ -2273,6 +2298,7 @@ document.addEventListener('keydown', e => {
 });
 
 function doLogout() {
+  suiviEnvoyerTemps();
   currentUser = null;
   identifiants = null;
   DB = loadData(); // la copie locale ne contient aucun mot de passe
@@ -2308,6 +2334,7 @@ const MODULES_ACCES = [
   { key:'trombinoscope', label:'Trombinoscope', icon:'ti-photo', section:'trombinoscope', groupe:'Administration' },
   { key:'historique', label:'Historique', icon:'ti-history', section:'historique', groupe:'Administration' },
   { key:'connexions', label:'Connexions', icon:'ti-user-check', section:'connexions', groupe:'Administration' },
+  { key:'suivi-numerique', label:'Assiduité numérique', icon:'ti-chart-histogram', section:'suivi-numerique', groupe:'Administration' },
   { key:'reglement', label:'Règlement intérieur', icon:'ti-file-text', section:'reglement', groupe:'Administration' },
   { key:'export', label:'Export Excel', icon:'ti-file-spreadsheet', section:'export', groupe:'Administration' },
   { key:'feuille-appel', label:"Feuille d'appel", icon:'ti-printer', section:'feuille-appel', groupe:'Administration' },
@@ -3322,6 +3349,7 @@ function showSection(sec) {
     case 'export': c.innerHTML = renderExport(); break;
     case 'historique': c.innerHTML = renderHistorique(); break;
     case 'connexions': c.innerHTML = renderConnexions(); break;
+    case 'suivi-numerique': c.innerHTML = renderSuiviNumerique(); break;
     case 'reglement': c.innerHTML = renderReglement(); break;
     case 'feuille-appel': c.innerHTML = renderFeuilleAppel(); break;
     case 'messagerie': c.innerHTML = renderMessagerie(); break;
@@ -19123,6 +19151,178 @@ function fmtDateHeure(iso) {
 function joursDepuis(iso) {
   if (!iso) return Infinity;
   return Math.floor((Date.now() - new Date(iso).getTime()) / (1000*60*60*24));
+}
+
+// ══════════════════════════════════════════
+//  ASSIDUITÉ NUMÉRIQUE : mesure côté famille + tableau de bord du chef de section
+//  Les mesures passent par des fonctions serveur dédiées (tables à part, non lisibles par les familles).
+// ══════════════════════════════════════════
+const SUIVI_DEBUT_MESURES = '4 novembre 2026';
+let suiviSecEnAttente = 0, suiviDerniereAction = 0, suiviTimer = null;
+
+async function suiviNoter(type, cours, sec) {
+  try {
+    if (!supabaseClient || !identifiants || !currentUser || currentUser.role !== 'parent') return;
+    await supabaseClient.rpc('carnet_suivi_noter', { p_login: identifiants.login, p_pass: identifiants.pass, p_type: type, p_cours: cours || null, p_sec: sec || 0 });
+  } catch (e) { /* la mesure ne doit jamais gêner l'utilisation */ }
+}
+// Nom lisible du cours à partir du lien Drive ouvert (null = pas un cours)
+function suiviTitreCours(href) {
+  if (!href || href.indexOf('drive.google.com') < 0) return null;
+  const m = /\/file\/d\/([^\/?#]+)/.exec(href);
+  if (m) {
+    for (const cy in SUPPORTS_COURS_2026) {
+      const sup = (SUPPORTS_COURS_2026[cy] || []).find(x => x.pdf === m[1] || x.pptx === m[1]);
+      if (sup) return cy.replace('JSP', 'JSP ') + ' · ' + sup.titre;
+    }
+    return 'Cours (lien du livret)';
+  }
+  return 'Dossier des cours (Drive)';
+}
+document.addEventListener('click', e => {
+  if (!currentUser || currentUser.role !== 'parent') return;
+  const a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+  if (!a) return;
+  const titre = suiviTitreCours(a.getAttribute('href'));
+  if (titre) suiviNoter('cours', titre);
+}, true);
+
+// Temps actif : onglet visible ET une action de l'utilisateur dans la dernière minute
+function suiviDemarrer() {
+  if (suiviTimer) return;
+  suiviDerniereAction = Date.now();
+  ['click', 'keydown', 'touchstart', 'scroll', 'mousemove'].forEach(ev => document.addEventListener(ev, () => { suiviDerniereAction = Date.now(); }, { passive: true, capture: true }));
+  suiviTimer = setInterval(() => {
+    if (!currentUser || currentUser.role !== 'parent') return;
+    if (!document.hidden && Date.now() - suiviDerniereAction < 60000) suiviSecEnAttente += 5;
+    if (suiviSecEnAttente >= 60) suiviEnvoyerTemps();
+  }, 5000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) suiviEnvoyerTemps(); });
+  window.addEventListener('pagehide', suiviEnvoyerTemps);
+}
+function suiviEnvoyerTemps() {
+  if (!suiviSecEnAttente) return;
+  const s = suiviSecEnAttente; suiviSecEnAttente = 0;
+  suiviNoter('temps', null, s);
+}
+
+// ── Tableau de bord ──
+let suiviDonnees = null, suiviErreur = null, suiviFiltre = 'tous';
+function suiviDuree(sec) {
+  sec = Math.round(sec || 0);
+  if (sec < 30) return '—';
+  if (sec < 3600) return Math.max(1, Math.round(sec / 60)) + ' min';
+  return Math.floor(sec / 3600) + ' h ' + String(Math.round((sec % 3600) / 60)).padStart(2, '0');
+}
+function suiviMoisCle(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function suiviMoisLibelle(cle) { const p = cle.split('-'); return new Date(+p[0], +p[1] - 1, 1).toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '') + ' ' + String(p[0]).slice(2); }
+function suiviListeMois() {
+  const cles = new Set([suiviMoisCle(new Date())]);
+  ((suiviDonnees && suiviDonnees.mensuel) || []).forEach(r => cles.add(r.m));
+  return Array.from(cles).sort().slice(-6);
+}
+function suiviClasseCo(n) { return n >= 10 ? 'sn-c3' : n >= 4 ? 'sn-c2' : n >= 1 ? 'sn-c1' : 'sn-c0'; }
+
+function renderSuiviNumerique() {
+  suiviChargerDonnees();
+  return '<div id="suiviRacine">' + suiviHtml() + '</div>';
+}
+async function suiviChargerDonnees() {
+  suiviErreur = null;
+  try {
+    if (!supabaseClient || !identifiants) throw new Error('hors-ligne');
+    const { data, error } = await supabaseClient.rpc('carnet_suivi_lire', { p_login: identifiants.login, p_pass: identifiants.pass });
+    if (error) throw error;
+    if (!data || !data.ok) throw new Error((data && data.erreur) || 'lecture');
+    suiviDonnees = data;
+  } catch (e) {
+    suiviErreur = e.message === 'hors-ligne' ? 'Connexion internet nécessaire pour afficher ces données.' : 'Impossible de charger les données pour le moment.';
+  }
+  const r = document.getElementById('suiviRacine');
+  if (r && currentSection === 'suivi-numerique') r.innerHTML = suiviHtml();
+}
+function suiviLignes() {
+  const mois = suiviListeMois(), courant = mois[mois.length - 1];
+  const mens = {}, crs = {};
+  ((suiviDonnees && suiviDonnees.mensuel) || []).forEach(r => { (mens[r.j] = mens[r.j] || {})[r.m] = r; });
+  ((suiviDonnees && suiviDonnees.cours) || []).forEach(c => { (crs[c.j] = crs[c.j] || []).push(c); });
+  const lignes = DB.jsps.slice().sort((a, b) => (a.promotion || '').localeCompare(b.promotion || '') || (a.nom || '').localeCompare(b.nom || '')).map(j => {
+    const m = mens[j.id] || {}, cs = crs[j.id] || [];
+    const compte = (DB.users || []).find(u => u.role === 'parent' && u.jspId == j.id);
+    const der = compte && compte.derniereConnexion;
+    return {
+      j: j, mois: mois, courant: courant, co: mois.map(k => (m[k] ? m[k].co : 0)),
+      coTotal: Object.keys(m).reduce((t, k) => t + m[k].co, 0),
+      secMois: m[courant] ? m[courant].sec : 0, secTotal: Object.keys(m).reduce((t, k) => t + m[k].sec, 0),
+      coursTotal: cs.length, coursMois: cs.filter(c => suiviMoisCle(new Date(c.d)) === courant).length,
+      der: der, jours: joursDepuis(der), parMois: m, cours: cs
+    };
+  });
+  return lignes;
+}
+function suiviHtml() {
+  if (suiviErreur) return '<div class="table-card" style="padding:28px;text-align:center"><i class="ti ti-wifi-off" style="font-size:32px;opacity:.4"></i><p>' + escTexte(suiviErreur) + '</p><button class="btn-add" onclick="renderSuiviRecharger()">Réessayer</button></div>';
+  if (!suiviDonnees) return '<div class="section-header"><h2><i class="ti ti-chart-histogram"></i> Assiduité numérique</h2></div><div class="table-card" style="padding:28px;text-align:center;color:var(--gris-txt)">Chargement…</div>';
+  const toutes = suiviLignes(), mois = toutes[0] ? toutes[0].mois : suiviListeMois();
+  const nbInactifs = toutes.filter(l => l.jours > 30).length;
+  const lignes = toutes.filter(l => suiviFiltre === 'tous' ? true : suiviFiltre === 'inactifs' ? l.jours > 30 : (l.j.promotion || '') === suiviFiltre);
+  const kConnectes = toutes.filter(l => l.co[l.co.length - 1] > 0).length;
+  const kCo = toutes.reduce((t, l) => t + l.co[l.co.length - 1], 0);
+  const kCours = toutes.reduce((t, l) => t + l.coursMois, 0);
+  const chip = (cle, lbl) => '<button type="button" class="sn-chip' + (suiviFiltre === cle ? ' actif' : '') + '" onclick="suiviFiltrer(\'' + cle + '\')">' + lbl + '</button>';
+  const kpi = (ico, val, lbl, bg) => '<div class="sn-kpi"><div class="sn-ico" style="background:' + (bg || 'var(--bleu)') + '"><i class="ti ' + ico + '" aria-hidden="true"></i></div><div><b>' + val + '</b><span>' + lbl + '</span></div></div>';
+  const entete = '<tr><th>JSP</th>' + mois.map(k => '<th>' + suiviMoisLibelle(k) + '</th>').join('') + '<th>Total</th><th>Dernière connexion</th><th>Temps ce mois</th><th>Cours ouverts<br><span style="font-weight:400">ce mois / total</span></th></tr>';
+  const corps = lignes.map(l => {
+    const couleur = CYCLE_COLORS[(l.j.promotion || '').replace(' ', '')] || '#6b7280';
+    const der = l.der ? (l.jours === 0 ? "Aujourd'hui" : l.jours === 1 ? 'Hier' : 'Il y a ' + l.jours + ' j') : 'Jamais';
+    return '<tr onclick="suiviDetail(' + l.j.id + ')"><td><div class="sn-nom">' + escTexte(l.j.prenom + ' ' + l.j.nom) + '</div><div class="sn-promo"><span style="color:' + couleur + '">●</span> ' + escTexte(l.j.promotion || '') + '</div></td>'
+      + l.co.map(n => '<td><span class="sn-c ' + suiviClasseCo(n) + '">' + n + '</span></td>').join('')
+      + '<td><b>' + l.coTotal + '</b></td><td class="' + (l.jours > 30 ? 'sn-inactif' : '') + '">' + der + '</td><td>' + suiviDuree(l.secMois) + '</td><td>' + l.coursMois + ' / ' + l.coursTotal + '</td></tr>';
+  }).join('') || '<tr><td colspan="' + (mois.length + 5) + '" style="padding:24px;color:var(--gris-txt)">Aucun JSP dans cette sélection.</td></tr>';
+  const promos = Array.from(new Set(DB.jsps.map(j => j.promotion).filter(Boolean))).sort();
+  return '<div class="section-header"><h2><i class="ti ti-chart-histogram"></i> Assiduité numérique</h2>'
+    + '<button class="btn-add" onclick="suiviExporter()"><i class="ti ti-download"></i> Exporter (Excel)</button></div>'
+    + '<div class="sn-kpis">'
+    + kpi('ti-users', kConnectes + ' / ' + toutes.length, 'JSP connectés ce mois-ci', '#166534')
+    + kpi('ti-login', kCo, 'connexions ce mois-ci')
+    + kpi('ti-book-2', kCours, 'cours ouverts ce mois-ci', '#ea580c')
+    + kpi('ti-moon-stars', nbInactifs, 'sans connexion depuis 30 jours', nbInactifs ? '#b91c1c' : '#6b7280') + '</div>'
+    + '<div class="sn-barre">' + chip('tous', 'Tous') + promos.map(p => chip(p, escTexte(p))).join('') + chip('inactifs', 'Sans connexion depuis 30 j') + '</div>'
+    + '<div class="table-card" style="overflow-x:auto"><table class="sn-table"><thead>' + entete + '</thead><tbody>' + corps + '</tbody></table></div>'
+    + '<p class="sn-note"><b>Comment lire ce tableau :</b> cliquez sur un JSP pour voir le détail (cours ouverts, jour par jour).<br>'
+    + 'Connexions : reprises du journal depuis septembre. Cours ouverts et temps : mesurés depuis le ' + SUIVI_DEBUT_MESURES + '.<br>'
+    + 'Le temps est le temps réellement actif dans l\'appli (hors lecture d\'un PDF sur Google Drive). Un cours « ouvert » signifie que le lien a été cliqué.<br>'
+    + 'Le compte famille est partagé entre le jeune et ses parents : on ne sait pas qui s\'est connecté.</p>';
+}
+function suiviFiltrer(cle) { suiviFiltre = cle; const r = document.getElementById('suiviRacine'); if (r) r.innerHTML = suiviHtml(); }
+function renderSuiviRecharger() { const r = document.getElementById('suiviRacine'); if (r) r.innerHTML = suiviHtml(); suiviChargerDonnees(); }
+
+function suiviDetail(id) {
+  const l = suiviLignes().find(x => x.j.id == id); if (!l) return;
+  const moisTous = Object.keys(l.parMois).sort().reverse();
+  const parCours = {};
+  l.cours.forEach(c => { const o = parCours[c.c] || (parCours[c.c] = { n: 0, der: c.d }); o.n++; if (c.d > o.der) o.der = c.d; });
+  const listeCours = Object.keys(parCours).sort((a, b) => parCours[b].n - parCours[a].n);
+  const jour = d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }) + ' à ' + new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  openModalWide('<h3 style="margin:0 0 4px;color:var(--bleu)">' + escTexte(l.j.prenom + ' ' + l.j.nom) + '</h3><div style="color:var(--gris-txt);font-size:13px;margin-bottom:12px">' + escTexte(l.j.promotion || '') + ' · dernière connexion : ' + fmtDateHeure(l.der) + '</div>'
+    + '<div class="sn-sous">Mois par mois</div><table class="sn-table"><thead><tr><th>Mois</th><th>Connexions</th><th>Temps actif</th></tr></thead><tbody>'
+    + (moisTous.length ? moisTous.map(k => '<tr><td>' + suiviMoisLibelle(k) + '</td><td>' + l.parMois[k].co + '</td><td>' + suiviDuree(l.parMois[k].sec) + '</td></tr>').join('') : '<tr><td colspan="3" style="color:var(--gris-txt)">Aucune donnée</td></tr>') + '</tbody></table>'
+    + '<div class="sn-sous">Cours ouverts (' + l.coursTotal + ')</div>'
+    + (listeCours.length ? '<table class="sn-table"><thead><tr><th>Cours</th><th>Ouvertures</th><th>Dernière fois</th></tr></thead><tbody>' + listeCours.map(c => '<tr style="cursor:default"><td>' + escTexte(c) + '</td><td>' + parCours[c].n + '</td><td>' + jour(parCours[c].der) + '</td></tr>').join('') + '</tbody></table>'
+      : '<p style="color:var(--gris-txt);font-size:13px">Aucun cours ouvert depuis le ' + SUIVI_DEBUT_MESURES + '.</p>')
+    + (l.cours.length ? '<div class="sn-sous">Jour par jour (40 derniers)</div><div style="max-height:220px;overflow-y:auto"><table class="sn-table"><tbody>' + l.cours.slice(0, 40).map(c => '<tr style="cursor:default"><td>' + jour(c.d) + '</td><td style="text-align:left">' + escTexte(c.c) + '</td></tr>').join('') + '</tbody></table></div>' : '')
+    + '<div style="text-align:right;margin-top:14px"><button class="btn-add" onclick="closeModal()">Fermer</button></div>');
+}
+function suiviExporter() {
+  const l = suiviLignes(); if (!l.length) return;
+  const mois = l[0].mois, q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const lignes = [['Nom', 'Prénom', 'Promotion'].concat(mois.map(k => 'Connexions ' + suiviMoisLibelle(k)), ['Total connexions', 'Dernière connexion', 'Temps actif ce mois (min)', 'Temps actif total (min)', 'Cours ouverts ce mois', 'Cours ouverts total'])]
+    .concat(l.map(x => [x.j.nom, x.j.prenom, x.j.promotion].concat(x.co, [x.coTotal, x.der ? x.der.slice(0, 10) : '', Math.round(x.secMois / 60), Math.round(x.secTotal / 60), x.coursMois, x.coursTotal])));
+  const csv = '﻿' + lignes.map(r => r.map(q).join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'assiduite-numerique-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 
 // ══════════════════════════════════════════
