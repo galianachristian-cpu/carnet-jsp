@@ -795,6 +795,46 @@
   .sn-rep li { padding:6px 0; border-top:1px solid var(--gris-bord); }
   .sn-ok { color:#166534; font-weight:700; } .sn-ko { color:#b91c1c; font-weight:700; }
 
+  .sn-badges { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 12px; }
+  .sn-badge { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:800; padding:4px 11px; border-radius:999px; background:color-mix(in srgb,var(--bc) 14%,#fff); color:var(--bc); border:1.5px solid color-mix(in srgb,var(--bc) 45%,#fff); }
+  .sn-badge i { font-size:15px; }
+  .sn-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .sn-maj { font-size:11px; color:var(--gris-txt); }
+  .sn-btn2 { border:1.5px solid var(--bleu); background:#fff; color:var(--bleu); font:inherit; font-size:13px; font-weight:700; padding:7px 13px; border-radius:10px; cursor:pointer; display:inline-flex; gap:6px; align-items:center; }
+  .sn-btn2:hover { background:var(--bleu-pale); }
+  .sn-alertes { border:1.5px solid #fdba74; background:#fff7ed; border-radius:16px; padding:12px 14px; margin-bottom:16px; }
+  .sn-alertes.ok { border-color:#86efac; background:#f0fdf4; color:#166534; font-weight:700; }
+  .sn-alertes h4 { margin:0 0 8px; font-size:14px; color:#9a3412; }
+  .sn-al { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:6px 0; border-top:1px dashed #fed7aa; font-size:13px; }
+  .sn-al:first-of-type { border-top:0; }
+  .sn-al b { color:#9a3412; } .sn-al .sn-al-n { flex:1; min-width:180px; }
+  .sn-rel { border:0; background:#ea580c; color:#fff; font:inherit; font-size:12px; font-weight:800; padding:5px 12px; border-radius:999px; cursor:pointer; }
+  .sn-defi { background:linear-gradient(135deg,#fefce8,#fff7ed); border:1.5px solid #fde68a; border-radius:18px; padding:14px 16px; margin-bottom:12px; }
+  .sn-defi h3 { margin:0 0 2px; font-size:16px; color:#92400e; } .sn-defi .sn-defi-s { font-size:12px; color:#92400e; opacity:.8; margin-bottom:10px; }
+  .sn-defi-l { display:grid; grid-template-columns:70px 1fr 56px; gap:8px; align-items:center; font-size:13px; padding:3px 0; }
+  .sn-defi-b { height:14px; border-radius:99px; background:#fef3c7; overflow:hidden; } .sn-defi-b i { display:block; height:100%; border-radius:99px; }
+  .sn-defi-l.gagne b { color:#b45309; }
+  .sn-ratees { background:var(--blanc); border:1px solid var(--gris-bord); border-radius:18px; padding:14px 16px; margin-bottom:16px; }
+  .sn-ratees h3 { margin:0 0 2px; font-size:16px; color:var(--bleu); } .sn-ratees .sn-defi-s { font-size:12px; color:var(--gris-txt); margin-bottom:10px; }
+  .sn-ratees-g { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+  .sn-rt { display:grid; grid-template-columns:1fr 54px; gap:8px; font-size:12.5px; padding:6px 0; border-top:1px solid var(--gris-bord); align-items:center; }
+  .sn-rt:first-of-type { border-top:0; } .sn-rt small { color:var(--gris-txt); display:block; }
+  .sn-rt .sn-rt-n { text-align:center; background:#fee2e2; color:#991b1b; border-radius:8px; padding:3px 0; font-weight:800; }
+  .sn-vue { display:inline-flex; border:1.5px solid var(--gris-bord); border-radius:999px; overflow:hidden; margin-bottom:10px; }
+  .sn-vue button { border:0; background:#fff; font:inherit; font-size:13px; font-weight:700; padding:7px 16px; cursor:pointer; }
+  .sn-vue button.actif { background:var(--bleu); color:#fff; }
+  .sn-sem-nav { display:flex; gap:8px; align-items:center; margin:0 0 10px 10px; flex-wrap:wrap; }
+  .sn-j { display:inline-flex; min-width:28px; height:28px; border-radius:8px; align-items:center; justify-content:center; gap:3px; font-weight:800; font-size:12px; }
+  .sn-j.co { background:#16a34a; color:#fff; } .sn-j.cr { background:#ede9fe; color:#6d28d9; } .sn-j.vide { background:#f3f4f6; color:#d1d5db; }
+  .sn-table th.auj { background:#ea580c; } .sn-table td.futur { opacity:.35; }
+  .sn-syn { border:1px solid var(--gris-bord); border-radius:14px; padding:14px; background:#f8fafc; margin-bottom:18px; }
+  .sn-syn-k { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:10px; }
+  .sn-syn-k div { background:#fff; border:1px solid var(--gris-bord); border-radius:12px; padding:10px; text-align:center; }
+  .sn-syn-k b { display:block; font-size:22px; color:var(--bleu); } .sn-syn-k span { font-size:11px; color:var(--gris-txt); }
+  .sn-syn h5 { margin:10px 0 4px; font-size:13px; color:var(--bleu); }
+  .sn-syn ul { margin:0; padding-left:18px; font-size:13px; }
+  .sn-courbe { margin:6px 0 10px; } .sn-courbe svg { width:100%; max-width:540px; height:auto; }
+
   .sn-pod { background:linear-gradient(160deg,#16325c,#0f2342); border-radius:20px; padding:18px 16px 0; margin-bottom:16px; color:#fff; overflow:hidden; }
   .sn-pod h3 { margin:0 0 2px; font-size:17px; } .sn-pod .sn-pod-sub { font-size:12px; opacity:.75; margin-bottom:14px; }
   .sn-pod-grille { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; align-items:end; max-width:620px; margin:0 auto; }
@@ -14171,6 +14211,7 @@ function renderParentAccueil() {
 
   // « Ce mois-ci » + ce qui attend la famille
   html2 += carteMoisParent(j, _pres);
+  html2 += parentBadgesHtml(j);
 
   // Stats cards
   html2 += '<div class="stats-grid" style="margin-bottom:20px">';
@@ -14816,6 +14857,9 @@ function renderBilanForm(j, bilan, saison) {
   html += '<button class="btn-add" style="background:#b91c1c;margin-left:8px" onclick="genererPDFJSP('+j.id+')"><i class="ti ti-file-type-pdf"></i> Générer PDF</button>';
   html += '</div></div>';
 
+  html += suiviPanneauBilan(j.id);
+  setTimeout(function() { suiviBilanCharger(j.id); }, 60);
+
   // Sections évaluation
   BILAN_SECTIONS.forEach(function(sec) {
     html += '<div style="margin-bottom:20px">';
@@ -14902,6 +14946,7 @@ function saveBilan(jspId, saison) {
     const el = document.getElementById('bf_obj'+n+'_'+jspId);
     if (el) b['obj'+n] = el.value;
   });
+  try { const sy = suiviSynthese(jspId); if (sy && (sy.connexions || !b.assiduite || !b.assiduite.connexions)) b.assiduite = sy; } catch (e) { console.error(e); }
   saveData();
   alert('Bilan sauvegardé !');
 }
@@ -14970,6 +15015,10 @@ function renderParentBilan() {
       html += '<div style="font-size:14px">'+bilan['obj'+n]+'</div></div>';
     });
     html += '</div>';
+  }
+
+  if (bilan.assiduite) {
+    html += '<div style="margin-bottom:20px"><div style="background:var(--bleu);color:white;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:700;margin-bottom:10px">🖥️ Assiduité et culture de la saison</div>' + suiviSyntheseHtml(bilan.assiduite) + '</div>';
   }
 
   // ── ICP dans vue parent ──
@@ -18142,6 +18191,20 @@ function genererPDFJSP(jspId) {
     y += 2;
   });
 
+  // ── ASSIDUITÉ & CULTURE ──
+  { const sy = (getBilan(jspId, saison) || {}).assiduite;
+    if (sy) {
+      const addVal = (label, val) => { if (y > H - 15) { doc.addPage(); y = MT; } doc.setFillColor(...GRIS_BG); doc.rect(ML, y, W-ML-MR, 7, 'F'); doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(50,50,50); doc.text(label, ML+3, y+5); doc.setFont('helvetica','bold'); doc.setTextColor(...BLEU); doc.text(val, W-MR-3, y+5, {align:'right'}); y += 8; };
+      addSectionHeader('Assiduité numérique et culture');
+      if (sy.connexions) { addVal('Connexions depuis septembre', String(sy.coTotal)); addVal('Cours ouverts dans l\'appli', String(sy.coursTotal)); }
+      addVal('Questionnaires passés', String(sy.passages.length) + (sy.moyenne !== null ? ' (moyenne ' + sy.moyenne + ' %)' : ''));
+      if (sy.tendance !== null) addVal('Évolution des notes', (sy.tendance > 0 ? '+' : '') + sy.tendance + ' pts');
+      if (sy.enAttente) addVal('Questionnaires en attente', String(sy.enAttente));
+      sy.aRevoir.forEach(a => addVal('À revoir : ' + (a.cycle ? a.cycle + ' - ' : '') + a.titre, a.fautes + ' erreur' + (a.fautes > 1 ? 's' : '')));
+      if (sy.badges.length) { if (y > H - 15) { doc.addPage(); y = MT; } doc.setTextColor(50,50,50); doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.text('Badges : ' + sy.badges.join(', '), ML+3, y+4); y += 9; }
+      y += 2;
+    } }
+
   // ── ICP JSP ──
   const icpEntry = (DB.icp||[]).find(x => x.jspId == jspId && x.saison === saison);
   if (icpEntry) {
@@ -19335,18 +19398,248 @@ function suiviPassageHtml(r, idx) {
   return '<details class="sn-rep' + (nbKo ? ' ouvert-ko' : '') + '"' + (idx === 0 ? ' open' : '') + '>' + entete + corps + '</details>';
 }
 
+// ══ Assiduité v3 : badges, alertes, relances, défi, questions ratées, semaine, PDF, entretien annuel ══
+let suiviVue = 'tableau', suiviSemaineDecal = 0, suiviMajLe = null, suiviTimerAuto = null;
+function suiviPct(r) { return Math.round(r.note / suiviSurNote(r) * 100); }
+function suiviBadgesCalc(o) {
+  const b = [], reps = o.reps || [];
+  if (o.co && o.co.length >= 3 && o.co.slice(-3).every(n => n > 0)) b.push({ ico: 'ti-calendar-check', lbl: 'Régulier', desc: 'Connecté chaque mois depuis 3 mois', c: '#2563eb' });
+  if (o.co && o.co.some(n => n >= 10)) b.push({ ico: 'ti-flame', lbl: 'Très assidu', desc: '10 connexions ou plus en un mois', c: '#ea580c' });
+  if (o.coursTotal >= 3) b.push({ ico: 'ti-book-2', lbl: 'Curieux', desc: '3 cours ouverts ou plus', c: '#7c3aed' });
+  if (o.secTotal >= 3600) b.push({ ico: 'ti-clock-hour-4', lbl: 'Marathonien', desc: "Plus d'1 heure dans l'appli", c: '#0d9488' });
+  if (reps.some(r => r.note >= suiviSurNote(r))) b.push({ ico: 'ti-star', lbl: 'Sans faute', desc: 'Un questionnaire sans aucune erreur', c: '#ca8a04' });
+  if (reps.length && !(o.att || []).length) b.push({ ico: 'ti-circle-check', lbl: 'À jour', desc: 'Tous les questionnaires sont faits', c: '#16a34a' });
+  if (reps.length >= 2 && suiviPct(reps[0]) - suiviPct(reps[1]) >= 10) b.push({ ico: 'ti-trending-up', lbl: 'En progrès', desc: 'Meilleure note que la fois précédente', c: '#db2777' });
+  return b;
+}
+function suiviBadgesHtml(b, vide) {
+  return b.length ? '<div class="sn-badges">' + b.map(x => '<span class="sn-badge" style="--bc:' + x.c + '" title="' + escTexte(x.desc) + '"><i class="ti ' + x.ico + '" aria-hidden="true"></i> ' + escTexte(x.lbl) + '</span>').join('') + '</div>'
+    : (vide ? '<p class="sn-note" style="margin:6px 0">' + vide + '</p>' : '');
+}
+// Vue famille : badges calculés uniquement à partir de ce que la famille voit déjà
+function parentBadgesHtml(j) {
+  const reps = (DB.questionnaireReponses || []).filter(r => r.jspId == j.id).sort((a, b) => (b.date || '').localeCompare(a.date || '') || ((b.id || 0) - (a.id || 0)));
+  const att = (DB.questionnairesAssignes || []).filter(a => a.jspId == j.id && !a.fait);
+  const b = suiviBadgesCalc({ co: null, coursTotal: 0, secTotal: 0, reps: reps, att: att });
+  return '<div class="table-card" style="padding:12px 16px;margin-bottom:16px"><div style="font-weight:800;color:var(--bleu);font-size:15px"><i class="ti ti-medal" aria-hidden="true"></i> Mes badges</div>'
+    + suiviBadgesHtml(b, 'Fais un questionnaire pour gagner tes premiers badges !')
+    + '<p style="font-size:11px;color:var(--gris-txt);margin:4px 0 0">Pour t\'aider à progresser, l\'appli retient tes connexions et les cours que tu ouvres. Seuls les encadrants peuvent le voir.</p></div>';
+}
+function suiviRelances() { if (!DB.relances) DB.relances = []; return DB.relances; }
+function suiviDerniereRelance(jspId) { const r = suiviRelances().filter(x => x.jspId == jspId).sort((a, b) => b.date.localeCompare(a.date))[0]; return r ? joursDepuis(r.date) : null; }
+function suiviAutoActualiser() {
+  clearInterval(suiviTimerAuto);
+  suiviTimerAuto = setInterval(() => {
+    if (currentSection !== 'suivi-numerique') { clearInterval(suiviTimerAuto); suiviTimerAuto = null; return; }
+    const bg = document.getElementById('modalBg');
+    if (bg && !bg.classList.contains('hidden')) return;
+    suiviChargerDonnees();
+  }, 120000);
+}
+function suiviHeure(d) { return d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—'; }
+
+function suiviAlertesHtml(toutes) {
+  const ina = toutes.filter(l => l.jours > 30);
+  const att = toutes.filter(l => l.att.some(a => joursDepuis(a.dateAssignation) > 7));
+  const ligne = (ico, texte, l, type) => {
+    const rel = suiviDerniereRelance(l.j.id);
+    return '<div class="sn-al"><div class="sn-al-n"><i class="ti ' + ico + '" aria-hidden="true"></i> <b>' + escTexte(l.j.prenom + ' ' + l.j.nom) + '</b> ' + texte + (rel !== null ? ' <small style="color:#9a3412">· relancé' + (rel === 0 ? " aujourd'hui" : ' il y a ' + rel + ' j') + '</small>' : '') + '</div>'
+      + '<button class="sn-rel" onclick="suiviRelancer(' + l.j.id + ',\'' + type + '\')"><i class="ti ti-mail"></i> Relancer</button></div>';
+  };
+  if (!ina.length && !att.length) return '<div class="sn-alertes ok"><i class="ti ti-circle-check"></i> Tout va bien : personne n\'est inactif et aucun questionnaire ne traîne.</div>';
+  return '<div class="sn-alertes"><h4><i class="ti ti-bell-ringing"></i> À surveiller (' + (ina.length + att.length) + ')</h4>'
+    + ina.map(l => ligne('ti-moon-stars', 'n\'est pas venu sur l\'appli depuis ' + (l.der ? l.jours + ' jours' : 'toujours'), l, 'inactif')).join('')
+    + att.map(l => ligne('ti-clipboard-text', 'a ' + l.att.length + ' questionnaire' + (l.att.length > 1 ? 's' : '') + ' en attente depuis plus d\'une semaine', l, 'qattente')).join('') + '</div>';
+}
+function suiviRelancer(jspId, type) {
+  const l = suiviLignes().find(x => x.j.id == jspId); if (!l) return; const j = l.j;
+  let sujet, msg;
+  if (type === 'qattente' && !l.att.length) type = 'inactif';
+  if (type === 'inactif') {
+    sujet = 'Carnet JSP : un petit coup d\'œil à l\'appli ?';
+    msg = 'Bonjour,\n\nNous avons remarqué que ' + j.prenom + ' ne s\'est pas connecté(e) au Carnet JSP depuis un moment. L\'appli contient les cours à réviser, les questionnaires et le planning des séances.\n\nUn petit coup d\'œil de temps en temps aide beaucoup à progresser. Si vous avez perdu l\'identifiant ou le mot de passe, répondez simplement à ce message.\n\nCordialement,\nChef Galiana\nSection JSP CIS Cruzy-Quarante';
+  } else {
+    const liste = l.att.map(a => '- ' + a.niveau + ' : ' + (a.annuel ? 'Contrôle annuel' : getLabelMoisRang(a.niveau, a.rang))).join('\n');
+    sujet = 'Carnet JSP : questionnaire à faire';
+    msg = 'Bonjour,\n\n' + j.prenom + ' a ' + l.att.length + ' questionnaire' + (l.att.length > 1 ? 's' : '') + ' de culture à faire dans le Carnet JSP :\n' + liste + '\n\nÇa prend une dizaine de minutes, depuis la rubrique « Questionnaires ». Merci de l\'encourager à les faire avant la prochaine séance.\n\nCordialement,\nChef Galiana\nSection JSP CIS Cruzy-Quarante';
+  }
+  openModal('<h3><i class="ti ti-mail"></i> Relancer la famille de ' + escTexte(j.prenom) + '</h3>'
+    + (j.email ? '<p style="font-size:12px;color:var(--gris-txt)">Destinataire : ' + escTexte(j.email) + '. Relis le message : rien ne part tant que tu n\'as pas cliqué sur « Envoyer ».</p>'
+      : '<p style="font-size:12px;color:#b91c1c">Aucun email enregistré pour ce JSP : tu peux copier le message et l\'envoyer toi-même (SMS, WhatsApp…).</p>')
+    + '<input id="relSujet" style="width:100%;padding:8px;border:1px solid var(--gris-bord);border-radius:8px;margin-bottom:8px;font:inherit" value="' + escTexte(sujet) + '">'
+    + '<textarea id="relMsg" style="width:100%;min-height:230px;padding:9px;border:1px solid var(--gris-bord);border-radius:8px;font:inherit;font-size:13px">' + escTexte(msg) + '</textarea>'
+    + '<div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button>'
+    + '<button class="btn-cancel" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById(\'relMsg\').value).then(() => showToast(\'Message copié\'))"><i class="ti ti-copy"></i> Copier</button>'
+    + (j.email ? '<button class="btn-save" onclick="suiviRelanceEnvoyer(' + j.id + ',\'' + type + '\')"><i class="ti ti-send"></i> Envoyer</button>' : '') + '</div>');
+}
+async function suiviRelanceEnvoyer(jspId, type) {
+  const sujet = document.getElementById('relSujet').value, msg = document.getElementById('relMsg').value;
+  const ok = await sendEmailParent(jspId, sujet, msg);
+  if (!ok) { showToast('Email non parti : réessaie ou copie le message', true); return; }
+  suiviRelances().push({ jspId: jspId, type: type, date: new Date().toISOString() }); saveData();
+  closeModal(); showToast('Email envoyé'); const r = document.getElementById('suiviRacine'); if (r) r.innerHTML = suiviHtml();
+}
+
+function suiviDefiHtml(toutes) {
+  const promos = Array.from(new Set(toutes.map(l => l.j.promotion).filter(Boolean))).sort();
+  const sc = promos.map(pr => { const g = toutes.filter(l => l.j.promotion === pr); return { pr: pr, v: g.length ? g.reduce((t, l) => t + l.co[l.co.length - 1] + 2 * l.coursMois, 0) / g.length : 0 }; });
+  const max = Math.max.apply(null, [0.0001].concat(sc.map(x => x.v))), gagnant = sc.slice().sort((a, b) => b.v - a.v)[0];
+  const mois = suiviMoisLibelle(suiviListeMois().slice(-1)[0]);
+  return '<div class="sn-defi"><h3><i class="ti ti-trophy"></i> Défi des sections · ' + mois + '</h3><div class="sn-defi-s">Moyenne de points par JSP ce mois-ci (1 connexion = 1 point, 1 cours ouvert = 2 points) : on compare des moyennes pour que ce soit juste.</div>'
+    + sc.map(x => { const th = BIB_THEMES[x.pr.replace(/\s+/g, '')] || BIB_THEMES.JSP1, gagne = gagnant && gagnant.v > 0 && x.pr === gagnant.pr;
+      return '<div class="sn-defi-l' + (gagne ? ' gagne' : '') + '"><b>' + escTexte(x.pr) + (gagne ? ' 🏆' : '') + '</b><div class="sn-defi-b"><i style="width:' + Math.round(x.v / max * 100) + '%;background:linear-gradient(90deg,' + th.c2 + ',' + th.a + ')"></i></div><span style="text-align:right;font-weight:800">' + (Math.round(x.v * 10) / 10) + '</span></div>'; }).join('') + '</div>';
+}
+function suiviRateesHtml() {
+  const idx = qcQuestionsParId(), agg = {}, parCours = {};
+  DB.jsps.forEach(j => qcReponsesJSP(j.id, idx).forEach(e => {
+    const o = agg[e.q.id] || (agg[e.q.id] = { q: e.q, tot: 0, ko: 0 }); o.tot++;
+    if (!e.ok) { o.ko++; const ref = qcRefCours(e.niveau, e.q); if (ref) parCours[ref] = (parCours[ref] || 0) + 1; }
+  }));
+  const qs = Object.keys(agg).map(k => agg[k]).filter(o => o.ko > 0).sort((a, b) => b.ko - a.ko || (b.ko / b.tot) - (a.ko / a.tot)).slice(0, 6);
+  const cs = Object.keys(parCours).sort((a, b) => parCours[b] - parCours[a]).slice(0, 5);
+  if (!qs.length) return '';
+  const cc = cs.map(r => { const i = qcInfoCours(r); return '<div class="sn-rt"><div><b>' + escTexte(i.titre) + '</b><small>' + escTexte(i.cycleLabel) + '</small></div><div class="sn-rt-n">' + parCours[r] + ' ✗</div></div>'; }).join('');
+  const qq = qs.map(o => '<div class="sn-rt"><div>' + escTexte(o.q.enonce) + '<small>' + o.ko + ' erreur' + (o.ko > 1 ? 's' : '') + ' sur ' + o.tot + ' réponse' + (o.tot > 1 ? 's' : '') + '</small></div><div class="sn-rt-n">' + Math.round(o.ko / o.tot * 100) + ' %</div></div>').join('');
+  return '<div class="sn-ratees"><h3><i class="ti ti-target-arrow"></i> À reprendre en séance</h3><div class="sn-defi-s">Calculé sur la dernière réponse de chaque JSP à chaque question.</div><div class="sn-ratees-g"><div><b style="font-size:13px">Cours les plus ratés</b>' + cc + '</div><div><b style="font-size:13px">Questions les plus ratées</b>' + qq + '</div></div></div>';
+}
+function suiviCourbeHtml(reps) {
+  const pts = reps.slice().reverse().slice(-10); if (pts.length < 2) return '';
+  const W = 520, H = 150, pl = 34, pr = 16, pt = 16, pb = 30, n = pts.length;
+  const X = i => pl + i * (W - pl - pr) / (n - 1), Y = v => pt + (100 - v) / 100 * (H - pt - pb);
+  let g = '';
+  [0, 50, 80, 100].forEach(v => { g += '<line x1="' + pl + '" y1="' + Y(v) + '" x2="' + (W - pr) + '" y2="' + Y(v) + '" stroke="#e5e7eb" stroke-width="1"' + (v === 80 ? ' stroke-dasharray="4 3"' : '') + '/><text x="' + (pl - 5) + '" y="' + (Y(v) + 3) + '" font-size="9" fill="#9ca3af" text-anchor="end">' + v + '%</text>'; });
+  const ligne = pts.map((r, i) => X(i) + ',' + Y(suiviPct(r))).join(' ');
+  const pc = pts.map((r, i) => { const v = suiviPct(r), col = v >= 80 ? '#16a34a' : v >= 50 ? '#d97706' : '#dc2626', d = String(r.date || '');
+    return '<circle cx="' + X(i) + '" cy="' + Y(v) + '" r="5" fill="' + col + '" stroke="#fff" stroke-width="2"/><text x="' + X(i) + '" y="' + (Y(v) - 9) + '" font-size="10" font-weight="700" fill="' + col + '" text-anchor="middle">' + v + '%</text><text x="' + X(i) + '" y="' + (H - 10) + '" font-size="9" fill="#6b7280" text-anchor="middle">' + d.slice(8, 10) + '/' + d.slice(5, 7) + '</text>'; }).join('');
+  return '<div class="sn-courbe"><div style="font-size:12px;font-weight:700;color:var(--bleu)">Progression des notes</div><svg viewBox="0 0 ' + W + ' ' + H + '">' + g + '<polyline points="' + ligne + '" fill="none" stroke="#94a3b8" stroke-width="2"/>' + pc + '</svg></div>';
+}
+
+function suiviVueBoutons() {
+  return '<div style="display:flex;align-items:center;flex-wrap:wrap"><div class="sn-vue"><button type="button" class="' + (suiviVue === 'tableau' ? 'actif' : '') + '" onclick="suiviChangerVue(\'tableau\')"><i class="ti ti-table"></i> Tableau</button><button type="button" class="' + (suiviVue === 'semaine' ? 'actif' : '') + '" onclick="suiviChangerVue(\'semaine\')"><i class="ti ti-calendar-week"></i> Semaine</button></div>'
+    + (suiviVue === 'semaine' ? '<div class="sn-sem-nav"><button class="sn-btn2" onclick="suiviSemaine(-1)">‹ Précédente</button><button class="sn-btn2" onclick="suiviSemaine(0)">Cette semaine</button><button class="sn-btn2" onclick="suiviSemaine(1)">Suivante ›</button></div>' : '') + '</div>';
+}
+function suiviChangerVue(v) { suiviVue = v; const r = document.getElementById('suiviRacine'); if (r) r.innerHTML = suiviHtml(); }
+function suiviSemaine(d) { suiviSemaineDecal = d === 0 ? 0 : suiviSemaineDecal + d; const r = document.getElementById('suiviRacine'); if (r) r.innerHTML = suiviHtml(); }
+function suiviSemaineHtml(lignes) {
+  const lundi = new Date(); lundi.setHours(0, 0, 0, 0); lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7) + 7 * suiviSemaineDecal);
+  const jours = []; for (let i = 0; i < 7; i++) { const d = new Date(lundi); d.setDate(lundi.getDate() + i); jours.push(d); }
+  const auj = dateISOLocale(new Date()), cle = d => dateISOLocale(d);
+  const loginVersJsp = {}; (DB.users || []).forEach(u => { if (u.role === 'parent') loginVersJsp[u.login] = u.jspId; });
+  const co = {}, cr = {};
+  (DB.connexionsLog || []).forEach(x => { if (x.role !== 'parent') return; const id = loginVersJsp[x.login]; if (id == null) return; const k = dateISOLocale(new Date(x.date)); ((co[id] = co[id] || {})[k] = (co[id][k] || 0) + 1); });
+  ((suiviDonnees && suiviDonnees.cours) || []).forEach(c => { const k = dateISOLocale(new Date(c.d)); ((cr[c.j] = cr[c.j] || {})[k] = (cr[c.j][k] || 0) + 1); });
+  const lbl = d => d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' }).replace('.', '');
+  const entete = '<tr><th>JSP</th>' + jours.map(d => '<th class="' + (cle(d) === auj ? 'auj' : '') + '">' + lbl(d) + '</th>').join('') + '<th>Semaine</th></tr>';
+  const corps = lignes.map(l => {
+    let tot = 0;
+    const cells = jours.map(d => { const k = cle(d), a = (co[l.j.id] || {})[k] || 0, b = (cr[l.j.id] || {})[k] || 0; tot += a;
+      return '<td class="' + (k > auj ? 'futur' : '') + '">' + (a || b ? (a ? '<span class="sn-j co">' + a + '</span> ' : '') + (b ? '<span class="sn-j cr"><i class="ti ti-book-2"></i>' + b + '</span>' : '') : '<span class="sn-j vide">·</span>') + '</td>'; }).join('');
+    return '<tr onclick="suiviDetail(' + l.j.id + ')"><td><div class="sn-nom">' + escTexte(l.j.prenom + ' ' + l.j.nom) + '</div><div class="sn-promo">' + escTexte(l.j.promotion || '') + '</div></td>' + cells + '<td><b>' + tot + '</b></td></tr>';
+  }).join('') || '<tr><td colspan="9" style="padding:24px;color:var(--gris-txt)">Aucun JSP dans cette sélection.</td></tr>';
+  const fin = new Date(lundi); fin.setDate(lundi.getDate() + 6);
+  return '<div class="table-card" style="overflow-x:auto"><div style="padding:10px 14px;font-weight:700;color:var(--bleu)">Semaine du ' + lundi.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) + ' au ' + fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) + '</div><table class="sn-table"><thead>' + entete + '</thead><tbody>' + corps + '</tbody></table></div>'
+    + '<p class="sn-note"><span class="sn-j co" style="min-width:22px;height:20px">2</span> = nombre de connexions ce jour-là · <span class="sn-j cr" style="height:20px"><i class="ti ti-book-2"></i>1</span> = cours ouvert(s). Les connexions viennent du journal (les 500 dernières) : au-delà de quelques semaines, il peut manquer des jours.</p>';
+}
+
+// Synthèse d'un JSP pour l'entretien annuel (enregistrée dans le bilan, lisible aussi par la famille)
+function suiviSynthese(jspId) {
+  const l = suiviLignes().find(x => x.j.id == jspId); if (!l) return null;
+  const connu = !!suiviDonnees, parCours = {}; l.cours.forEach(c => { parCours[c.c] = (parCours[c.c] || 0) + 1; });
+  const pcts = l.reps.map(suiviPct), idx = qcQuestionsParId();
+  const passages = l.reps.slice().reverse().map(r => { const det = suiviReponsesEntree(r); return { date: r.date, label: suiviMoisRang(r), niveau: r.niveau, note: r.note, sur: suiviSurNote(r), ko: det ? det.filter(e => !e.ok).length : null, nb: det ? det.length : null }; });
+  const rev = qcLacunesJSP(jspId, { idx: idx }).slice(0, 5).map(o => { const inf = o.ref === '?' ? null : qcInfoCours(o.ref); return { titre: inf ? inf.titre : 'Autres thèmes', cycle: inf ? inf.cycleLabel : '', fautes: o.fautes.length }; });
+  return {
+    maj: new Date().toISOString(), connexions: connu,
+    mois: connu ? l.mois.map((k, i) => ({ k: k, co: l.co[i], sec: (l.parMois[k] || {}).sec || 0 })) : [],
+    coTotal: connu ? l.coTotal : null, secTotal: connu ? l.secTotal : null, coursTotal: connu ? l.coursTotal : null, points: connu ? suiviPoints(l) : null,
+    topCours: Object.keys(parCours).sort((a, b) => parCours[b] - parCours[a]).slice(0, 5).map(c => ({ titre: c, n: parCours[c] })),
+    passages: passages, moyenne: l.reps.length ? Math.round(pcts.reduce((t, v) => t + v, 0) / pcts.length) : null,
+    tendance: pcts.length >= 2 ? pcts[0] - pcts[pcts.length - 1] : null, enAttente: l.att.length, aRevoir: rev, badges: l.badges.map(b => b.lbl)
+  };
+}
+function suiviSyntheseHtml(sy) {
+  if (!sy) return '';
+  const k = (v, t) => '<div><b>' + v + '</b><span>' + t + '</span></div>';
+  const tend = sy.tendance === null ? '—' : (sy.tendance > 0 ? '+' : '') + sy.tendance + ' pts';
+  return '<div class="sn-syn"><div class="sn-syn-k">'
+    + (sy.connexions ? k(sy.coTotal, 'connexions depuis septembre') + k(sy.coursTotal, 'cours ouverts') : '')
+    + k(sy.moyenne === null ? '—' : sy.moyenne + ' %', 'moyenne aux questionnaires') + k(sy.passages.length, 'questionnaires passés') + k(tend, 'évolution (1er → dernier)') + k(sy.enAttente, 'en attente') + '</div>'
+    + (sy.connexions ? '<div style="font-size:12px;color:var(--gris-txt);margin-bottom:4px">Connexions par mois : ' + sy.mois.map(m => '<b>' + suiviMoisLibelle(m.k) + '</b> ' + m.co).join(' · ') + '</div>' : '')
+    + (sy.badges.length ? '<h5>Badges</h5><div class="sn-badges">' + sy.badges.map(b => '<span class="sn-badge" style="--bc:#2563eb">' + escTexte(b) + '</span>').join('') + '</div>' : '')
+    + (sy.passages.length ? '<h5>Questionnaires</h5><ul>' + sy.passages.map(p => '<li>' + fmtDate(p.date) + ' · ' + escTexte((p.niveau || '') + ' ' + p.label) + ' : <b>' + p.note + '/' + p.sur + '</b>' + (p.ko !== null ? ' (' + p.ko + ' erreur' + (p.ko > 1 ? 's' : '') + ')' : '') + '</li>').join('') + '</ul>' : '')
+    + (sy.aRevoir.length ? '<h5>À consolider</h5><ul>' + sy.aRevoir.map(a => '<li>' + escTexte((a.cycle ? a.cycle + ' · ' : '') + a.titre) + ' : ' + a.fautes + ' erreur' + (a.fautes > 1 ? 's' : '') + '</li>').join('') + '</ul>' : '')
+    + '<div style="font-size:11px;color:var(--gris-txt);margin-top:8px">Mis à jour le ' + fmtDate(String(sy.maj).slice(0, 10)) + '</div></div>';
+}
+function suiviPanneauBilan(jspId) {
+  return '<div id="bilanAssid_' + jspId + '"><div style="font-weight:800;color:var(--bleu);margin:0 0 6px"><i class="ti ti-chart-histogram"></i> Assiduité et culture de la saison</div>'
+    + suiviSyntheseHtml(suiviSynthese(jspId)) + '<div style="margin:-8px 0 16px"><button class="sn-btn2" onclick="suiviPrefillBilan(' + jspId + ')"><i class="ti ti-wand"></i> Pré-remplir les commentaires avec ces données</button></div></div>';
+}
+async function suiviBilanCharger(jspId) {
+  if (!suiviDonnees) { try { await suiviChargerDonnees(); } catch (e) {} }
+  const el = document.getElementById('bilanAssid_' + jspId); if (el) el.outerHTML = suiviPanneauBilan(jspId);
+}
+function suiviPrefillBilan(jspId) {
+  const sy = suiviSynthese(jspId); if (!sy) return;
+  const j = DB.jsps.find(x => x.id == jspId);
+  const t1 = 'Assiduité numérique : ' + (sy.connexions ? sy.coTotal + ' connexion' + (sy.coTotal > 1 ? 's' : '') + ' depuis septembre, ' + sy.coursTotal + ' cours ouvert' + (sy.coursTotal > 1 ? 's' : '') + '. ' : '')
+    + (sy.moyenne !== null ? 'Questionnaires de culture : moyenne de ' + sy.moyenne + ' % sur ' + sy.passages.length + ' passage(s)' + (sy.tendance !== null && sy.tendance !== 0 ? ', ' + (sy.tendance > 0 ? 'en progression' : 'en baisse') + ' (' + (sy.tendance > 0 ? '+' : '') + sy.tendance + ' pts)' : '') + '.' : 'Aucun questionnaire passé pour l\'instant.')
+    + (sy.badges.length ? ' Badges : ' + sy.badges.join(', ') + '.' : '');
+  const t2 = sy.aRevoir.length ? 'À revoir : ' + sy.aRevoir.map(a => a.titre + ' (' + a.fautes + ' erreur' + (a.fautes > 1 ? 's' : '') + ')').join(', ') + '.' : '';
+  [['pointsSouligner', t1], ['aConsolider', t2]].forEach(f => { const el = document.getElementById('bf_' + f[0] + '_' + jspId); if (!el || !f[1] || el.value.indexOf(f[1]) >= 0) return; el.value = el.value.trim() ? el.value.trim() + '\n\n' + f[1] : f[1]; });
+  showToast('Commentaires pré-remplis : relis et ajuste avant de sauvegarder');
+}
+
+// Bilan mensuel (PDF) : une page par JSP, pour la section filtrée
+function suiviBilanMensuelPDF() {
+  if (!window.jspdf) { showToast('Le module PDF n\'est pas chargé', true); return; }
+  if (!suiviDonnees) { showToast('Données en cours de chargement, réessaie dans un instant', true); return; }
+  const toutes = suiviLignes(), sel = suiviFiltre.indexOf('JSP') === 0 ? toutes.filter(l => l.j.promotion === suiviFiltre) : toutes;
+  if (!sel.length) { showToast('Aucun JSP à imprimer', true); return; }
+  const mois = suiviListeMois(), courant = mois[mois.length - 1], { jsPDF } = window.jspdf, doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const BLEU = [26, 60, 110], GRIS = [107, 114, 128], W = 210, ML = 15;
+  const libMois = new Date(+courant.slice(0, 4), +courant.slice(5) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  sel.forEach((l, n) => {
+    if (n) doc.addPage();
+    const cl = suiviClasser(toutes.filter(x => x.j.promotion === l.j.promotion)), rang = cl.findIndex(x => x.j.id === l.j.id) + 1;
+    doc.setFillColor(...BLEU); doc.rect(0, 0, W, 26, 'F'); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+    doc.text('Bilan mensuel - ' + libMois, W / 2, 11, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text('CIS Cruzy-Quarante - Section JSP', W / 2, 19, { align: 'center' });
+    let y = 38; doc.setTextColor(...BLEU); doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.text(l.j.prenom + ' ' + l.j.nom, ML, y);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(...GRIS); doc.text(l.j.promotion || '', ML, y + 7); y += 16;
+    const boites = [['Connexions ce mois', l.co[l.co.length - 1]], ['Temps dans l\'appli', suiviDuree(l.secMois)], ['Cours ouverts', l.coursMois], ['Rang dans la section', rang + ' / ' + cl.length]], bw = (W - 2 * ML - 9) / 4;
+    boites.forEach((b, i) => { const x = ML + i * (bw + 3); doc.setFillColor(243, 244, 246); doc.roundedRect(x, y, bw, 20, 2, 2, 'F'); doc.setTextColor(...BLEU); doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.text(String(b[1]), x + bw / 2, y + 10, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(b[0], x + bw / 2, y + 16, { align: 'center' }); });
+    y += 28;
+    const titre = t => { doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...BLEU); doc.text(t, ML, y); y += 6; doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(50, 50, 50); };
+    titre('Connexions mois par mois'); doc.text(mois.map((k, i) => suiviMoisLibelle(k) + ' : ' + l.co[i]).join('    '), ML, y); y += 10;
+    titre('Cours ouverts ce mois-ci');
+    const cm = l.cours.filter(c => suiviMoisCle(new Date(c.d)) === courant), pc = {}; cm.forEach(c => { pc[c.c] = (pc[c.c] || 0) + 1; });
+    const lc = Object.keys(pc); if (!lc.length) { doc.text('Aucun cours ouvert (mesure depuis le ' + SUIVI_DEBUT_MESURES + ').', ML, y); y += 6; } else lc.slice(0, 8).forEach(c => { doc.text('- ' + c + (pc[c] > 1 ? ' (x' + pc[c] + ')' : ''), ML, y, { maxWidth: W - 2 * ML }); y += 5.5; });
+    y += 5; titre('Questionnaires de culture');
+    if (!l.reps.length) { doc.text('Aucun questionnaire passé.', ML, y); y += 6; } else l.reps.slice(0, 4).forEach(r => { const det = suiviReponsesEntree(r), ko = det ? det.filter(e => !e.ok).length : null; doc.text('- ' + fmtDate(r.date) + ' - ' + (r.niveau || '') + ' ' + suiviMoisRang(r) + ' : ' + r.note + '/' + suiviSurNote(r) + (ko !== null ? ' (' + ko + ' erreur' + (ko > 1 ? 's' : '') + ')' : ''), ML, y); y += 5.5; });
+    if (l.att.length) { doc.setTextColor(180, 83, 9); doc.text(l.att.length + ' questionnaire' + (l.att.length > 1 ? 's' : '') + ' en attente.', ML, y); y += 6; doc.setTextColor(50, 50, 50); }
+    y += 5; titre('Cours à réviser');
+    const lac = qcLacunesJSP(l.j.id).slice(0, 5); if (!lac.length) { doc.text('Rien de particulier : bravo !', ML, y); y += 6; } else lac.forEach(o => { const i = o.ref === '?' ? null : qcInfoCours(o.ref); doc.text('- ' + (i ? i.cycleLabel + ' : ' + i.titre : 'Autres thèmes') + ' (' + o.fautes.length + ' erreur' + (o.fautes.length > 1 ? 's' : '') + ')', ML, y, { maxWidth: W - 2 * ML }); y += 5.5; });
+    if (l.badges.length) { y += 5; titre('Badges'); doc.text(l.badges.map(b => b.lbl).join('  -  '), ML, y); }
+    doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text('Édité le ' + new Date().toLocaleDateString('fr-FR') + ' - Carnet JSP', ML, 288);
+  });
+  doc.save('bilan-mensuel-' + courant + (suiviFiltre.indexOf('JSP') === 0 ? '-' + suiviFiltre.replace(/\s+/g, '') : '') + '.pdf');
+}
+
 function renderSuiviNumerique() {
-  suiviChargerDonnees();
+  suiviChargerDonnees(); suiviAutoActualiser();
   return '<div id="suiviRacine">' + suiviHtml() + '</div>';
 }
 async function suiviChargerDonnees() {
   suiviErreur = null;
+  if (window._suiviCharge) return window._suiviCharge;
+  window._suiviCharge = suiviChargerDonnees2(); try { await window._suiviCharge; } finally { window._suiviCharge = null; }
+}
+async function suiviChargerDonnees2() {
   try {
     if (!supabaseClient || !identifiants) throw new Error('hors-ligne');
     const { data, error } = await supabaseClient.rpc('carnet_suivi_lire', { p_login: identifiants.login, p_pass: identifiants.pass });
     if (error) throw error;
     if (!data || !data.ok) throw new Error((data && data.erreur) || 'lecture');
-    suiviDonnees = data;
+    suiviDonnees = data; suiviMajLe = new Date();
   } catch (e) {
     suiviErreur = e.message === 'hors-ligne' ? 'Connexion internet nécessaire pour afficher ces données.' : 'Impossible de charger les données pour le moment.';
   }
@@ -19364,7 +19657,7 @@ function suiviLignes() {
     const der = compte && compte.derniereConnexion;
     const reps = (DB.questionnaireReponses || []).filter(r => r.jspId == j.id).sort((a, b) => (b.date || '').localeCompare(a.date || '') || ((b.id || 0) - (a.id || 0)));
     const att = (DB.questionnairesAssignes || []).filter(a => a.jspId == j.id && !a.fait);
-    return {
+    const o = {
       j: j, mois: mois, courant: courant, co: mois.map(k => (m[k] ? m[k].co : 0)),
       coTotal: Object.keys(m).reduce((t, k) => t + m[k].co, 0),
       secMois: m[courant] ? m[courant].sec : 0, secTotal: Object.keys(m).reduce((t, k) => t + m[k].sec, 0),
@@ -19372,6 +19665,7 @@ function suiviLignes() {
       der: der, jours: joursDepuis(der), parMois: m, cours: cs,
       reps: reps, att: att, derniere: reps[0] || null
     };
+    o.badges = suiviBadgesCalc(o); return o;
   });
   return lignes;
 }
@@ -19399,16 +19693,16 @@ function suiviHtml() {
   }).join('') || '<tr><td colspan="' + (mois.length + 7) + '" style="padding:24px;color:var(--gris-txt)">Aucun JSP dans cette sélection.</td></tr>';
   const promos = Array.from(new Set(DB.jsps.map(j => j.promotion).filter(Boolean))).sort();
   return '<div class="section-header"><h2><i class="ti ti-chart-histogram"></i> Assiduité numérique</h2>'
-    + '<button class="btn-add" onclick="suiviExporter()"><i class="ti ti-download"></i> Exporter (Excel)</button></div>'
+    + '<div class="sn-actions"><span class="sn-maj">Mis à jour à ' + suiviHeure(suiviMajLe) + '</span><button class="sn-btn2" onclick="renderSuiviRecharger()"><i class="ti ti-refresh"></i> Actualiser</button><button class="sn-btn2" onclick="suiviBilanMensuelPDF()"><i class="ti ti-file-type-pdf"></i> Bilan mensuel (PDF)</button><button class="btn-add" onclick="suiviExporter()"><i class="ti ti-download"></i> Exporter (Excel)</button></div></div>'
     + '<div class="sn-kpis">'
     + kpi('ti-users', kConnectes + ' / ' + toutes.length, 'JSP connectés ce mois-ci', '#166534')
     + kpi('ti-login', kCo, 'connexions ce mois-ci')
     + kpi('ti-book-2', kCours, 'cours ouverts ce mois-ci', '#ea580c')
     + kpi('ti-clipboard-text', nbAttente, 'avec un questionnaire en attente', nbAttente ? '#b45309' : '#166534')
     + kpi('ti-moon-stars', nbInactifs, 'sans connexion depuis 30 jours', nbInactifs ? '#b91c1c' : '#6b7280') + '</div>'
-    + suiviPodiumHtml(toutes) + suiviSectionsHtml(toutes)
+    + suiviAlertesHtml(toutes) + suiviPodiumHtml(toutes) + suiviDefiHtml(toutes) + suiviSectionsHtml(toutes) + suiviRateesHtml()
     + '<div class="sn-barre">' + chip('tous', 'Tous') + promos.map(p => chip(p, escTexte(p))).join('') + chip('inactifs', 'Sans connexion depuis 30 j') + chip('qattente', 'Questionnaire en attente') + '</div>'
-    + '<div class="table-card" style="overflow-x:auto"><table class="sn-table"><thead>' + entete + '</thead><tbody>' + corps + '</tbody></table></div>'
+    + suiviVueBoutons() + (suiviVue === 'semaine' ? suiviSemaineHtml(lignes) : '<div class="table-card" style="overflow-x:auto"><table class="sn-table"><thead>' + entete + '</thead><tbody>' + corps + '</tbody></table></div>')
     + '<p class="sn-note"><b>Comment lire ce tableau :</b> cliquez sur un JSP pour voir le détail (cours ouverts, jour par jour).<br>'
     + 'Connexions : reprises du journal depuis septembre. Cours ouverts et temps : mesurés depuis le ' + SUIVI_DEBUT_MESURES + '.<br>'
     + 'Le temps est le temps réellement actif dans l\'appli (hors lecture d\'un PDF sur Google Drive). Un cours « ouvert » signifie que le lien a été cliqué.<br>'
@@ -19426,16 +19720,19 @@ function suiviDetail(id) {
   const listeCours = Object.keys(parCours).sort((a, b) => parCours[b].n - parCours[a].n);
   const jour = d => new Date(d).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }) + ' à ' + new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   openModalWide('<h3 style="margin:0 0 4px;color:var(--bleu)">' + escTexte(l.j.prenom + ' ' + l.j.nom) + '</h3><div style="color:var(--gris-txt);font-size:13px;margin-bottom:12px">' + escTexte(l.j.promotion || '') + ' · dernière connexion : ' + fmtDateHeure(l.der) + '</div>'
+    + suiviBadgesHtml(l.badges, '')
     + '<div class="sn-sous">Mois par mois</div><table class="sn-table"><thead><tr><th>Mois</th><th>Connexions</th><th>Temps actif</th></tr></thead><tbody>'
     + (moisTous.length ? moisTous.map(k => '<tr><td>' + suiviMoisLibelle(k) + '</td><td>' + l.parMois[k].co + '</td><td>' + suiviDuree(l.parMois[k].sec) + '</td></tr>').join('') : '<tr><td colspan="3" style="color:var(--gris-txt)">Aucune donnée</td></tr>') + '</tbody></table>'
     + '<div class="sn-sous">Questionnaires de culture · ' + suiviEtatQuestionnaires(l) + '</div>'
     + (l.att.length ? '<p style="font-size:13px;margin:0 0 8px"><b>En attente :</b> ' + l.att.map(a => escTexte(a.niveau + ' — ' + (a.annuel ? 'Contrôle annuel' : getLabelMoisRang(a.niveau, a.rang))) + ' (assigné le ' + fmtDate(a.dateAssignation) + ')').join(' · ') + '</p>' : '')
+    + suiviCourbeHtml(l.reps)
     + (l.reps.length ? l.reps.map((r, i) => suiviPassageHtml(r, i)).join('') : '<p style="color:var(--gris-txt);font-size:13px">Aucun questionnaire passé pour le moment.</p>')
     + '<div class="sn-sous">Cours ouverts (' + l.coursTotal + ')</div>'
     + (listeCours.length ? '<table class="sn-table"><thead><tr><th>Cours</th><th>Ouvertures</th><th>Dernière fois</th></tr></thead><tbody>' + listeCours.map(c => '<tr style="cursor:default"><td>' + escTexte(c) + '</td><td>' + parCours[c].n + '</td><td>' + jour(parCours[c].der) + '</td></tr>').join('') + '</tbody></table>'
       : '<p style="color:var(--gris-txt);font-size:13px">Aucun cours ouvert depuis le ' + SUIVI_DEBUT_MESURES + '.</p>')
     + (l.cours.length ? '<div class="sn-sous">Jour par jour (40 derniers)</div><div style="max-height:220px;overflow-y:auto"><table class="sn-table"><tbody>' + l.cours.slice(0, 40).map(c => '<tr style="cursor:default"><td>' + jour(c.d) + '</td><td style="text-align:left">' + escTexte(c.c) + '</td></tr>').join('') + '</tbody></table></div>' : '')
-    + '<div style="text-align:right;margin-top:14px"><button class="btn-add" onclick="closeModal()">Fermer</button></div>');
+    + '<div class="modal-btns" style="margin-top:14px;flex-wrap:wrap"><button class="btn-cancel" onclick="window._bilanJspId=' + l.j.id + ';closeModal();showSection(\'bilans\')"><i class="ti ti-clipboard-list"></i> Entretien annuel</button>'
+    + '<button class="btn-cancel" onclick="suiviRelancer(' + l.j.id + ',\'' + (l.att.length ? 'qattente' : 'inactif') + '\')"><i class="ti ti-mail"></i> Relancer</button><button class="btn-save" onclick="closeModal()">Fermer</button></div>');
 }
 function suiviExporter() {
   const l = suiviLignes(); if (!l.length) return;
