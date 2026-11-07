@@ -4174,6 +4174,7 @@ function modalAttestation(id) {
     <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px"><input type="checkbox" id="at_cachet_on" checked> Ajouter le cachet de la section</label>
     ${attestationHistoriqueHtml(j.id)}
     <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-cancel" onclick="telechargerAttestationPdf(${j.id})"><i class="ti ti-file-download"></i> PDF</button>
       <button class="btn-cancel" onclick="envoyerAttestationFamille(${j.id})"><i class="ti ti-mail"></i> Envoyer à la famille</button>
       <button class="btn-save" onclick="genererAttestation(${j.id})"><i class="ti ti-file-certificate"></i> Créer l'attestation</button></div>`);
   window._attestEvts = evts;
@@ -4257,6 +4258,86 @@ function genererAttestation(id) {
   closeModal();
   ouvrirDocumentImprimable('Attestation — ' + j.prenom + ' ' + j.nom, corps);
 }
+// ── PDF de l'attestation (jsPDF) : même texte que la version imprimée ──────────
+function attestationPdf(j, o) {
+  if (!window.jspdf) throw new Error('module PDF non chargé');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, M = 20, LARG = W - 2 * M;
+  const nettoie = t => String(t).replace(/[  ]/g, ' ');
+  // en-tête
+  let y = 18;
+  try { doc.addImage(LOGO_JSP_BASE64, 'PNG', M, y - 4, 20, 20); } catch (e) {}
+  doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(22, 58, 100).text('Jeunes Sapeurs-Pompiers', M + 25, y + 5);
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(91, 107, 128).text('CIS Cruzy-Quarante · SDIS 34', M + 25, y + 11);
+  y += 22;
+  doc.setFillColor(22, 58, 100).rect(M, y, LARG / 3, 1.4, 'F');
+  doc.setFillColor(221, 226, 236).rect(M + LARG / 3, y, LARG / 3, 1.4, 'F');
+  doc.setFillColor(207, 20, 25).rect(M + 2 * LARG / 3, y, LARG / 3, 1.4, 'F');
+  y += 22;
+  const racine = document.createElement('div'); racine.innerHTML = attestationCorps(j, o);
+  doc.setFont('helvetica', 'bold').setFontSize(28).setTextColor(22, 58, 100).text('ATTESTATION', W / 2, y, { align: 'center', charSpace: 1.5 });
+  y += 18;
+  // paragraphes : suites de morceaux (gras / normal) avec retour à la ligne
+  doc.setFontSize(12).setTextColor(19, 38, 61);
+  const LIGNE = 7.2;
+  racine.querySelectorAll('.attest p').forEach(p => {
+    const mots = [];
+    p.childNodes.forEach(n => {
+      const gras = n.nodeType === 1 && /^(B|STRONG)$/.test(n.tagName);
+      nettoie(n.textContent).split(/(\s+)/).forEach(m => { if (m) mots.push({ t: m, gras }); });
+    });
+    let x = M, premier = true;
+    mots.forEach(m => {
+      doc.setFont('helvetica', m.gras ? 'bold' : 'normal');
+      const esp = /^\s+$/.test(m.t);
+      const w = doc.getTextWidth(esp ? ' ' : m.t);
+      if (!esp && x + w > M + LARG + 0.01 && !premier) { x = M; y += LIGNE; premier = true; }
+      if (esp && premier) return;
+      doc.text(esp ? ' ' : m.t, x, y); x += w; premier = false;
+    });
+    y += LIGNE + 4;
+  });
+  // signature + cachet
+  y += 6;
+  const bx = W - M - 70, cx = bx + 35;
+  doc.setFont('helvetica', 'normal').setFontSize(11).setTextColor(19, 38, 61);
+  const fait = racine.querySelector('.signature > div'); 
+  const lignes = [...(fait ? fait.childNodes : [])].filter(n => n.nodeType === 3).map(n => nettoie(n.textContent).trim()).filter(Boolean);
+  doc.text(lignes[0] || '', cx, y, { align: 'center' });
+  const imgs = racine.querySelectorAll('.signature img');
+  const hZone = imgs.length ? 28 : 18;
+  const poser = (src, hMax, wMax, dx) => {
+    try { const p = doc.getImageProperties(src); let h = hMax, w = h * p.width / p.height; if (w > wMax) { w = wMax; h = w * p.height / p.width; } doc.addImage(src, 'PNG', cx - w / 2 + dx, y + 3 + (hZone - h) / 2, w, h); } catch (e) {}
+  };
+  const cachet = [...imgs].find(i => i.src === CACHET_SECTION_BASE64), sig = [...imgs].find(i => i.src === SIGNATURE_CHEF_BASE64);
+  if (cachet) poser(CACHET_SECTION_BASE64, 28, 28, 0);
+  if (sig) poser(SIGNATURE_CHEF_BASE64, 18, 48, cachet ? 4 : 0);
+  y += 3 + hZone + 4;
+  doc.setDrawColor(19, 38, 61).setLineWidth(0.2).line(bx, y, bx + 70, y);
+  doc.setFontSize(9).setTextColor(91, 107, 128).text(nettoie((racine.querySelector('.signature .ligne') || {}).textContent || ''), cx, y + 4.5, { align: 'center' });
+  return doc;
+}
+function attestationNomPdf(j) {
+  return 'Attestation_' + (j.prenom || '') + '_' + (j.nom || '') + '.pdf';
+}
+function telechargerAttestationPdf(id) {
+  const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  try {
+    const o = attestationLireForm();
+    attestationPdf(j, o).save(attestationNomPdf(j).replace(/[^\w.\-]+/g, '_'));
+    attestationNoter(j, o, 'PDF téléchargé');
+    showToast('PDF enregistré');
+  } catch (e) { showToast("Le PDF n'a pas pu être créé. Utilise « Créer l'attestation » pour l'imprimer.", true); }
+}
+// Dépose le PDF dans l'espace « attestations » (nom aléatoire, non devinable) et renvoie son adresse
+async function attestationHeberger(doc) {
+  if (!supabaseClient) throw new Error('hors ligne');
+  const nom = (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx'.replace(/[x]/g, () => (Math.random() * 16 | 0).toString(16))) + '.pdf';
+  const { error } = await supabaseClient.storage.from('attestations').upload(nom, doc.output('blob'), { contentType: 'application/pdf', upsert: false });
+  if (error) throw error;
+  return SUPABASE_URL + '/storage/v1/object/public/attestations/' + nom;
+}
 // Envoi par e-mail à la famille : texte de l'attestation dans le message, après confirmation manuelle
 async function envoyerAttestationFamille(id) {
   const j = DB.jsps.find(x => x.id == id); if (!j) return;
@@ -4265,10 +4346,15 @@ async function envoyerAttestationFamille(id) {
   const tmp = document.createElement('div');
   tmp.innerHTML = attestationCorps(j, o).replace(/<\/p>/g, '\n\n').replace(/<div class="ligne">/g, '\n');
   const texte = tmp.textContent.replace(/\n{3,}/g, '\n\n').trim();
-  const message = `Bonjour,\n\nVoici l'attestation demandée pour ${j.prenom} ${j.nom}. Vous pouvez imprimer ce message et le présenter tel quel.\n\n----------------------------------------\n${texte}\n----------------------------------------\n\nSi un document signé et tamponné vous est nécessaire, il peut vous être remis à la prochaine séance.\n\nCordialement,\nChef Galiana\nSection JSP CIS Cruzy-Quarante`;
-  if (!confirm('Envoyer cette attestation à ' + j.email + ' ?')) return;
+  if (!confirm('Envoyer cette attestation à ' + j.email + ' ?\n\nLe PDF sera mis en ligne et la famille recevra un lien pour le télécharger (le lien n\'est connu que d\'elle).')) return;
+  let lien = '';
+  try { lien = await attestationHeberger(attestationPdf(j, o)); } catch (e) { console.warn('PDF attestation non hébergé', e); }
+  const intro = lien
+    ? `Bonjour,\n\nVoici l'attestation demandée pour ${j.prenom} ${j.nom}.\n\nTélécharger le PDF (à imprimer ou à présenter tel quel) :\n${lien}\n\nLe texte est aussi rappelé ci-dessous.\n\n`
+    : `Bonjour,\n\nVoici l'attestation demandée pour ${j.prenom} ${j.nom}. Vous pouvez imprimer ce message et le présenter tel quel.\n\n`;
+  const message = `${intro}----------------------------------------\n${texte}\n----------------------------------------\n\nSi un document signé et tamponné vous est nécessaire, il peut vous être remis à la prochaine séance.\n\nCordialement,\nChef Galiana\nSection JSP CIS Cruzy-Quarante`;
   const ok = await sendEmailParent(j.id, 'Attestation — ' + j.prenom + ' ' + j.nom, message);
-  if (ok) { attestationNoter(j, o, 'envoyée par e-mail'); closeModal(); showToast('Attestation envoyée à la famille'); }
+  if (ok) { attestationNoter(j, o, lien ? 'envoyée par e-mail avec PDF' : 'envoyée par e-mail'); closeModal(); showToast('Attestation envoyée à la famille'); }
   else showToast("L'e-mail n'a pas pu partir. Vérifie la connexion et réessaie.", true);
 }
 
