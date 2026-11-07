@@ -1662,6 +1662,7 @@ async function loadFromCloud(dejaLu) {
       if (!cloud.livretFinal) cloud.livretFinal = [];
       if (!cloud.livretCursus) cloud.livretCursus = [];
       if (!cloud.attestations) cloud.attestations = [];
+      if (!cloud.demandesAttestation) cloud.demandesAttestation = [];
       if (!cloud.demandesAbsence) cloud.demandesAbsence = [];
       normaliserAbsences(cloud);
       DB = cloud;
@@ -1711,6 +1712,7 @@ function loadData() {
     if (!parsed.livretFinal) parsed.livretFinal = [];
     if (!parsed.livretCursus) parsed.livretCursus = [];
     if (!parsed.attestations) parsed.attestations = [];
+    if (!parsed.demandesAttestation) parsed.demandesAttestation = [];
     if (!parsed.demandesAbsence) parsed.demandesAbsence = [];
     normaliserAbsences(parsed);
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
@@ -1728,7 +1730,7 @@ function loadData() {
     reglement: { version: 1, texte: null, maj: null }, organigramme: null, icp: [], subventions: null,
     questionnaireReponses: [], questionnairesAssignes: [], questionsCulture: null, competitions: [],
     settingsCandidature: { section: 'Cruzy-Quarante', compagnie: '', centreSecours: 'CIS Cruzy-Quarante' },
-    equipesPedagogiques: [], livretConnaissances: [], livretComportement: [], livretBlocsINC: [], attestations: [],
+    equipesPedagogiques: [], livretConnaissances: [], livretComportement: [], livretBlocsINC: [], attestations: [], demandesAttestation: [],
     livretBlocsEval: [], livretJSP1Eval: [], livretAPS: [], livretFinal: [], livretCursus: [],
     demandesAbsence: [], saison: '2025-2026', allSaisons: ['2025-2026'], bilans: [], messages: [], planning: []
   };
@@ -1915,9 +1917,10 @@ async function majCloudAtomique(mutation) {
 // pour qu'une sauvegarde depuis un écran pas à jour ne les efface pas.
 async function fusionnerDemandesDepuisCloud() {
   try {
-    const lu = await cloudLire(['demandesAbsence', 'absences']);
+    const lu = await cloudLire(['demandesAbsence', 'absences', 'demandesAttestation']);
     const row = { demandes: lu.data.demandesAbsence, absences: lu.data.absences };
     DB.demandesAbsence = fusionnerDemandes(DB.demandesAbsence, row.demandes);
+    DB.demandesAttestation = fusionnerDemandes(DB.demandesAttestation, lu.data.demandesAttestation);
     // Absences ajoutées dans le cloud depuis un autre écran (appli d'appel, demande validée ailleurs) :
     // on les garde, sauf celles supprimées à la main ici.
     if (Array.isArray(row.absences)) {
@@ -1948,15 +1951,16 @@ function majBadgeDemandesAbsence() {
 async function rafraichirDemandesAbsence() {
   if (!supabaseClient || !currentUser || !identifiants) return;
   try {
-    const lu = await cloudLire(['demandesAbsence', 'absences']);
+    const lu = await cloudLire(['demandesAbsence', 'absences', 'demandesAttestation']);
     const row = { demandes: lu.data.demandesAbsence, absences: lu.data.absences };
-    const avant = JSON.stringify([DB.demandesAbsence || [], DB.absences || []]);
+    const avant = JSON.stringify([DB.demandesAbsence || [], DB.absences || [], DB.demandesAttestation || []]);
     DB.demandesAbsence = fusionnerDemandes(DB.demandesAbsence, row.demandes);
+    DB.demandesAttestation = fusionnerDemandes(DB.demandesAttestation, lu.data.demandesAttestation);
     if (Array.isArray(row.absences)) { DB.absences = row.absences; normaliserAbsences(DB); }
-    if (JSON.stringify([DB.demandesAbsence || [], DB.absences || []]) !== avant) {
+    if (JSON.stringify([DB.demandesAbsence || [], DB.absences || [], DB.demandesAttestation || []]) !== avant) {
       cacheLocal();
       majBadgeDemandesAbsence();
-      if (currentSection === 'absences' || currentSection === 'parent-absences') showSection(currentSection);
+      if (currentSection === 'absences' || currentSection === 'parent-absences' || currentSection === 'dashboard') showSection(currentSection);
     }
   } catch (e) { /* silencieux : on garde les données locales */ }
 }
@@ -4141,6 +4145,7 @@ function retrospectiveJSP(id) {
 // ══════════════════════════════════════════
 function modalAttestation(id) {
   const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  window._demandeAttId = null;
   const auj = dateISOLocale(new Date());
   const evts = (DB.planning || []).filter(p => p.date <= auj).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40);
   // Pour le justificatif de présence : événements à venir puis récents, pour pré-remplir
@@ -4228,6 +4233,7 @@ function attestationLireForm() {
 }
 // Garde une trace de chaque attestation créée ou envoyée (historique de la fiche)
 function attestationNoter(j, o, mode) {
+  if (window._demandeAttId) { const did = window._demandeAttId; window._demandeAttId = null; marquerDemandeAttestation(did, 'traitee'); }
   if (!DB.attestations) DB.attestations = [];
   const t = o.at_type; let resume;
   if (t === 'presence') resume = (o.at_act || 'Activité') + (o.at_date ? ' · ' + fmtDate(o.at_date) : '');
@@ -4264,6 +4270,103 @@ async function envoyerAttestationFamille(id) {
   const ok = await sendEmailParent(j.id, 'Attestation — ' + j.prenom + ' ' + j.nom, message);
   if (ok) { attestationNoter(j, o, 'envoyée par e-mail'); closeModal(); showToast('Attestation envoyée à la famille'); }
   else showToast("L'e-mail n'a pas pu partir. Vérifie la connexion et réessaie.", true);
+}
+
+// ── Demandes d'attestation faites par les familles ───────────────────────────
+// Côté famille
+function modalDemandeAttestation() {
+  const j = getMyJSP();
+  if (!j) return;
+  const auj = dateISOLocale(new Date());
+  const prochain = (DB.planning || []).filter(p => p.date >= auj).sort((a, b) => a.date.localeCompare(b.date))[0];
+  openModal(`<h3><i class="ti ti-certificate"></i> Demander une attestation</h3>
+    <p style="font-size:13px;color:var(--gris-txt);margin-bottom:12px">Pour justifier la présence de <strong>${escTexte(j.prenom)}</strong> à une activité de la section (par exemple auprès d'une école de musique). Le chef de section prépare l'attestation et vous la transmet.</p>
+    <div class="form-group"><label>Activité</label><input id="dat_act" maxlength="120" value="${escTexte(prochain ? prochain.titre || '' : '')}" placeholder="Ex : cross du samedi"></div>
+    <div class="form-group"><label>Date de l'activité</label><input id="dat_date" type="date" value="${escTexte(prochain ? prochain.date : auj)}"></div>
+    <div class="form-group"><label>Pour qui ? <span style="font-weight:400;color:var(--gris-txt)">(école, club, conservatoire… facultatif)</span></label><input id="dat_orga" maxlength="120" placeholder="Ex : école de musique de Capestang"></div>
+    <div class="form-group"><label>Un mot pour le chef (facultatif)</label><textarea id="dat_comm" maxlength="300" placeholder="Ex : à remettre avant vendredi"></textarea></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" id="dat_btn" onclick="envoyerDemandeAttestation()">Envoyer la demande</button>
+    </div>`);
+}
+async function envoyerDemandeAttestation() {
+  const j = getMyJSP();
+  if (!j) return;
+  const v = k => (document.getElementById(k) || {}).value || '';
+  const activite = v('dat_act').trim().slice(0, 120), date = v('dat_date'), organisme = v('dat_orga').trim().slice(0, 120), commentaire = v('dat_comm').trim().slice(0, 300);
+  if (!activite) { showToast("Merci d'indiquer l'activité", true); return; }
+  if (!date) { showToast("Merci de choisir la date", true); return; }
+  const btn = document.getElementById('dat_btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Envoi…'; }
+  const demande = { id: Date.now(), jspId: j.id, prenom: j.prenom, nom: j.nom, promotion: j.promotion, activite, date, organisme, commentaire, ts: Date.now(), statut: 'en_attente' };
+  let doublon = false;
+  try {
+    const r = await majCloudAtomique(cloud => {
+      doublon = false;
+      if (!cloud.demandesAttestation) cloud.demandesAttestation = [];
+      if (cloud.demandesAttestation.some(d => d.id === demande.id)) return false;
+      if (cloud.demandesAttestation.some(d => d.jspId === demande.jspId && d.date === date && d.activite === activite && d.statut === 'en_attente')) { doublon = true; return false; }
+      cloud.demandesAttestation.push(demande);
+      return true;
+    });
+    DB.demandesAttestation = fusionnerDemandes(DB.demandesAttestation, r.cloud.demandesAttestation);
+    cacheLocal();
+    closeModal();
+    showToast(doublon ? 'Cette demande a déjà été envoyée.' : '✅ Demande envoyée. Le chef de section est prévenu.');
+    showSection('parent-absences');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Envoyer la demande'; }
+    showToast("Envoi impossible pour le moment. Vérifiez votre connexion et réessayez.", true);
+  }
+}
+function renderDemandesAttestationParent(j) {
+  const libelles = { en_attente: '⏳ En attente', traitee: '✅ Préparée par le chef de section', refusee: 'Non retenue — contactez le chef' };
+  const list = (DB.demandesAttestation || []).filter(d => d.jspId == j.id).sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5);
+  if (!list.length) return '';
+  return `<div class="table-card" style="margin-bottom:16px"><table>
+    <thead><tr><th>Attestation demandée</th><th>Activité</th><th>Suite donnée</th></tr></thead>
+    <tbody>${list.map(d => `<tr><td>${fmtDate(d.date)}</td><td>${escTexte(d.activite)}${d.organisme ? ' · ' + escTexte(d.organisme) : ''}</td><td style="font-size:13px">${libelles[d.statut] || ''}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+}
+// Côté chef
+function blocDemandesAttestation() {
+  const en = (DB.demandesAttestation || []).filter(d => d.statut === 'en_attente').sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  if (!en.length) return '';
+  return `<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:14px 18px;margin-bottom:18px">
+    <div style="font-weight:700;color:#1e40af;font-size:14px;margin-bottom:8px">📄 ${en.length} demande${en.length > 1 ? 's' : ''} d'attestation des familles</div>
+    ${en.map(d => `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:white;border:1px solid #dbeafe;border-radius:8px;padding:8px 12px;margin-bottom:6px">
+      <div style="flex:1;min-width:200px"><strong>${escTexte(d.prenom)} ${escTexte(d.nom)}</strong> · ${escTexte(d.activite)} · ${fmtDate(d.date)}${d.organisme ? ' · pour ' + escTexte(d.organisme) : ''}${d.commentaire ? `<div style="font-size:12px;color:var(--gris-txt)">« ${escTexte(d.commentaire)} »</div>` : ''}</div>
+      <button class="btn-save" style="padding:5px 12px;font-size:12px" onclick="attestationDepuisDemande(${d.id})">Préparer l'attestation</button>
+      <button class="btn-cancel" style="padding:5px 12px;font-size:12px" onclick="marquerDemandeAttestation(${d.id},'refusee')">Refuser</button>
+    </div>`).join('')}
+  </div>`;
+}
+function attestationDepuisDemande(id) {
+  const d = (DB.demandesAttestation || []).find(x => x.id === id); if (!d) return;
+  modalAttestation(d.jspId);
+  const set = (i, val) => { const el = document.getElementById(i); if (el) el.value = val; };
+  set('at_type', 'presence'); attestationType('presence');
+  set('at_act', d.activite || ''); set('at_date', d.date || ''); set('at_orga', d.organisme || '');
+  window._demandeAttId = id;   // marquée « traitée » dès que l'attestation est créée ou envoyée
+}
+async function marquerDemandeAttestation(id, statut) {
+  if (!(DB.demandesAttestation || []).find(x => x.id === id)) return;
+  if (statut === 'refusee' && !confirm('Refuser cette demande ? La famille verra « Non retenue ».')) return;
+  try {
+    const r = await majCloudAtomique(cloud => {
+      const d = (cloud.demandesAttestation || []).find(x => x.id === id);
+      if (!d || d.statut !== 'en_attente') return false;
+      d.statut = statut; d.tsTraitement = Date.now(); d.traitePar = 'carnet';
+      return true;
+    });
+    DB.demandesAttestation = fusionnerDemandes(DB.demandesAttestation, r.cloud.demandesAttestation);
+    cacheLocal();
+    if (statut === 'refusee') showToast(r.ecrit ? 'Demande refusée' : 'Cette demande a déjà été traitée.');
+    if (currentSection === 'dashboard') showSection('dashboard');
+  } catch (e) {
+    showToast("Impossible de joindre le cloud. Réessaie dans un instant.", true);
+  }
 }
 
 // ── Attestations en lot (une page par jeune), depuis le planning ──────────────
@@ -4334,6 +4437,7 @@ function renderDashboard() {
       <button class="btn-add" style="background:#b91c1c;font-size:13px" onclick="genererBilanAnnuelPDF()"><i class="ti ti-file-type-pdf"></i> Bilan annuel PDF</button>
       <button id="btnSyncAppel" class="btn-add btn-sync-appel" style="background:#16a34a;font-size:13px" onclick="syncAbsencesFromAppel()"><i class="ti ti-refresh"></i> Synchroniser avec l\'appli d\'appel</button>
     </div></div>
+    ${blocDemandesAttestation()}
     ${banniereAccueil(prochains[0])}
     <div class="stats-grid">
       <div class="stat-card bleu"><i class="ti ti-users stat-ico" aria-hidden="true"></i><div class="stat-val">${totalJSP}</div><div class="stat-lbl">JSP inscrits</div></div>
@@ -4779,7 +4883,7 @@ function deleteJSP(id) {
   DB.resultats = DB.resultats.filter(x=>x.jspId!=id);
   // Compte famille et données liées : sinon ils restent orphelins (ex. dans « Connexions »)
   DB.users = DB.users.filter(u => !(u.role === 'parent' && u.jspId == id));
-  ['icp', 'bilans', 'questionnaireReponses', 'questionnairesAssignes', 'validationsReglement', 'demandesAbsence'].forEach(k => {
+  ['icp', 'bilans', 'questionnaireReponses', 'questionnairesAssignes', 'validationsReglement', 'demandesAbsence', 'demandesAttestation', 'attestations'].forEach(k => {
     if (Array.isArray(DB[k])) DB[k] = DB[k].filter(x => x.jspId != id);
   });
   saveData(); showSection('jsps');
@@ -14464,8 +14568,10 @@ function renderParentAbsences() {
   const j = getMyJSP();
   const list = [...DB.absences.filter(a=>a.jspId==j.id)].sort((a,b)=>b.date.localeCompare(a.date));
   return `<div class="section-header"><h2><i class="ti ti-calendar-x" aria-hidden="true"></i> Absences de ${j.prenom}</h2>
-      <button class="btn-add" onclick="modalDemandeAbsence()"><i class="ti ti-plus"></i> Prévenir d'une absence</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-add" style="background:var(--bleu-clair)" onclick="modalDemandeAttestation()"><i class="ti ti-certificate"></i> Demander une attestation</button>
+      <button class="btn-add" onclick="modalDemandeAbsence()"><i class="ti ti-plus"></i> Prévenir d'une absence</button></div></div>
     ${renderDemandesParent(j)}
+    ${renderDemandesAttestationParent(j)}
     <div class="table-card"><table>
       <thead><tr><th>Date</th><th>Motif</th><th>Excusée</th><th>Remarque</th></tr></thead>
       <tbody>
