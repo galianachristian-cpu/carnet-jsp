@@ -1661,6 +1661,7 @@ async function loadFromCloud(dejaLu) {
       if (!cloud.livretAPS) cloud.livretAPS = [];
       if (!cloud.livretFinal) cloud.livretFinal = [];
       if (!cloud.livretCursus) cloud.livretCursus = [];
+      if (!cloud.attestations) cloud.attestations = [];
       if (!cloud.demandesAbsence) cloud.demandesAbsence = [];
       normaliserAbsences(cloud);
       DB = cloud;
@@ -1709,6 +1710,7 @@ function loadData() {
     if (!parsed.livretAPS) parsed.livretAPS = [];
     if (!parsed.livretFinal) parsed.livretFinal = [];
     if (!parsed.livretCursus) parsed.livretCursus = [];
+    if (!parsed.attestations) parsed.attestations = [];
     if (!parsed.demandesAbsence) parsed.demandesAbsence = [];
     normaliserAbsences(parsed);
     // Migration : rattacher les absences existantes (sans saison) à 2025-2026
@@ -1726,7 +1728,7 @@ function loadData() {
     reglement: { version: 1, texte: null, maj: null }, organigramme: null, icp: [], subventions: null,
     questionnaireReponses: [], questionnairesAssignes: [], questionsCulture: null, competitions: [],
     settingsCandidature: { section: 'Cruzy-Quarante', compagnie: '', centreSecours: 'CIS Cruzy-Quarante' },
-    equipesPedagogiques: [], livretConnaissances: [], livretComportement: [], livretBlocsINC: [],
+    equipesPedagogiques: [], livretConnaissances: [], livretComportement: [], livretBlocsINC: [], attestations: [],
     livretBlocsEval: [], livretJSP1Eval: [], livretAPS: [], livretFinal: [], livretCursus: [],
     demandesAbsence: [], saison: '2025-2026', allSaisons: ['2025-2026'], bilans: [], messages: [], planning: []
   };
@@ -4067,6 +4069,7 @@ function ouvrirDocumentImprimable(titre, corps, couleur) {
   const w = window.open('', '_blank');
   if (!w) { alert('Le navigateur a bloqué la fenêtre : autorise les fenêtres pour ce site.'); return; }
   const c = couleur || '#163a64';
+  const pages = Array.isArray(corps) ? corps : [corps];
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escTexte(titre)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
 <style>
@@ -4085,11 +4088,11 @@ function ouvrirDocumentImprimable(titre, corps, couleur) {
   .titre-attest{text-align:center;font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:42px;letter-spacing:3px;color:#163a64;margin-top:26px}
   .signature{margin-top:46px;display:flex;justify-content:flex-end} .signature div{width:260px;text-align:center;font-size:15px} .signature .ligne{margin-top:70px;border-top:1px solid #13263d;padding-top:6px;font-size:13px;color:#5b6b80}
   .pied{position:absolute;left:16mm;right:16mm;bottom:10mm;font-size:11px;color:#8a97a8;display:flex;justify-content:space-between;border-top:1px solid #e5e9f0;padding-top:6px}
-  @media print{body{background:#fff}.barre{display:none}.page{margin:0;box-shadow:none;width:auto;min-height:0;height:297mm}@page{size:A4;margin:0}}
+  @media print{body{background:#fff}.barre{display:none}.page{margin:0;box-shadow:none;width:auto;min-height:0;height:296mm;break-after:page}.page:last-child{break-after:auto}@page{size:A4;margin:0}}
   @media (max-width:820px){.page{width:auto;min-height:0;margin:10px;padding:18px}.kpis{grid-template-columns:1fr 1fr}.pied{position:static;margin-top:24px}}
 </style></head><body><div class="barre"><button onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button><button class="sec" onclick="window.close()">Fermer</button></div>
-<div class="page"><div class="tete"><img src="${LOGO_JSP_BASE64}" alt=""><div><b>Section des Jeunes Sapeurs-Pompiers</b><span>CIS Cruzy-Quarante</span></div></div><div class="tri"><i></i><i></i><i></i></div>
-${corps}<div class="pied"><span>Carnet JSP · CIS Cruzy-Quarante</span><span>Édité le ${new Date().toLocaleDateString('fr-FR')}</span></div></div></body></html>`);
+${pages.map(c2 => `<div class="page"><div class="tete"><img src="${LOGO_JSP_BASE64}" alt=""><div><b>Section des Jeunes Sapeurs-Pompiers</b><span>CIS Cruzy-Quarante</span></div></div><div class="tri"><i></i><i></i><i></i></div>
+${c2}<div class="pied"><span>Carnet JSP · CIS Cruzy-Quarante</span><span>Édité le ${new Date().toLocaleDateString('fr-FR')}</span></div></div>`).join('')}</body></html>`);
   w.document.close();
 }
 const COULEURS_PROMO = { 'promo-1': '#7c3aed', 'promo-2': '#ea580c', 'promo-3': '#0d9488', 'promo-4': '#db2777' };
@@ -4164,6 +4167,7 @@ function modalAttestation(id) {
     <div class="form-group"><label>Fait à</label><input id="at_lieu" value="Cruzy"></div>
     <label style="display:flex;align-items:center;gap:8px;margin:4px 0 12px;font-size:14px"><input type="checkbox" id="at_sig_on" checked> Ajouter la signature du chef de section <span style="color:var(--gris-txt)">(décoche pour signer à la main)</span></label>
     <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px"><input type="checkbox" id="at_cachet_on" checked> Ajouter le cachet de la section</label>
+    ${attestationHistoriqueHtml(j.id)}
     <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button>
       <button class="btn-cancel" onclick="envoyerAttestationFamille(${j.id})"><i class="ti ti-mail"></i> Envoyer à la famille</button>
       <button class="btn-save" onclick="genererAttestation(${j.id})"><i class="ti ti-file-certificate"></i> Créer l'attestation</button></div>`);
@@ -4183,11 +4187,12 @@ function attestationPreRemplir(k) {
   set('at_act', p.titre || ''); set('at_date', p.date || ''); set('at_alieu', p.lieu || '');
 }
 // Texte de l'attestation (HTML) à partir du formulaire ouvert
-function attestationCorps(j) {
-  const e = escTexte, v = k => (document.getElementById(k) || {}).value || '';
+function attestationCorps(j, o) {
+  const e = escTexte, v = k => (o && k in o) ? (o[k] == null ? '' : String(o[k])) : ((document.getElementById(k) || {}).value || '');
   const type = v('at_type'), sign = v('at_sign').trim() || '[nom du signataire]', qual = v('at_qual').trim() || 'Chef de section JSP', lieu = v('at_lieu').trim() || 'Cruzy';
-  const avecSig = !!(document.getElementById('at_sig_on') || {}).checked;
-  const avecCachet = !!(document.getElementById('at_cachet_on') || {}).checked;
+  const coche = id => (o && id in o) ? !!o[id] : !!(document.getElementById(id) || {}).checked;
+  const avecSig = coche('at_sig_on');
+  const avecCachet = coche('at_cachet_on');
   const ne = j.sexe === 'F' || j.sexe === 'Fille' ? 'née' : j.sexe === 'M' || j.sexe === 'Garçon' ? 'né' : 'né(e)';
   const qui = `<b>${e(j.prenom)} ${e((j.nom || '').toUpperCase())}</b>${j.dateNaissance ? ', ' + ne + ' le ' + fmtDate(j.dateNaissance) : ''}${j.ville ? ', domicilié(e) à ' + e(j.ville) : ''}`;
   let texte = '';
@@ -4213,9 +4218,36 @@ function attestationCorps(j) {
     <p>Cette attestation est délivrée pour servir et valoir ce que de droit.</p></div>
     <div class="signature"><div>Fait à ${e(lieu)}, le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}${(avecSig || avecCachet) ? `<div style="height:106px;display:flex;align-items:center;justify-content:center;margin-top:6px">${avecCachet ? `<img src="${CACHET_SECTION_BASE64}" alt="" style="height:102px;opacity:.9">` : ''}${avecSig ? `<img src="${SIGNATURE_CHEF_BASE64}" alt="" style="max-height:70px;max-width:190px;${avecCachet ? 'margin-left:-48px;' : ''}position:relative">` : ''}</div><div class="ligne" style="margin-top:2px">` : '<div class="ligne">'}${e(sign)} — signature et cachet</div></div></div>`;
 }
+// Valeurs du formulaire d'attestation ouvert (mêmes clés que les champs)
+function attestationLireForm() {
+  const o = {};
+  ['at_type','at_sign','at_qual','at_lieu','at_act','at_date','at_hd','at_hf','at_alieu','at_orga','at_evt'].forEach(k => { o[k] = (document.getElementById(k) || {}).value || ''; });
+  o.at_sig_on = !!(document.getElementById('at_sig_on') || {}).checked;
+  o.at_cachet_on = !!(document.getElementById('at_cachet_on') || {}).checked;
+  return o;
+}
+// Garde une trace de chaque attestation créée ou envoyée (historique de la fiche)
+function attestationNoter(j, o, mode) {
+  if (!DB.attestations) DB.attestations = [];
+  const t = o.at_type; let resume;
+  if (t === 'presence') resume = (o.at_act || 'Activité') + (o.at_date ? ' · ' + fmtDate(o.at_date) : '');
+  else if (t === 'saison') resume = 'Assiduité saison ' + (DB.saison || '');
+  else if (t === 'evenement') { const p = (window._attestEvts || [])[+o.at_evt]; resume = p ? (p.titre || 'Événement') + ' · ' + fmtDate(p.date) : 'Événement'; }
+  else resume = 'Inscription à la section';
+  DB.attestations.push({ id: nextId(DB.attestations), jspId: j.id, type: t, resume, orga: t === 'presence' ? (o.at_orga || '') : '', date: dateISOLocale(new Date()), par: (currentUser && currentUser.nom) || '', mode });
+  saveData();
+}
+function attestationHistoriqueHtml(jspId) {
+  const l = (DB.attestations || []).filter(x => x.jspId == jspId).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id).slice(0, 8);
+  if (!l.length) return '';
+  return `<details style="margin:0 0 12px;font-size:13px"><summary style="cursor:pointer;font-weight:600">Attestations déjà délivrées (${l.length})</summary>
+    <ul style="margin:6px 0 0 18px;padding:0;color:var(--gris-txt)">${l.map(x => `<li>${fmtDate(x.date)} · ${escTexte(x.resume)}${x.orga ? ' · ' + escTexte(x.orga) : ''} <em>(${escTexte(x.mode || '')})</em></li>`).join('')}</ul></details>`;
+}
 function genererAttestation(id) {
   const j = DB.jsps.find(x => x.id == id); if (!j) return;
-  const corps = attestationCorps(j);
+  const o = attestationLireForm();
+  const corps = attestationCorps(j, o);
+  attestationNoter(j, o, 'imprimée');
   closeModal();
   ouvrirDocumentImprimable('Attestation — ' + j.prenom + ' ' + j.nom, corps);
 }
@@ -4223,14 +4255,56 @@ function genererAttestation(id) {
 async function envoyerAttestationFamille(id) {
   const j = DB.jsps.find(x => x.id == id); if (!j) return;
   if (!j.email) { alert("Aucune adresse e-mail n'est enregistrée pour cette famille. Crée l'attestation et imprime-la."); return; }
+  const o = attestationLireForm();
   const tmp = document.createElement('div');
-  tmp.innerHTML = attestationCorps(j).replace(/<\/p>/g, '\n\n').replace(/<div class="ligne">/g, '\n');
+  tmp.innerHTML = attestationCorps(j, o).replace(/<\/p>/g, '\n\n').replace(/<div class="ligne">/g, '\n');
   const texte = tmp.textContent.replace(/\n{3,}/g, '\n\n').trim();
   const message = `Bonjour,\n\nVoici l'attestation demandée pour ${j.prenom} ${j.nom}. Vous pouvez imprimer ce message et le présenter tel quel.\n\n----------------------------------------\n${texte}\n----------------------------------------\n\nSi un document signé et tamponné vous est nécessaire, il peut vous être remis à la prochaine séance.\n\nCordialement,\nChef Galiana\nSection JSP CIS Cruzy-Quarante`;
   if (!confirm('Envoyer cette attestation à ' + j.email + ' ?')) return;
   const ok = await sendEmailParent(j.id, 'Attestation — ' + j.prenom + ' ' + j.nom, message);
-  if (ok) { closeModal(); showToast('Attestation envoyée à la famille'); }
+  if (ok) { attestationNoter(j, o, 'envoyée par e-mail'); closeModal(); showToast('Attestation envoyée à la famille'); }
   else showToast("L'e-mail n'a pas pu partir. Vérifie la connexion et réessaie.", true);
+}
+
+// ── Attestations en lot (une page par jeune), depuis le planning ──────────────
+function modalAttestationLot() {
+  const auj = dateISOLocale(new Date());
+  const plans = (DB.planning || []).filter(p => p.date >= auj).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 25)
+    .concat((DB.planning || []).filter(p => p.date < auj).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10));
+  window._attestPlans = plans;
+  const p0 = plans[0];
+  const jsps = [...DB.jsps].sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+  openModal(`<h3><i class="ti ti-certificate"></i> Attestations de présence en lot</h3>
+    <div class="form-group"><label>Événement du planning</label><select id="lot_pl" onchange="attestationLotPreRemplir(this.value)">
+      <option value="">— Saisie libre —</option>${plans.map((p, k) => `<option value="${k}"${k === 0 ? ' selected' : ''}>${fmtDate(p.date)} — ${escTexte(p.titre || '')}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Activité</label><input id="lot_act" value="${escTexte(p0 ? p0.titre || '' : '')}"></div>
+    <div class="form-group"><label>Date</label><input type="date" id="lot_date" value="${escTexte(p0 ? p0.date : auj)}"></div>
+    <div style="display:flex;gap:10px"><div class="form-group" style="flex:1"><label>De</label><input type="time" id="lot_hd" value="09:00"></div><div class="form-group" style="flex:1"><label>À</label><input type="time" id="lot_hf" value="12:00"></div></div>
+    <div class="form-group"><label>Lieu de l'activité <span style="font-weight:400;color:var(--gris-txt)">(facultatif)</span></label><input id="lot_alieu" value="${escTexte(p0 ? p0.lieu || '' : '')}"></div>
+    <div class="form-group"><label>À présenter à <span style="font-weight:400;color:var(--gris-txt)">(facultatif)</span></label><input id="lot_orga" placeholder="ex. établissement scolaire"></div>
+    <div class="form-group"><label>Jeunes concernés <span style="font-weight:400;color:var(--gris-txt)">· <a href="#" onclick="document.querySelectorAll('.lot-j').forEach(c=>c.checked=true);return false">tout cocher</a> · <a href="#" onclick="document.querySelectorAll('.lot-j').forEach(c=>c.checked=false);return false">tout décocher</a></span></label>
+      <div style="max-height:200px;overflow:auto;border:1px solid var(--gris-bord);border-radius:8px;padding:6px 10px">${jsps.map(j => `<label style="display:flex;gap:8px;align-items:center;padding:3px 0;font-size:14px"><input type="checkbox" class="lot-j" value="${j.id}"> ${escTexte(j.nom)} ${escTexte(j.prenom)}${j.promotion ? ' <span style="color:var(--gris-txt)">(' + escTexte(j.promotion) + ')</span>' : ''}</label>`).join('')}</div></div>
+    <div class="form-group"><label>Signataire</label><input id="lot_sign" value="${escTexte((currentUser && currentUser.nom) || '')}"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin:4px 0 6px;font-size:14px"><input type="checkbox" id="lot_sig_on" checked> Ajouter la signature</label>
+    <label style="display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:14px"><input type="checkbox" id="lot_cachet_on" checked> Ajouter le cachet de la section</label>
+    <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="genererAttestationLot()"><i class="ti ti-printer"></i> Créer les attestations</button></div>`);
+}
+function attestationLotPreRemplir(k) {
+  const p = (window._attestPlans || [])[+k]; if (!p) return;
+  const set = (i, val) => { const el = document.getElementById(i); if (el) el.value = val; };
+  set('lot_act', p.titre || ''); set('lot_date', p.date || ''); set('lot_alieu', p.lieu || '');
+}
+function genererAttestationLot() {
+  const v = k => (document.getElementById(k) || {}).value || '';
+  const ids = [...document.querySelectorAll('.lot-j:checked')].map(c => c.value);
+  if (!ids.length) { alert('Coche au moins un jeune.'); return; }
+  const o = { at_type: 'presence', at_sign: v('lot_sign'), at_qual: 'Chef de section JSP', at_lieu: 'Cruzy', at_act: v('lot_act'), at_date: v('lot_date'), at_hd: v('lot_hd'), at_hf: v('lot_hf'), at_alieu: v('lot_alieu'), at_orga: v('lot_orga'),
+    at_sig_on: !!(document.getElementById('lot_sig_on') || {}).checked, at_cachet_on: !!(document.getElementById('lot_cachet_on') || {}).checked };
+  if (!confirm('Créer ' + ids.length + ' attestation' + (ids.length > 1 ? 's' : '') + ' ?')) return;
+  const pages = [];
+  ids.forEach(id => { const j = DB.jsps.find(x => x.id == id); if (!j) return; pages.push(attestationCorps(j, o)); attestationNoter(j, o, 'imprimée (en lot)'); });
+  closeModal();
+  ouvrirDocumentImprimable('Attestations — ' + (o.at_act || 'activité'), pages);
 }
 function lienTel(n) { return n ? `<a href="tel:${escTexte(String(n).replace(/[^\d+]/g, ''))}" class="lien-tel">${escTexte(n)}</a>` : '—'; }
 
@@ -13861,7 +13935,8 @@ function renderPlanning(moisActif) {
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-add" style="background:#6b7280" onclick="modalNouvelleSaison()"><i class="ti ti-calendar-stats"></i> Saison</button>'
     +'<button class="btn-add" style="background:#25D366" onclick="modalPartagerPlanning()"><i class="ti ti-brand-whatsapp"></i> Partager (WhatsApp)</button>'
     +'<button class="btn-add" style="background:var(--bleu-clair)" onclick="modalProgrammeAnnuel()"><i class="ti ti-route"></i> Programme de l\'année</button>'
-    +'<button class="btn-add" onclick="modalAddPlanning()"><i class="ti ti-plus"></i> Ajouter</button></div></div>'
+    +'<button class="btn-add" style="background:var(--bleu-clair)" onclick="modalAttestationLot()"><i class="ti ti-certificate"></i> Attestations</button>'
+     +'<button class="btn-add" onclick="modalAddPlanning()"><i class="ti ti-plus"></i> Ajouter</button></div></div>'
     +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">'+saisonBtns+'</div>'
     +alerteVacances
     +'<div class="stats-grid" style="margin-bottom:20px"><div class="stat-card bleu"><div class="stat-val">'+evtsTotal+'</div><div class="stat-lbl">Événements</div></div>'
