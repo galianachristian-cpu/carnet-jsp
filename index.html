@@ -4140,24 +4140,57 @@ function modalAttestation(id) {
   const j = DB.jsps.find(x => x.id == id); if (!j) return;
   const auj = dateISOLocale(new Date());
   const evts = (DB.planning || []).filter(p => p.date <= auj).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40);
+  // Pour le justificatif de présence : événements à venir puis récents, pour pré-remplir
+  const plans = (DB.planning || []).filter(p => p.date >= auj).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 25)
+    .concat((DB.planning || []).filter(p => p.date < auj).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10));
+  window._attestPlans = plans;
+  const prochain = plans[0];
   openModal(`<h3><i class="ti ti-certificate"></i> Attestation — ${escTexte(j.prenom)} ${escTexte(j.nom)}</h3>
-    <div class="form-group"><label>Type d'attestation</label><select id="at_type" onchange="document.getElementById('at_evt_g').hidden = this.value !== 'evenement'">
-      <option value="saison">Assiduité sur la saison ${escTexte(DB.saison || '')}</option><option value="evenement">Participation à un événement</option><option value="inscription">Inscription à la section</option></select></div>
+    <div class="form-group"><label>Type d'attestation</label><select id="at_type" onchange="attestationType(this.value)">
+      <option value="presence">Justificatif de présence à une activité (pour un autre organisme)</option>
+      <option value="saison">Assiduité sur la saison ${escTexte(DB.saison || '')}</option><option value="evenement">Participation à un événement passé</option><option value="inscription">Inscription à la section</option></select></div>
+    <div id="at_pres_g">
+      <div class="form-group"><label>Pré-remplir depuis le planning <span style="font-weight:400;color:var(--gris-txt)">(facultatif)</span></label><select id="at_pl" onchange="attestationPreRemplir(this.value)">
+        <option value="">— Saisie libre —</option>${plans.map((p, k) => `<option value="${k}">${fmtDate(p.date)} — ${escTexte(p.titre || '')}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Activité</label><input id="at_act" value="${escTexte(prochain ? prochain.titre || '' : '')}" placeholder="ex. Cross de la section"></div>
+      <div class="form-group"><label>Date</label><input type="date" id="at_date" value="${escTexte(prochain ? prochain.date : auj)}"></div>
+      <div style="display:flex;gap:10px"><div class="form-group" style="flex:1"><label>De</label><input type="time" id="at_hd" value="09:00"></div><div class="form-group" style="flex:1"><label>À</label><input type="time" id="at_hf" value="12:00"></div></div>
+      <div class="form-group"><label>Lieu de l'activité <span style="font-weight:400;color:var(--gris-txt)">(facultatif)</span></label><input id="at_alieu" value="${escTexte(prochain ? prochain.lieu || '' : '')}"></div>
+      <div class="form-group"><label>À présenter à <span style="font-weight:400;color:var(--gris-txt)">(école, club, conservatoire… facultatif)</span></label><input id="at_orga" placeholder="ex. Conservatoire de musique de …"></div>
+    </div>
     <div class="form-group" id="at_evt_g" hidden><label>Événement</label><select id="at_evt">${evts.map((p, k) => `<option value="${k}">${fmtDate(p.date)} — ${escTexte(p.titre || '')}</option>`).join('')}</select></div>
     <div class="form-group"><label>Signataire</label><input id="at_sign" value="${escTexte((currentUser && currentUser.nom) || '')}"></div>
     <div class="form-group"><label>Qualité</label><input id="at_qual" value="Chef de section JSP"></div>
     <div class="form-group"><label>Fait à</label><input id="at_lieu" value="Cruzy"></div>
-    <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="genererAttestation(${j.id})"><i class="ti ti-file-certificate"></i> Créer l'attestation</button></div>`);
+    <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-cancel" onclick="envoyerAttestationFamille(${j.id})"><i class="ti ti-mail"></i> Envoyer à la famille</button>
+      <button class="btn-save" onclick="genererAttestation(${j.id})"><i class="ti ti-file-certificate"></i> Créer l'attestation</button></div>`);
   window._attestEvts = evts;
 }
-function genererAttestation(id) {
-  const j = DB.jsps.find(x => x.id == id); if (!j) return;
+function attestationType(t) {
+  document.getElementById('at_evt_g').hidden = t !== 'evenement';
+  document.getElementById('at_pres_g').hidden = t !== 'presence';
+}
+function attestationPreRemplir(k) {
+  const p = (window._attestPlans || [])[+k]; if (!p) return;
+  const set = (i, val) => { const el = document.getElementById(i); if (el) el.value = val; };
+  set('at_act', p.titre || ''); set('at_date', p.date || ''); set('at_alieu', p.lieu || '');
+}
+// Texte de l'attestation (HTML) à partir du formulaire ouvert
+function attestationCorps(j) {
   const e = escTexte, v = k => (document.getElementById(k) || {}).value || '';
   const type = v('at_type'), sign = v('at_sign').trim() || '[nom du signataire]', qual = v('at_qual').trim() || 'Chef de section JSP', lieu = v('at_lieu').trim() || 'Cruzy';
   const ne = j.sexe === 'F' || j.sexe === 'Fille' ? 'née' : j.sexe === 'M' || j.sexe === 'Garçon' ? 'né' : 'né(e)';
   const qui = `<b>${e(j.prenom)} ${e((j.nom || '').toUpperCase())}</b>${j.dateNaissance ? ', ' + ne + ' le ' + fmtDate(j.dateNaissance) : ''}${j.ville ? ', domicilié(e) à ' + e(j.ville) : ''}`;
   let texte = '';
-  if (type === 'saison') {
+  if (type === 'presence') {
+    const act = v('at_act').trim() || '[activité]', date = v('at_date'), hd = v('at_hd'), hf = v('at_hf'), alieu = v('at_alieu').trim(), orga = v('at_orga').trim();
+    const futur = date && date > dateISOLocale(new Date());
+    const h = t => t.replace(/^0/, '').replace(':00', 'h').replace(':', 'h');
+    const horaire = hd && hf ? ', de ' + h(hd) + ' à ' + h(hf) : hd ? ', à partir de ' + h(hd) : '';
+    texte = `<p>atteste que ${qui}, est inscrit(e) à la section des Jeunes Sapeurs-Pompiers du CIS Cruzy-Quarante${j.promotion ? ' (<b>' + e(j.promotion) + '</b>)' : ''} et ${futur ? 'participera' : 'a participé'} à l'activité <b>« ${e(act)} »</b> organisée par la section, le <b>${date ? jourLong(date) : '[date]'}</b>${e(horaire)}${alieu ? ', à ' + e(alieu) : ''}.</p>
+      <p>Cette attestation est établie à la demande de la famille afin de justifier cette présence${orga ? ' auprès de : <b>' + e(orga) + '</b>' : ' auprès de tout organisme concerné'}.</p>`;
+  } else if (type === 'saison') {
     const pres = presenceJSP(j);
     texte = `<p>atteste que ${qui}, est inscrit(e) en <b>${e(j.promotion || '')}</b> à la section des Jeunes Sapeurs-Pompiers du CIS Cruzy-Quarante pour la saison <b>${e(DB.saison || '')}</b>.</p>
       <p>À ce jour, ${e(j.prenom)} a suivi <b>${pres.presents} séance${pres.presents > 1 ? 's' : ''} de formation</b>${pres.seances ? ' sur ' + pres.seances + ' (' + Math.round(pres.presents / pres.seances * 100) + ' % d\'assiduité)' : ''}.</p>`;
@@ -4167,12 +4200,29 @@ function genererAttestation(id) {
   } else {
     texte = `<p>atteste que ${qui}, est régulièrement inscrit(e) à la section des Jeunes Sapeurs-Pompiers du CIS Cruzy-Quarante, en <b>${e(j.promotion || '')}</b>, pour la saison <b>${e(DB.saison || '')}</b>.</p>`;
   }
-  const corps = `<div class="titre-attest">ATTESTATION</div>
+  return `<div class="titre-attest">ATTESTATION</div>
     <div class="attest"><p>Je soussigné(e) <b>${e(sign)}</b>, ${e(qual)} au CIS Cruzy-Quarante,</p>${texte}
     <p>Cette attestation est délivrée pour servir et valoir ce que de droit.</p></div>
     <div class="signature"><div>Fait à ${e(lieu)}, le ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}<div class="ligne">${e(sign)} — signature et cachet</div></div></div>`;
+}
+function genererAttestation(id) {
+  const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  const corps = attestationCorps(j);
   closeModal();
   ouvrirDocumentImprimable('Attestation — ' + j.prenom + ' ' + j.nom, corps);
+}
+// Envoi par e-mail à la famille : texte de l'attestation dans le message, après confirmation manuelle
+async function envoyerAttestationFamille(id) {
+  const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  if (!j.email) { alert("Aucune adresse e-mail n'est enregistrée pour cette famille. Crée l'attestation et imprime-la."); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = attestationCorps(j).replace(/<\/p>/g, '\n\n').replace(/<div class="ligne">/g, '\n');
+  const texte = tmp.textContent.replace(/\n{3,}/g, '\n\n').trim();
+  const message = `Bonjour,\n\nVoici l'attestation demandée pour ${j.prenom} ${j.nom}. Vous pouvez imprimer ce message et le présenter tel quel.\n\n----------------------------------------\n${texte}\n----------------------------------------\n\nSi un document signé et tamponné vous est nécessaire, il peut vous être remis à la prochaine séance.\n\nCordialement,\nChef Galiana\nSection JSP CIS Cruzy-Quarante`;
+  if (!confirm('Envoyer cette attestation à ' + j.email + ' ?')) return;
+  const ok = await sendEmailParent(j.id, 'Attestation — ' + j.prenom + ' ' + j.nom, message);
+  if (ok) { closeModal(); showToast('Attestation envoyée à la famille'); }
+  else showToast("L'e-mail n'a pas pu partir. Vérifie la connexion et réessaie.", true);
 }
 function lienTel(n) { return n ? `<a href="tel:${escTexte(String(n).replace(/[^\d+]/g, ''))}" class="lien-tel">${escTexte(n)}</a>` : '—'; }
 
