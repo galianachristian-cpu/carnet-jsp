@@ -1560,6 +1560,8 @@ function fusion3(base, local, cloud, profondeur) {
   const cb = canonJSON(base), cl = canonJSON(local), cc = canonJSON(cloud);
   if (cl === cb) return cloud;               // pas modifié ici : version en ligne
   if (cc === cb || cc === cl) return local;  // pas modifié ailleurs : version d'ici
+  // Clé nouvelle des deux côtés (ex. une page vient d'être créée) : on fusionne au lieu d'écraser
+  if (base === undefined && profondeur > 0 && estObjetSimple(local) && estObjetSimple(cloud)) base = {};
   if (profondeur > 0 && estObjetSimple(base) && estObjetSimple(local) && estObjetSimple(cloud)) {
     const out = {};
     new Set([...Object.keys(base), ...Object.keys(local), ...Object.keys(cloud)]).forEach(k => {
@@ -3433,8 +3435,12 @@ function hyCoche(date, id, champ, val) {
 //  Séances rangées par date (objet, pas tableau) : deux tablettes qui saisissent
 //  des séances différentes ne s'écrasent pas lors de la synchro.
 let crSaveTimer = null;
-function getCourse() {
-  if (!DB.course || typeof DB.course !== 'object') DB.course = {};
+// Lecture seule par défaut : on ne crée DB.course qu'au moment d'écrire, sinon une
+// tablette qui affiche la page sans données enverrait une course vide à la synchro.
+function getCourse(creer) {
+  const c = DB.course && typeof DB.course === 'object' ? DB.course : null;
+  if (!c && !creer) return { objectif: 360, seances: {} };
+  if (!c) DB.course = {};
   if (!DB.course.seances) DB.course.seances = {};
   if (!DB.course.objectif) DB.course.objectif = 360;
   return DB.course;
@@ -3534,23 +3540,23 @@ function renderCourseSaisie() {
       + '<td class="hy-c an-nowrap">' + comp + '</td></tr>';
   });
   h += '</tbody></table></div>'
-    + '<input class="hy-in hy-rem" style="margin-top:10px" placeholder="Observations (météo, parcours…)" value="' + escTexte(s.obs || '') + '" onchange="getCourse().seances[\'' + date + '\'].obs=this.value;crSauverPlusTard()"></div>';
+    + '<input class="hy-in hy-rem" style="margin-top:10px" placeholder="Observations (météo, parcours…)" value="' + escTexte(s.obs || '') + '" onchange="getCourse(true).seances[\'' + date + '\'].obs=this.value;crSauverPlusTard()"></div>';
   crLancerTicker();
   return h;
 }
 function crNouvelleSeance() {
   const d = (document.getElementById('crNvDate') || {}).value, dist = parseInt((document.getElementById('crNvDist') || {}).value, 10);
   if (!d) { showNotifToast('Choisis une date', true); return; }
-  const c = getCourse();
+  const c = getCourse(true);
   if (!c.seances[d]) c.seances[d] = { distance: dist > 0 ? dist : 2200, temps: {} };
   window._crDate = d; saveData(); crRafraichir();
 }
 function crMajDistance(date, v) {
   const n = parseInt(v, 10); if (!(n > 0)) return;
-  getCourse().seances[date].distance = n; crSauverPlusTard(); crRafraichir();
+  getCourse(true).seances[date].distance = n; crSauverPlusTard(); crRafraichir();
 }
 function crMajTemps(date, id, v) {
-  const s = getCourse().seances[date]; if (!s.temps) s.temps = {};
+  const s = getCourse(true).seances[date]; if (!s.temps) s.temps = {};
   v = String(v || '').trim();
   if (!v) delete s.temps[id];
   else { const sec = crEnSecondes(v); s.temps[id] = sec != null ? crFormat(sec) : v; if (sec == null) showNotifToast('Temps non compris : écris par ex. 13\'36 ou 13:36', true); }
@@ -3560,7 +3566,7 @@ function crSupprimerSeance(date) {
   const s = getCourse().seances[date]; if (!s) return;
   const n = Object.keys(s.temps || {}).length;
   if (!confirm('Supprimer la séance du ' + fmtDate(date) + (n ? ' et ses ' + n + ' temps' : '') + ' ?')) return;
-  delete getCourse().seances[date]; window._crDate = null; saveData(); crRafraichir();
+  delete getCourse(true).seances[date]; window._crDate = null; saveData(); crRafraichir();
 }
 // Chrono (gardé sur la tablette : survit à un rechargement de la page)
 function crDepart(date) { try { return +localStorage.getItem('course_depart_' + date) || null; } catch (e) { return null; } }
@@ -3568,7 +3574,7 @@ function crDemarrerChrono(date) { try { localStorage.setItem('course_depart_' + 
 function crArreterChrono(date) { if (!confirm('Arrêter le chrono ? Les temps déjà notés sont gardés.')) return; try { localStorage.removeItem('course_depart_' + date); } catch (e) {} crRafraichir(); }
 function crArrivee(date, id) {
   const dep = crDepart(date); if (!dep) return;
-  const s = getCourse().seances[date]; if (!s.temps) s.temps = {};
+  const s = getCourse(true).seances[date]; if (!s.temps) s.temps = {};
   if (s.temps[id] && !confirm('Remplacer le temps déjà noté (' + s.temps[id] + ') ?')) return;
   s.temps[id] = crFormat((Date.now() - dep) / 1000); crSauverPlusTard(); crRafraichir();
 }
@@ -3617,7 +3623,7 @@ function renderCourseSuivi() {
 }
 function crMajObjectif(v) {
   const sec = crEnSecondes(v); if (!sec) { showNotifToast('Allure non comprise : écris par ex. 6:00', true); return; }
-  getCourse().objectif = sec; saveData(); crRafraichir();
+  getCourse(true).objectif = sec; saveData(); crRafraichir();
 }
 
 // ── Tableau (comme la feuille « temps ») ───
@@ -3740,7 +3746,7 @@ function crImportApercu() {
 }
 function crImportEnregistrer() {
   const imp = window._crImport; if (!imp) return;
-  const c = getCourse();
+  const c = getCourse(true);
   if (!c.seances[imp.date]) c.seances[imp.date] = { distance: imp.distance, temps: {} };
   const s = c.seances[imp.date]; s.distance = imp.distance; if (!s.temps) s.temps = {};
   let n = 0;
