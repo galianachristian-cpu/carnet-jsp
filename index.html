@@ -4591,7 +4591,7 @@ const TOMBOLA_CSS = `
 .tb-ruban.d:after{right:-6mm;border-color:#163a64 transparent #163a64 #163a64}
 .tb-emb{position:relative;height:33mm;width:auto;z-index:1}
 .tb-galons{display:flex;width:62mm;height:2.2mm;margin-top:3mm;border:.3mm solid #163a64}
-.tb-galons i{flex:1}.tb-galons i:nth-child(1){background:#fff}.tb-galons i:nth-child(2){background:#f5c400}.tb-galons i:nth-child(3){background:#f07d1a}.tb-galons i:nth-child(4){background:#2f9e4f}
+.tb-galons i{flex:1}.tb-tri i:nth-child(1){background:#163a64!important}.tb-tri i:nth-child(2){background:#fff!important}.tb-tri i:nth-child(3){background:#cf1419!important}.tb-galons i:nth-child(1){background:#fff}.tb-galons i:nth-child(2){background:#f5c400}.tb-galons i:nth-child(3){background:#f07d1a}.tb-galons i:nth-child(4){background:#2f9e4f}
 .tb-grande{display:flex;align-items:center;gap:4mm;margin-top:3mm;font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:700;font-size:6.6mm;letter-spacing:3mm;color:#cf1419;text-transform:uppercase}
 .tb-grande i{display:block;width:20mm;height:.6mm;background:#cf1419}
 .tb-titre{font-family:'Alfa Slab One',Rockwell,Georgia,serif;font-size:32mm;line-height:1;letter-spacing:.6mm;color:#cf1419;text-shadow:1.3mm 1.3mm 0 #163a64;margin-top:.5mm}
@@ -4637,7 +4637,7 @@ function tombolaAfficheHtml(t) {
   <img class="tb-filigrane" src="${TB_EMBLEME}" alt="">
   <div class="tb-in">
     <div class="tb-tete"><div class="tb-ruban g">Jeunes Sapeurs-Pompiers</div><img class="tb-emb" src="${TB_EMBLEME}" alt=""><div class="tb-ruban d">Cruzy-Quarante</div></div>
-    ${galons}
+    <div class="tb-galons tb-tri"><i></i><i></i><i></i></div>
     <div class="tb-grande"><i></i>Grande<i></i></div>
     <div class="tb-titre">TOMBOLA</div>
     <div class="tb-script">des Jeunes Sapeurs-Pompiers</div>
