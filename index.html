@@ -1408,6 +1408,9 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         <div class="nav-item" onclick="showSection('subventions')">
           <i class="ti ti-receipt"></i><span>Subventions</span>
         </div>
+        <div class="nav-item" onclick="showSection('tombola')">
+          <i class="ti ti-ticket"></i><span>Tombola</span>
+        </div>
         
         
       </div>
@@ -2456,7 +2459,8 @@ const MODULES_ACCES = [
   { key:'course', label:'Course 2 000 m', icon:'ti-stopwatch', section:'course', groupe:'Équipement' },
   { key:'finance', label:'Finance', icon:'ti-cash', section:'finance', groupe:'Association' },
   { key:'organigramme', label:'Organigramme', icon:'ti-sitemap', section:'organigramme', groupe:'Association' },
-  { key:'subventions', label:'Subventions', icon:'ti-receipt', section:'subventions', groupe:'Association' }
+  { key:'subventions', label:'Subventions', icon:'ti-receipt', section:'subventions', groupe:'Association' },
+  { key:'tombola', label:'Tombola (affiche)', icon:'ti-ticket', section:'tombola', groupe:'Association' }
 ];
 
 // Migration des anciens comptes habillement/finance (rôle figé) vers le
@@ -3799,6 +3803,7 @@ function showSection(sec) {
     case 'finance': c.innerHTML = renderFinance(); break;
     case 'organigramme': c.innerHTML = renderOrganigramme(); break;
     case 'subventions': c.innerHTML = renderSubventions(); break;
+    case 'tombola': c.innerHTML = renderTombola(); break;
   }
   if (changement) { c.classList.remove('entree'); void c.offsetWidth; c.classList.add('entree'); }
   fermerMenuMobile(); majNavBas(sec);
@@ -4434,6 +4439,240 @@ ${c2}<div class="pied"><span>Carnet JSP · CIS Cruzy-Quarante</span><span>Édit�
   w.document.close();
 }
 const COULEURS_PROMO = { 'promo-1': '#7c3aed', 'promo-2': '#ea580c', 'promo-3': '#0d9488', 'promo-4': '#db2777' };
+
+// ══════════════════════════════════════════
+//  TOMBOLA : affiche A4 (lot offert par l'Amicale)
+//  Données : DB.tombola = { lot, date, heure, lieu, evenement, prix, offre, offertPar, contact }
+// ══════════════════════════════════════════
+const TOMBOLA_DEFAUT = {
+  lot: 'Un jambon',
+  evenement: "au loto de l'Amicale",
+  date: '2026-11-15', heure: '', lieu: '',
+  prix: '2', offre: '',
+  offertPar: "l'Amicale des Sapeurs-Pompiers de Cruzy-Quarante",
+  contact: 'Tickets en vente auprès des JSP et des animateurs'
+};
+function getTombola() {
+  if (!DB.tombola || typeof DB.tombola !== 'object') DB.tombola = {};
+  Object.keys(TOMBOLA_DEFAUT).forEach(k => { if (DB.tombola[k] == null) DB.tombola[k] = TOMBOLA_DEFAUT[k]; });
+  return DB.tombola;
+}
+function tbChargerPolices() {
+  if (document.getElementById('tbPolices')) return;
+  const l = document.createElement('link'); l.id = 'tbPolices'; l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Yellowtail&display=swap';
+  document.head.appendChild(l);
+}
+function tbDateLongue(iso) {
+  if (!iso) return { jour: 'Date à préciser', annee: '' };
+  const d = new Date(iso + 'T12:00:00');
+  if (isNaN(d)) return { jour: iso, annee: '' };
+  const s = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return { jour: s.charAt(0).toUpperCase() + s.slice(1), annee: String(d.getFullYear()) };
+}
+function tbPrix(p) {
+  const v = String(p || '').trim().replace(/\s*€$/, '').replace(',', '.');
+  if (!v) return '… €';
+  const n = Number(v);
+  if (isNaN(n)) return v + ' €';
+  return (Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',')) + ' €';
+}
+
+// Jambon sec suspendu, dessiné à l'encre (SVG sans texte, pour un rendu identique en PDF)
+function tbJambonSvg() {
+  const ink = '#1c2740';
+  return `<svg viewBox="0 0 300 360" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+  <path d="M150 4 C150 4 150 30 150 38" stroke="${ink}" stroke-width="3" fill="none"/>
+  <path d="M138 52 C128 30 172 30 162 52" stroke="${ink}" stroke-width="3.5" fill="none"/>
+  <rect x="131" y="48" width="38" height="26" rx="12" fill="#efe2c4" stroke="${ink}" stroke-width="3.5"/>
+  <path d="M137 56 h26 M137 62 h26 M137 68 h26" stroke="${ink}" stroke-width="2" opacity=".55"/>
+  <path d="M150 72 C176 72 182 96 186 118 C196 168 262 200 264 268 C266 322 218 352 150 352 C82 352 36 322 38 268 C40 200 104 168 114 118 C118 96 124 72 150 72 Z" fill="#a8602f" stroke="${ink}" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M150 84 C168 84 172 104 176 124 C186 172 246 204 248 266 C250 300 228 326 196 336" fill="none" stroke="#d99a5b" stroke-width="7" stroke-linecap="round" opacity=".55"/>
+  <path d="M126 112 C122 150 84 182 66 222" fill="none" stroke="#fff3dc" stroke-width="5" stroke-linecap="round" opacity=".35"/>
+  <path d="M60 268 C60 236 102 214 150 214 C206 214 246 240 244 276 C242 316 202 340 150 340 C96 340 60 304 60 268 Z" fill="#f4e6cc" stroke="${ink}" stroke-width="3.5"/>
+  <path d="M72 270 C72 244 108 226 150 226 C198 226 232 248 231 278 C230 310 196 330 150 330 C104 330 72 300 72 270 Z" fill="#b8323a"/>
+  <path d="M92 262 C112 254 128 268 150 260 C170 252 186 262 204 256" fill="none" stroke="#f4e6cc" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+  <path d="M96 292 C118 284 132 300 158 290 C178 282 196 296 214 286" fill="none" stroke="#f4e6cc" stroke-width="2.5" stroke-linecap="round" opacity=".65"/>
+  <path d="M120 312 C140 306 156 318 182 310" fill="none" stroke="#f4e6cc" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+  <ellipse cx="150" cy="276" rx="13" ry="10" fill="#f4e6cc" stroke="${ink}" stroke-width="2.5"/>
+  <path d="M86 248 C100 236 120 232 136 232" fill="none" stroke="#e46a68" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+</svg>`;
+}
+function tbRayons() {
+  let r = '';
+  for (let i = 0; i < 24; i++) {
+    const a1 = (i / 24) * Math.PI * 2, a2 = ((i + .5) / 24) * Math.PI * 2;
+    r += `<path d="M100 100 L${(100 + 100 * Math.cos(a1)).toFixed(2)} ${(100 + 100 * Math.sin(a1)).toFixed(2)} L${(100 + 100 * Math.cos(a2)).toFixed(2)} ${(100 + 100 * Math.sin(a2)).toFixed(2)} Z"/>`;
+  }
+  return `<svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><g fill="#ecc96a" opacity=".55">${r}</g></svg>`;
+}
+
+const TOMBOLA_CSS = `
+.tb-aff{width:210mm;height:297mm;position:relative;overflow:hidden;background:#f3e8d0;background-image:radial-gradient(ellipse at 50% 40%,#f8f0dd 0%,#f3e8d0 55%,#e9d9b6 100%);color:#1c2740;font-family:'Barlow',Arial,sans-serif;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.tb-aff *{box-sizing:border-box;margin:0;padding:0}
+.tb-cadre{position:absolute;inset:7mm;border:1.4mm solid #1c2740}
+.tb-cadre2{position:absolute;inset:9.6mm;border:.35mm solid #1c2740}
+.tb-coin{position:absolute;width:9mm;height:9mm;background:#f3e8d0;color:#c8102e;font-size:7mm;line-height:9mm;text-align:center}
+.tb-coin.a{left:5.2mm;top:5.2mm}.tb-coin.b{right:5.2mm;top:5.2mm}.tb-coin.c{left:5.2mm;bottom:5.2mm}.tb-coin.d{right:5.2mm;bottom:5.2mm}
+.tb-in{position:absolute;inset:13mm 14mm 13mm;display:flex;flex-direction:column;align-items:center}
+.tb-ruban{position:relative;background:#1c2740;color:#f3e8d0;font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:700;font-size:4.6mm;letter-spacing:.9mm;text-transform:uppercase;padding:2.2mm 9mm;margin-top:2mm}
+.tb-ruban:before,.tb-ruban:after{content:'';position:absolute;top:0;border-style:solid;border-width:4.6mm 3.2mm}
+.tb-ruban:before{left:-6.2mm;border-color:#1c2740 #1c2740 #1c2740 transparent}
+.tb-ruban:after{right:-6.2mm;border-color:#1c2740 transparent #1c2740 #1c2740}
+.tb-grande{display:flex;align-items:center;gap:4mm;margin-top:6mm;font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:700;font-size:7mm;letter-spacing:3mm;color:#c8102e;text-transform:uppercase}
+.tb-grande i{display:block;width:22mm;height:.6mm;background:#c8102e}
+.tb-titre{font-family:'Alfa Slab One',Rockwell,Georgia,serif;font-size:33mm;line-height:1;letter-spacing:.6mm;color:#c8102e;text-shadow:1.3mm 1.3mm 0 #1c2740;margin-top:1mm}
+.tb-script{font-family:'Yellowtail',cursive;font-size:12mm;color:#1c2740;margin-top:1mm;line-height:1}
+.tb-scene{position:relative;width:182mm;height:108mm;margin-top:1mm}
+.tb-soleil{position:absolute;left:50%;top:50%;width:118mm;height:118mm;margin:-59mm 0 0 -59mm}
+.tb-jambon{position:absolute;left:50%;top:0;width:86mm;height:104mm;margin-left:-43mm}
+.tb-tampon{position:absolute;right:4mm;top:14mm;width:43mm;height:43mm;border-radius:50%;background:#c8102e;color:#f3e8d0;border:1mm solid #1c2740;padding:1.3mm;transform:rotate(11deg)}
+.tb-tampon>div{width:100%;height:100%;border-radius:50%;border:.5mm solid #f3e8d0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.tb-tampon small{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:700;font-size:4mm;letter-spacing:.8mm;text-transform:uppercase}
+.tb-tampon b{font-family:'Alfa Slab One',Rockwell,Georgia,serif;font-weight:400;font-size:6.6mm;line-height:1.05;padding:1mm 2.5mm;text-transform:uppercase}
+.tb-tampon em{font-style:normal;font-size:3.6mm;letter-spacing:1.2mm}
+.tb-gauche{position:absolute;left:4mm;bottom:8mm;font-family:'Yellowtail',cursive;font-size:9mm;line-height:1.05;color:#c8102e;transform:rotate(-8deg);text-align:center}
+.tb-infos{display:flex;align-items:stretch;gap:6mm;width:176mm;margin-top:3mm}
+.tb-quand{flex:1;border-top:.6mm solid #1c2740;border-bottom:.6mm solid #1c2740;padding:3.2mm 0;text-align:left}
+.tb-quand .l{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:700;font-size:4.6mm;letter-spacing:1.2mm;text-transform:uppercase;color:#c8102e}
+.tb-quand .e{font-family:'Yellowtail',cursive;font-size:8.5mm;line-height:1.1}
+.tb-quand .d{font-family:'Alfa Slab One',Rockwell,Georgia,serif;font-size:9.4mm;line-height:1.08;margin-top:.6mm}
+.tb-quand .d span{color:#c8102e}
+.tb-quand .h{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:600;font-size:5mm;margin-top:1mm}
+.tb-ticket{position:relative;width:58mm;background:#e3a92b;border:.6mm solid #1c2740;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3mm 4mm}
+.tb-ticket:before,.tb-ticket:after{content:'';position:absolute;top:50%;width:8mm;height:8mm;margin-top:-4mm;border-radius:50%;background:#f1e5ca;border:.6mm solid #1c2740}
+.tb-ticket:before{left:-4.6mm}.tb-ticket:after{right:-4.6mm}
+.tb-ticket .pt{position:absolute;top:2mm;bottom:2mm;left:9mm;border-left:.5mm dashed #1c2740;opacity:.5}
+.tb-ticket small{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:700;font-size:4.6mm;letter-spacing:1.4mm;text-transform:uppercase;padding-left:4mm}
+.tb-ticket b{font-family:'Alfa Slab One',Rockwell,Georgia,serif;font-weight:400;font-size:17mm;line-height:1;color:#1c2740;padding-left:4mm}
+.tb-ticket em{font-style:normal;font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:700;font-size:4.4mm;padding-left:4mm;margin-top:.6mm}
+.tb-merci{margin-top:auto;width:100%;background:#1c2740;color:#f3e8d0;display:flex;align-items:center;gap:5mm;padding:4mm 6mm}
+.tb-merci img{height:19mm;width:auto}
+.tb-merci p{font-size:4.1mm;line-height:1.4}
+.tb-merci p b{color:#e3a92b}
+.tb-merci p .s{display:block;font-family:'Yellowtail',cursive;font-size:7.4mm;line-height:1.1;color:#f3e8d0}
+.tb-contact{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-weight:600;font-size:4.4mm;letter-spacing:.3mm;margin:3mm 0 0;text-align:center}
+`;
+
+function tombolaAfficheHtml(t) {
+  const e = escTexte, dl = tbDateLongue(t.date);
+  const hl = [t.heure ? 'à ' + e(t.heure) : '', t.lieu ? e(t.lieu) : ''].filter(Boolean).join(' · ');
+  return `<div class="tb-aff">
+  <div class="tb-cadre"></div><div class="tb-cadre2"></div>
+  <div class="tb-coin a">★</div><div class="tb-coin b">★</div><div class="tb-coin c">★</div><div class="tb-coin d">★</div>
+  <div class="tb-in">
+    <div class="tb-ruban">Jeunes Sapeurs-Pompiers · Cruzy-Quarante</div>
+    <div class="tb-grande"><i></i>Grande<i></i></div>
+    <div class="tb-titre">TOMBOLA</div>
+    <div class="tb-script">des JSP</div>
+    <div class="tb-scene">
+      <div class="tb-soleil">${tbRayons()}</div>
+      <div class="tb-jambon">${tbJambonSvg()}</div>
+      <div class="tb-gauche">Tentez<br>votre chance !</div>
+      <div class="tb-tampon"><div><small>À gagner</small><b>${e(t.lot || 'Un jambon')}</b><em>★ ★ ★</em></div></div>
+    </div>
+    <div class="tb-infos">
+      <div class="tb-quand"><div class="l">Tirage au sort</div>${t.evenement ? `<div class="e">${e(t.evenement)}</div>` : ''}
+        <div class="d">${e(dl.jour)} ${dl.annee ? `<span>${dl.annee}</span>` : ''}</div>${hl ? `<div class="h">${hl}</div>` : ''}</div>
+      <div class="tb-ticket"><span class="pt"></span><small>Le ticket</small><b>${e(tbPrix(t.prix))}</b>${t.offre ? `<em>${e(t.offre)}</em>` : ''}</div>
+    </div>
+    ${t.contact ? `<div class="tb-contact">${e(t.contact)}</div>` : ''}
+    <div class="tb-merci"><img src="${LOGO_JSP_BASE64}" alt="">
+      <p>${t.offertPar ? `Le lot est offert par <b>${e(t.offertPar)}</b>.<br>` : ''}Tout l'argent récolté revient à la section des Jeunes Sapeurs-Pompiers.<span class="s">Merci pour eux !</span></p></div>
+  </div>
+</div>`;
+}
+
+function renderTombola() {
+  tbChargerPolices();
+  const t = getTombola(), e = escTexte;
+  const champ = (k, l, type, ph, aide) => `<div class="form-group"><label>${l}${aide ? ` <span style="font-weight:400;color:var(--gris-txt)">${aide}</span>` : ''}</label>
+    <input id="tb_${k}" type="${type || 'text'}" value="${e(t[k] || '')}" placeholder="${e(ph || '')}" oninput="tbMaj('${k}',this.value)" onchange="saveData()"${type === 'number' ? ' step="0.5" min="0" inputmode="decimal"' : ''}></div>`;
+  setTimeout(tbAjusterApercu, 0);
+  return `<style>${TOMBOLA_CSS}
+  .tb-page{display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:20px;align-items:start}
+  .tb-apercu{width:100%;max-width:520px;margin:0 auto;aspect-ratio:210/297;position:relative;overflow:hidden;border-radius:6px;box-shadow:0 12px 34px rgba(0,0,0,.18)}
+  .tb-apercu>.tb-aff{position:absolute;left:0;top:0;transform-origin:0 0}
+  @media (max-width:900px){.tb-page{grid-template-columns:1fr}}
+  </style>
+  <div class="section-header"><h2><i class="ti ti-ticket"></i> Tombola — affiche</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-save" onclick="tombolaPdf()"><i class="ti ti-file-download"></i> Télécharger le PDF</button>
+    <button class="an-btn" onclick="tombolaImprimer()"><i class="ti ti-printer"></i> Imprimer</button></div></div>
+  <div class="tb-page">
+    <div class="card">
+      ${champ('date', 'Date du tirage', 'date')}
+      ${champ('prix', 'Prix du ticket (€)', 'number', '2')}
+      ${champ('offre', 'Offre', 'text', 'ex. 5 € les 3 tickets', '(facultatif)')}
+      ${champ('evenement', 'Où a lieu le tirage', 'text', "au loto de l'Amicale")}
+      ${champ('heure', 'Heure', 'text', 'ex. 14 h 30', '(facultatif)')}
+      ${champ('lieu', 'Lieu', 'text', 'ex. Salle des fêtes de Cruzy', '(facultatif)')}
+      ${champ('lot', 'Le lot', 'text', 'Un jambon')}
+      ${champ('offertPar', 'Lot offert par', 'text', "l'Amicale des Sapeurs-Pompiers")}
+      ${champ('contact', 'Petite ligne en bas', 'text', 'Tickets en vente auprès des JSP', '(facultatif)')}
+      <button class="an-btn" style="margin-top:6px" onclick="tbReinitialiser()"><i class="ti ti-refresh"></i> Remettre les textes d'origine</button>
+    </div>
+    <div><div class="tb-apercu" id="tbApercu">${tombolaAfficheHtml(t)}</div>
+      <p class="an-small an-muted" style="text-align:center;margin-top:8px">Aperçu de l'affiche A4. Les changements sont enregistrés tout seuls.</p></div>
+  </div>`;
+}
+function tbAjusterApercu() {
+  const box = document.getElementById('tbApercu'); if (!box) return;
+  const aff = box.querySelector('.tb-aff'); if (!aff) return;
+  aff.style.transform = 'scale(' + (box.clientWidth / aff.offsetWidth) + ')';
+}
+window.addEventListener('resize', () => { if (currentSection === 'tombola') tbAjusterApercu(); });
+function tbMaj(k, v) {
+  getTombola()[k] = v;
+  const box = document.getElementById('tbApercu'); if (!box) return;
+  box.innerHTML = tombolaAfficheHtml(DB.tombola); tbAjusterApercu();
+}
+function tbReinitialiser() {
+  if (!confirm("Remettre les textes d'origine ? La date et le prix sont gardés.")) return;
+  const t = getTombola();
+  ['lot', 'evenement', 'offertPar', 'contact'].forEach(k => { t[k] = TOMBOLA_DEFAUT[k]; });
+  saveData(); showSection('tombola');
+}
+function tbNomFichier() { return 'Affiche_tombola_' + (getTombola().date || 'JSP') + '.pdf'; }
+function tbChargerScript(src) {
+  return new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
+}
+// PDF A4 : l'affiche est photographiée en haute définition (html2canvas) puis posée pleine page (jsPDF)
+async function tombolaPdf() {
+  showToast('Création du PDF…');
+  let hote = null;
+  try {
+    if (!window.jspdf) throw new Error('module PDF non chargé');
+    if (!window.html2canvas) await tbChargerScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    tbChargerPolices();
+    hote = document.createElement('div');
+    hote.style.cssText = 'position:absolute;left:-12000px;top:0;';
+    hote.innerHTML = '<style>' + TOMBOLA_CSS + '</style>' + tombolaAfficheHtml(getTombola());
+    document.body.appendChild(hote);
+    try { await document.fonts.load('10px "Alfa Slab One"'); await document.fonts.load('10px "Yellowtail"'); await document.fonts.ready; } catch (e) {}
+    const canvas = await window.html2canvas(hote.querySelector('.tb-aff'), { scale: 3, backgroundColor: '#f3e8d0', useCORS: true, logging: false });
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    doc.addImage(canvas.toDataURL('image/jpeg', 0.93), 'JPEG', 0, 0, 210, 297);
+    doc.save(tbNomFichier());
+    showToast('PDF de l\'affiche téléchargé');
+  } catch (err) {
+    showToast("Le PDF n'a pas pu être créé ici. Utilise « Imprimer » puis « Enregistrer en PDF ».", true);
+  } finally { if (hote) hote.remove(); }
+}
+// Version imprimable (aussi « Enregistrer en PDF » depuis l'impression du navigateur)
+function tombolaImprimer() {
+  const w = window.open('', '_blank');
+  if (!w) { alert('Le navigateur a bloqué la fenêtre : autorise les fenêtres pour ce site.'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Affiche tombola</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=Alfa+Slab+One&family=Yellowtail&display=swap">
+<style>${TOMBOLA_CSS} body{margin:0;background:#6b6b6b} .barre{position:sticky;top:0;z-index:2;display:flex;gap:10px;justify-content:center;padding:12px;background:#1c2740}
+.barre button{font:700 15px Barlow,Arial,sans-serif;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;background:#c8102e;color:#fff} .barre .sec{background:rgba(255,255,255,.15)}
+.tb-aff{margin:20px auto;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+@media print{body{background:#fff}.barre{display:none}.tb-aff{margin:0;box-shadow:none}@page{size:A4;margin:0}}</style></head>
+<body><div class="barre"><button onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button><button class="sec" onclick="window.close()">Fermer</button></div>
+${tombolaAfficheHtml(getTombola())}</body></html>`);
+  w.document.close();
+}
 
 // ══════════════════════════════════════════
 //  RÉTROSPECTIVE DE LA SAISON (par JSP)
