@@ -4631,7 +4631,6 @@ const TOMBOLA_CSS = `
 function tombolaAfficheHtml(t) {
   const e = escTexte, dl = tbDateLongue(t.date);
   const hl = [t.heure ? 'à ' + e(t.heure) : '', t.lieu ? e(t.lieu) : ''].filter(Boolean).join(' · ');
-  const galons = '<div class="tb-galons"><i></i><i></i><i></i><i></i></div>';
   return `<div class="tb-aff">
   <div class="tb-cadre"></div><div class="tb-cadre2"></div>
   <img class="tb-filigrane" src="${TB_EMBLEME}" alt="">
@@ -4653,7 +4652,7 @@ function tombolaAfficheHtml(t) {
       <div class="tb-ticket"><span class="pt"></span><small>Le ticket</small><b>${e(tbPrix(t.prix))}</b>${t.offre ? `<em>${e(t.offre)}</em>` : ''}</div>
     </div>
     ${t.contact ? `<div class="tb-contact">${e(t.contact)}</div>` : ''}
-    <div class="tb-merci">${galons}
+    <div class="tb-merci">
       <p>${t.offertPar ? `Le lot est offert par <b>${e(t.offertPar)}</b>.<br>` : ''}Tout l'argent récolté revient à la section des Jeunes Sapeurs-Pompiers.</p><span class="s">Merci pour eux !</span></div>
   </div>
 </div>`;
