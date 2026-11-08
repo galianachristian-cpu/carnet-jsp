@@ -1395,6 +1395,9 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         <div class="nav-item" onclick="showSection('hyrox')">
           <i class="ti ti-trophy"></i><span>Hyrox</span>
         </div>
+        <div class="nav-item" onclick="showSection('course')">
+          <i class="ti ti-stopwatch"></i><span>Course 2 000 m</span>
+        </div>
         <div class="sidebar-section">Gestion</div>
         <div class="nav-item" onclick="showSection('finance')">
           <i class="ti ti-cash"></i><span>Finance</span>
@@ -2447,6 +2450,7 @@ const MODULES_ACCES = [
   { key:'habillement', label:'Habillement', icon:'ti-shirt', section:'habillement', groupe:'Équipement' },
   { key:'icp', label:'ICP JSP', icon:'ti-run', section:'icp', groupe:'Équipement' },
   { key:'hyrox', label:'Hyrox', icon:'ti-trophy', section:'hyrox', groupe:'Équipement' },
+  { key:'course', label:'Course 2 000 m', icon:'ti-stopwatch', section:'course', groupe:'Équipement' },
   { key:'finance', label:'Finance', icon:'ti-cash', section:'finance', groupe:'Association' },
   { key:'organigramme', label:'Organigramme', icon:'ti-sitemap', section:'organigramme', groupe:'Association' },
   { key:'subventions', label:'Subventions', icon:'ti-receipt', section:'subventions', groupe:'Association' }
@@ -3414,6 +3418,305 @@ function hyCoche(date, id, champ, val) {
   const r = hyLigne(date, id, true); r[champ] = !!val; hySauverPlusTard();
 }
 
+// ══════════════════════════════════════════
+//  COURSE (endurance 2 000 m du brevet)
+// ══════════════════════════════════════════
+//  Données : DB.course = { objectif: 360 (secondes au km),
+//    seances: { "2026-11-08": { distance: 2200, temps: { "<jspId>": "13:36" }, obs: "" } } }
+//  Séances rangées par date (objet, pas tableau) : deux tablettes qui saisissent
+//  des séances différentes ne s'écrasent pas lors de la synchro.
+let crSaveTimer = null;
+function getCourse() {
+  if (!DB.course || typeof DB.course !== 'object') DB.course = {};
+  if (!DB.course.seances) DB.course.seances = {};
+  if (!DB.course.objectif) DB.course.objectif = 360;
+  return DB.course;
+}
+function crSauverPlusTard() { clearTimeout(crSaveTimer); crSaveTimer = setTimeout(() => saveData(), 1200); }
+// Accepte 13:36, 13'36, 13"36, 13’36, 13,36, 13.36, 13 36, 1336
+function crEnSecondes(t) {
+  let s = String(t == null ? '' : t).trim().replace(/[’'"″′,.;h\s]+/g, ':').replace(/^:+|:+$/g, '');
+  if (/^\d{3,4}$/.test(s)) s = s.slice(0, -2) + ':' + s.slice(-2);
+  const m = s.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (!m || +m[2] > 59) return null;
+  return (+m[1]) * 60 + (+m[2]);
+}
+function crFormat(sec) { if (sec == null) return '—'; sec = Math.round(sec); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+function crAllure(sec, distance) { return (sec != null && distance) ? sec / (distance / 1000) : null; }
+function crDates() { return Object.keys(getCourse().seances).sort(); }
+function crJspsTries() {
+  const promos = ['JSP1', 'JSP2', 'JSP3', 'JSP4'];
+  return (DB.jsps || []).slice().sort((a, b) => (promos.indexOf(hyPromo(a)) - promos.indexOf(hyPromo(b))) || (a.prenom || '').localeCompare(b.prenom || ''));
+}
+// Historique d'un JSP : [{ date, distance, sec, allure }]
+function crHistorique(id) {
+  const c = getCourse();
+  return crDates().map(d => {
+    const s = c.seances[d], sec = crEnSecondes((s.temps || {})[id]);
+    return sec == null ? null : { date: d, distance: +s.distance || 2000, sec, allure: crAllure(sec, +s.distance || 2000) };
+  }).filter(Boolean);
+}
+function crRafraichir() {
+  const c = document.getElementById('content'), y = window.scrollY;
+  if (c && currentSection === 'course') { c.innerHTML = renderCourse(); window.scrollTo(0, y); }
+}
+function crEcartObjectif(allure) {
+  const obj = getCourse().objectif, ecart = (allure - obj) * 2; // en secondes sur 2 000 m
+  return Math.abs(ecart) < 1 ? '<span class="hy-up">pile</span>'
+    : ecart < 0 ? '<span class="hy-up">✓ ' + crFormat(-ecart) + ' d\'avance</span>'
+    : '<span class="hy-down">+' + crFormat(ecart) + '</span>';
+}
+
+function renderCourse() {
+  const onglet = window._crTab || 'saisie';
+  const t = (k, l) => '<div class="tab' + (onglet === k ? ' active' : '') + '" onclick="window._crTab=\'' + k + '\';showSection(\'course\')">' + l + '</div>';
+  let h = '<div class="section-header"><h2><i class="ti ti-stopwatch"></i> Course — 2 000 m du brevet</h2>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="an-btn" onclick="crImporter()"><i class="ti ti-clipboard-text"></i> Coller un relevé</button></div></div>'
+    + '<div class="tabs">' + t('saisie', 'Saisie d\'une séance') + t('suivi', 'Suivi des JSP') + t('tableau', 'Tableau des temps') + '</div>';
+  if (onglet === 'suivi') return h + renderCourseSuivi();
+  if (onglet === 'tableau') return h + renderCourseTableau();
+  return h + renderCourseSaisie();
+}
+
+// ── Saisie ────────────────────────────────
+function renderCourseSaisie() {
+  const c = getCourse(), dates = crDates();
+  let date = window._crDate;
+  if (!date || !c.seances[date]) date = dates.length ? dates[dates.length - 1] : null;
+  window._crDate = date;
+  let h = '<div class="card an-card"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end">'
+    + '<label class="an-label">Nouvelle séance<br><input type="date" id="crNvDate" class="hy-in" value="' + dateISOLocale(new Date()) + '"></label>'
+    + '<label class="an-label">Distance (m)<br><input type="number" id="crNvDist" class="hy-in" style="width:100px" value="' + (date ? (+c.seances[date].distance || 2200) : 2200) + '" min="100" step="100"></label>'
+    + '<button class="an-btn an-btn-plein" onclick="crNouvelleSeance()"><i class="ti ti-plus"></i> Créer</button>';
+  if (dates.length) {
+    h += '<label class="an-label" style="margin-left:auto">Séance affichée<br><select class="hy-in" onchange="window._crDate=this.value;showSection(\'course\')">'
+      + dates.slice().reverse().map(d => '<option value="' + d + '"' + (d === date ? ' selected' : '') + '>' + fmtDate(d) + ' — ' + (+c.seances[d].distance || 2000) + ' m</option>').join('') + '</select></label>';
+  }
+  h += '</div></div>';
+  if (!date) return h + '<div class="card an-card"><p class="an-muted">Aucune séance enregistrée. Crée la première séance ci-dessus, ou colle un relevé (bouton « Coller un relevé »).</p></div>';
+
+  const s = c.seances[date], dist = +s.distance || 2000;
+  const depart = crDepart(date);
+  h += '<div class="card an-card"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
+    + '<strong style="font-size:17px">' + fmtDate(date) + '</strong>'
+    + '<label class="an-small">Distance <input type="number" class="hy-in" style="width:90px" value="' + dist + '" min="100" step="100" onchange="crMajDistance(\'' + date + '\',this.value)"> m</label>'
+    + '<span class="an-small an-muted">Objectif : ' + crFormat(c.objectif * dist / 1000) + ' sur ' + dist + ' m (' + crFormat(c.objectif) + ' au km)</span>'
+    + '<span style="margin-left:auto;display:flex;gap:8px">'
+    + (depart ? '<span class="hy-run cr-chrono" data-dep="' + depart + '" style="font-size:22px">' + crFormat((Date.now() - depart) / 1000) + '</span><button class="an-btn" onclick="crArreterChrono(\'' + date + '\')">Arrêter le chrono</button>'
+      : '<button class="an-btn hy-arrivee" onclick="crDemarrerChrono(\'' + date + '\')"><i class="ti ti-player-play"></i> Départ groupé</button>')
+    + '<button class="an-btn an-btn-danger" onclick="crSupprimerSeance(\'' + date + '\')" aria-label="Supprimer la séance"><i class="ti ti-trash"></i></button></span></div>'
+    + (depart ? '<p class="an-small an-muted">Chrono lancé : touche « Arrivée » quand le JSP passe la ligne. Tu peux aussi taper le temps à la main (ex. 13\'36 ou 13,36).</p>' : '<p class="an-small an-muted">Tape le temps (13\'36, 13:36 ou 13,36), ou lance le chrono avec « Départ groupé » puis touche « Arrivée » pour chaque JSP.</p>')
+    + '<div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th>' + (depart ? '<th></th>' : '') + '<th class="hy-c">Temps</th><th class="hy-c">Allure /km</th><th class="hy-c">Sur 2 000 m</th><th class="hy-c">Objectif</th><th class="hy-c">Fois d\'avant</th></tr></thead><tbody>';
+  let promo = null;
+  crJspsTries().forEach(j => {
+    const p = hyPromo(j);
+    if (p !== promo) { promo = p; h += '<tr class="hy-promo"><td colspan="7" style="color:' + (CYCLE_COLORS[p] || 'inherit') + '">' + escTexte(p.replace('JSP', 'JSP ')) + '</td></tr>'; }
+    const brut = (s.temps || {})[j.id] || '', sec = crEnSecondes(brut), al = crAllure(sec, dist);
+    const avant = crHistorique(j.id).filter(x => x.date < date).pop();
+    let comp = '—';
+    if (avant) {
+      comp = crFormat(avant.allure) + '/km';
+      if (al != null) { const d = avant.allure - al; comp += Math.abs(d) < 1 ? ' <span class="an-muted">=</span>' : d > 0 ? ' <span class="hy-up">−' + crFormat(d) + '</span>' : ' <span class="hy-down">+' + crFormat(-d) + '</span>'; }
+    }
+    h += '<tr><td><button class="hy-nom" onclick="crFicheJsp(' + j.id + ')">' + escTexte(j.prenom + ' ' + j.nom) + '</button></td>'
+      + (depart ? '<td><button class="an-btn hy-arrivee" onclick="crArrivee(\'' + date + '\',' + j.id + ')">Arrivée</button></td>' : '')
+      + '<td class="hy-c"><input class="hy-in hy-temps" inputmode="decimal" placeholder="mm:ss" value="' + escTexte(sec != null ? crFormat(sec) : brut) + '" onchange="crMajTemps(\'' + date + '\',' + j.id + ',this.value)" aria-label="Temps de ' + escTexte(j.prenom) + '"' + (brut && sec == null ? ' style="border-color:#C62828"' : '') + '></td>'
+      + '<td class="hy-c"><strong>' + (al != null ? crFormat(al) : '—') + '</strong></td>'
+      + '<td class="hy-c">' + (al != null ? crFormat(al * 2) : '—') + '</td>'
+      + '<td class="hy-c">' + (al != null ? crEcartObjectif(al) : '—') + '</td>'
+      + '<td class="hy-c an-nowrap">' + comp + '</td></tr>';
+  });
+  h += '</tbody></table></div>'
+    + '<input class="hy-in hy-rem" style="margin-top:10px" placeholder="Observations (météo, parcours…)" value="' + escTexte(s.obs || '') + '" onchange="getCourse().seances[\'' + date + '\'].obs=this.value;crSauverPlusTard()"></div>';
+  crLancerTicker();
+  return h;
+}
+function crNouvelleSeance() {
+  const d = (document.getElementById('crNvDate') || {}).value, dist = parseInt((document.getElementById('crNvDist') || {}).value, 10);
+  if (!d) { showNotifToast('Choisis une date', true); return; }
+  const c = getCourse();
+  if (!c.seances[d]) c.seances[d] = { distance: dist > 0 ? dist : 2200, temps: {} };
+  window._crDate = d; saveData(); crRafraichir();
+}
+function crMajDistance(date, v) {
+  const n = parseInt(v, 10); if (!(n > 0)) return;
+  getCourse().seances[date].distance = n; crSauverPlusTard(); crRafraichir();
+}
+function crMajTemps(date, id, v) {
+  const s = getCourse().seances[date]; if (!s.temps) s.temps = {};
+  v = String(v || '').trim();
+  if (!v) delete s.temps[id];
+  else { const sec = crEnSecondes(v); s.temps[id] = sec != null ? crFormat(sec) : v; if (sec == null) showNotifToast('Temps non compris : écris par ex. 13\'36 ou 13:36', true); }
+  crSauverPlusTard(); crRafraichir();
+}
+function crSupprimerSeance(date) {
+  const s = getCourse().seances[date]; if (!s) return;
+  const n = Object.keys(s.temps || {}).length;
+  if (!confirm('Supprimer la séance du ' + fmtDate(date) + (n ? ' et ses ' + n + ' temps' : '') + ' ?')) return;
+  delete getCourse().seances[date]; window._crDate = null; saveData(); crRafraichir();
+}
+// Chrono (gardé sur la tablette : survit à un rechargement de la page)
+function crDepart(date) { try { return +localStorage.getItem('course_depart_' + date) || null; } catch (e) { return null; } }
+function crDemarrerChrono(date) { try { localStorage.setItem('course_depart_' + date, String(Date.now())); } catch (e) {} crRafraichir(); }
+function crArreterChrono(date) { if (!confirm('Arrêter le chrono ? Les temps déjà notés sont gardés.')) return; try { localStorage.removeItem('course_depart_' + date); } catch (e) {} crRafraichir(); }
+function crArrivee(date, id) {
+  const dep = crDepart(date); if (!dep) return;
+  const s = getCourse().seances[date]; if (!s.temps) s.temps = {};
+  if (s.temps[id] && !confirm('Remplacer le temps déjà noté (' + s.temps[id] + ') ?')) return;
+  s.temps[id] = crFormat((Date.now() - dep) / 1000); crSauverPlusTard(); crRafraichir();
+}
+let crTicker = null;
+function crLancerTicker() {
+  clearInterval(crTicker);
+  crTicker = setInterval(() => {
+    const els = document.querySelectorAll('.cr-chrono');
+    if (!els.length) { clearInterval(crTicker); return; }
+    els.forEach(el => el.textContent = crFormat((Date.now() - (+el.dataset.dep)) / 1000));
+  }, 1000);
+}
+
+// ── Suivi ─────────────────────────────────
+function renderCourseSuivi() {
+  const c = getCourse();
+  const lignes = crJspsTries().map(j => {
+    const hist = crHistorique(j.id), der = hist[hist.length - 1] || null;
+    const best = hist.length ? hist.reduce((a, b) => b.allure < a.allure ? b : a) : null;
+    return { j, hist, der, best, gain: hist.length >= 2 ? hist[0].allure - der.allure : null };
+  });
+  const suivis = lignes.filter(l => l.der);
+  const okObj = suivis.filter(l => l.der.allure <= c.objectif).length;
+  const progres = suivis.filter(l => l.gain != null && l.gain > 0).length;
+  let h = '<div class="hy-kpis">'
+    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">' + crDates().length + '</div><div class="an-muted an-small">séances</div></div>'
+    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">' + okObj + '/' + suivis.length + '</div><div class="an-muted an-small">dans l\'objectif (dernière course)</div></div>'
+    + '<div class="card an-card hy-kpi"><div class="hy-kpi-v">' + progres + '</div><div class="an-muted an-small">ont progressé depuis leur 1re course</div></div></div>';
+  h += '<div class="card an-card"><label class="an-small">Objectif d\'allure : <input class="hy-in hy-temps" inputmode="decimal" value="' + crFormat(c.objectif) + '" onchange="crMajObjectif(this.value)"> au km, soit <strong>' + crFormat(c.objectif * 2) + '</strong> sur 2 000 m</label>'
+    + '<p class="an-small an-muted" style="margin-top:6px">Le temps « sur 2 000 m » est calculé à partir de l\'allure de la course (ex. boucle de 2 200 m). C\'est une estimation, pour comparer les séances entre elles.</p></div>';
+  h += '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th><th class="hy-c">Courses</th><th class="hy-c">Dernière allure</th><th class="hy-c">Sur 2 000 m</th><th class="hy-c">Objectif</th><th class="hy-c">Meilleure allure</th><th class="hy-c">Progrès /km</th></tr></thead><tbody>';
+  let promo = null;
+  lignes.forEach(l => {
+    const p = hyPromo(l.j);
+    if (p !== promo) { promo = p; h += '<tr class="hy-promo"><td colspan="7" style="color:' + (CYCLE_COLORS[p] || 'inherit') + '">' + escTexte(p.replace('JSP', 'JSP ')) + '</td></tr>'; }
+    h += '<tr><td><button class="hy-nom" onclick="crFicheJsp(' + l.j.id + ')">' + escTexte(l.j.prenom + ' ' + l.j.nom) + '</button></td>'
+      + '<td class="hy-c">' + (l.hist.length || '—') + '</td>'
+      + '<td class="hy-c"><strong>' + (l.der ? crFormat(l.der.allure) : '—') + '</strong>' + (l.der ? '<br><span class="an-small an-muted">' + fmtDate(l.der.date).slice(0, 5) + '</span>' : '') + '</td>'
+      + '<td class="hy-c">' + (l.der ? crFormat(l.der.allure * 2) : '—') + '</td>'
+      + '<td class="hy-c">' + (l.der ? crEcartObjectif(l.der.allure) : '—') + '</td>'
+      + '<td class="hy-c">' + (l.best ? crFormat(l.best.allure) : '—') + '</td>'
+      + '<td class="hy-c">' + (l.gain == null ? '—' : Math.abs(l.gain) < 1 ? '=' : l.gain > 0 ? '<span class="hy-up">−' + crFormat(l.gain) + '</span>' : '<span class="hy-down">+' + crFormat(-l.gain) + '</span>') + '</td></tr>';
+  });
+  h += '</tbody></table></div><p class="an-small an-muted">Allure = temps pour 1 km. Plus elle est basse, plus le JSP court vite. Touche un nom pour voir sa courbe.</p></div>';
+  return h;
+}
+function crMajObjectif(v) {
+  const sec = crEnSecondes(v); if (!sec) { showNotifToast('Allure non comprise : écris par ex. 6:00', true); return; }
+  getCourse().objectif = sec; saveData(); crRafraichir();
+}
+
+// ── Tableau (comme la feuille « temps ») ───
+function renderCourseTableau() {
+  const c = getCourse(), dates = crDates();
+  if (!dates.length) return '<div class="card an-card"><p class="an-muted">Aucune séance enregistrée.</p></div>';
+  let h = '<div class="card an-card"><div class="an-scroll"><table class="an-table hy-table"><thead><tr><th>JSP</th>'
+    + dates.map(d => '<th class="hy-c an-nowrap">' + fmtDate(d) + '<br><span class="an-small an-muted">' + (+c.seances[d].distance || 2000) + ' m</span></th>').join('') + '</tr></thead><tbody>';
+  let promo = null;
+  crJspsTries().forEach(j => {
+    const p = hyPromo(j);
+    if (p !== promo) { promo = p; h += '<tr class="hy-promo"><td colspan="' + (dates.length + 1) + '" style="color:' + (CYCLE_COLORS[p] || 'inherit') + '">' + escTexte(p.replace('JSP', 'JSP ')) + '</td></tr>'; }
+    let prec = null;
+    h += '<tr><td><button class="hy-nom" onclick="crFicheJsp(' + j.id + ')">' + escTexte(j.prenom + ' ' + j.nom) + '</button></td>' + dates.map(d => {
+      const s = c.seances[d], sec = crEnSecondes((s.temps || {})[j.id]);
+      if (sec == null) return '<td class="hy-c an-muted">—</td>';
+      const al = crAllure(sec, +s.distance || 2000);
+      const cls = prec == null || Math.abs(prec - al) < 1 ? '' : al < prec ? 'hy-up' : 'hy-down';
+      prec = al;
+      return '<td class="hy-c"><span class="' + cls + '">' + crFormat(sec) + '</span></td>';
+    }).join('') + '</tr>';
+  });
+  h += '</tbody></table></div><p class="an-small an-muted"><span class="hy-up">Vert</span> : plus rapide que la fois d\'avant · <span class="hy-down">rouge</span> : plus lent (comparé à l\'allure, pour tenir compte de la distance).</p></div>';
+  return h;
+}
+
+// ── Fiche d'un JSP ─────────────────────────
+function crFicheJsp(id) {
+  const j = (DB.jsps || []).find(x => x.id === id); if (!j) return;
+  const c = getCourse(), hist = crHistorique(id);
+  let h = '<div class="an-modal"><h3>' + escTexte(j.prenom + ' ' + j.nom) + ' <span class="an-muted an-small">' + escTexte(hyPromo(j).replace('JSP', 'JSP ')) + '</span></h3>';
+  if (hist.length >= 2) {
+    const W = 560, H = 190, P = 34, vals = hist.map(x => x.allure).concat([c.objectif]);
+    const mx = Math.max(...vals), mn = Math.min(...vals), span = Math.max(mx - mn, 30);
+    const X = i => P + i * (W - 2 * P) / (hist.length - 1), Y = v => P / 2 + ((mx + span * 0.12) - v) / (span * 1.24) * (H - P);
+    h += '<h4 class="an-h4">Allure au km</h4><div class="an-scroll"><svg viewBox="0 0 ' + W + ' ' + (H + 20) + '" width="100%" style="max-width:' + W + 'px" role="img" aria-label="Évolution de l\'allure">'
+      + '<line x1="' + P + '" x2="' + (W - P) + '" y1="' + Y(c.objectif) + '" y2="' + Y(c.objectif) + '" stroke="#2E7D32" stroke-dasharray="6 4" stroke-width="2"/>'
+      + '<text x="' + (W - P) + '" y="' + (Y(c.objectif) - 6) + '" text-anchor="end" font-size="11" fill="#2E7D32">objectif ' + crFormat(c.objectif) + '</text>'
+      + '<polyline points="' + hist.map((x, i) => X(i) + ',' + Y(x.allure)).join(' ') + '" fill="none" stroke="#C62828" stroke-width="3"/>'
+      + hist.map((x, i) => '<circle cx="' + X(i) + '" cy="' + Y(x.allure) + '" r="5" fill="#C62828"/><text x="' + X(i) + '" y="' + (Y(x.allure) - 10) + '" text-anchor="middle" font-size="12" fill="currentColor">' + crFormat(x.allure) + '</text>'
+        + '<text x="' + X(i) + '" y="' + (H + 14) + '" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">' + fmtDate(x.date).slice(0, 5) + '</text>').join('')
+      + '</svg></div><p class="an-small an-muted">Plus la courbe descend, plus le JSP court vite. Sous la ligne verte : objectif atteint.</p>';
+  }
+  h += hist.length
+    ? '<h4 class="an-h4">Historique</h4><div class="an-scroll"><table class="an-table"><thead><tr><th>Date</th><th>Distance</th><th>Temps</th><th>Allure /km</th><th>Sur 2 000 m</th><th>Objectif</th></tr></thead><tbody>'
+      + hist.map(x => '<tr><td class="an-nowrap">' + fmtDate(x.date) + '</td><td>' + x.distance + ' m</td><td><strong>' + crFormat(x.sec) + '</strong></td><td>' + crFormat(x.allure) + '</td><td>' + crFormat(x.allure * 2) + '</td><td>' + crEcartObjectif(x.allure) + '</td></tr>').join('')
+      + '</tbody></table></div>'
+    : '<p class="an-muted">Aucune course enregistrée pour l\'instant.</p>';
+  h += '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Fermer</button></div></div>';
+  openModalWide(h);
+}
+
+// ── Coller un relevé (feuille papier, tableur, message…) ─────
+function crNorm(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]/g, ''); }
+function crTrouverJsp(nom) {
+  const n = crNorm(nom); if (!n) return null;
+  const js = DB.jsps || [];
+  const essais = [j => crNorm(j.prenom + j.nom) === n || crNorm(j.nom + j.prenom) === n, j => crNorm(j.prenom) === n, j => crNorm(j.nom) === n];
+  for (const f of essais) { const r = js.filter(f); if (r.length === 1) return r[0].id; if (r.length > 1) return null; }
+  return null;
+}
+function crImporter() {
+  window._crImport = null;
+  openModalWide('<div class="an-modal"><h3>Coller un relevé de temps</h3>'
+    + '<p class="an-small an-muted">Une ligne par JSP : le prénom puis le temps. Exemples : « Bastien : 13\'36 », « HUGO 12:06 », « Lilou 12,32 ».</p>'
+    + '<div style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0"><label class="an-label">Date<br><input type="date" id="crImpDate" class="hy-in" value="' + dateISOLocale(new Date()) + '"></label>'
+    + '<label class="an-label">Distance (m)<br><input type="number" id="crImpDist" class="hy-in" style="width:100px" value="2200" min="100" step="100"></label></div>'
+    + '<textarea id="crImpTexte" class="hy-in" style="width:100%;min-height:200px" placeholder="Bastien : 13\'36&#10;Owen : 14\'06"></textarea>'
+    + '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="closeModal()">Annuler</button><button class="an-btn an-btn-plein" onclick="crImportAnalyser()">Vérifier</button></div></div>');
+}
+function crImportAnalyser() {
+  const date = document.getElementById('crImpDate').value, distance = parseInt(document.getElementById('crImpDist').value, 10) || 2000;
+  const lignes = document.getElementById('crImpTexte').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const m = l.match(/^(.*?)[\s:;=\-–]*(\d{1,2}\s*[’'"″′:,.h ]{1,2}\s*\d{1,2})\s*["″'’]{0,2}\s*$/);
+    if (!m) return { brut: l, nom: l, sec: null, jspId: null };
+    const nom = m[1].replace(/[\s:;=\-–]+$/, '');
+    return { brut: l, nom, sec: crEnSecondes(m[2]), jspId: crTrouverJsp(nom) };
+  });
+  if (!date || !lignes.length) { showNotifToast('Indique la date et colle au moins une ligne', true); return; }
+  window._crImport = { date, distance, lignes };
+  crImportApercu();
+}
+function crImportApercu() {
+  const imp = window._crImport, ex = getCourse().seances[imp.date];
+  const opts = sel => '<option value="">— ne pas enregistrer —</option>' + crJspsTries().map(j => '<option value="' + j.id + '"' + (j.id === sel ? ' selected' : '') + '>' + escTexte(j.prenom + ' ' + j.nom) + '</option>').join('');
+  let h = '<div class="an-modal"><h3>Vérifier avant d\'enregistrer</h3><p class="an-small">Séance du <strong>' + fmtDate(imp.date) + '</strong>, ' + imp.distance + ' m'
+    + (ex ? ' · <span class="hy-down">une séance existe déjà à cette date : les temps ci-dessous y seront ajoutés ou remplacés.</span>' : '') + '</p>'
+    + '<div class="an-scroll"><table class="an-table"><thead><tr><th>Ligne collée</th><th>Temps lu</th><th>JSP</th></tr></thead><tbody>'
+    + imp.lignes.map((l, i) => '<tr><td>' + escTexte(l.brut) + '</td><td class="hy-c"><strong>' + (l.sec != null ? crFormat(l.sec) : '<span class="hy-down">?</span>') + '</strong></td>'
+      + '<td>' + (l.sec != null ? '<select class="hy-in" onchange="window._crImport.lignes[' + i + '].jspId=this.value?+this.value:null">' + opts(l.jspId) + '</select>' : '<span class="an-muted an-small">temps illisible, ignoré</span>') + '</td></tr>').join('')
+    + '</tbody></table></div><p class="an-small an-muted">Les noms non reconnus (animateurs, invités…) restent sur « ne pas enregistrer » : choisis le JSP dans la liste si besoin.</p>'
+    + '<div class="an-actions an-actions-bas"><button class="an-btn" onclick="crImporter()">Retour</button><button class="an-btn an-btn-plein" onclick="crImportEnregistrer()">Enregistrer</button></div></div>';
+  openModalWide(h);
+}
+function crImportEnregistrer() {
+  const imp = window._crImport; if (!imp) return;
+  const c = getCourse();
+  if (!c.seances[imp.date]) c.seances[imp.date] = { distance: imp.distance, temps: {} };
+  const s = c.seances[imp.date]; s.distance = imp.distance; if (!s.temps) s.temps = {};
+  let n = 0;
+  imp.lignes.forEach(l => { if (l.sec != null && l.jspId) { s.temps[l.jspId] = crFormat(l.sec); n++; } });
+  window._crImport = null; window._crDate = imp.date; window._crTab = 'saisie';
+  saveData(); closeModal(); showSection('course');
+  showNotifToast('✅ ' + n + ' temps enregistré(s) pour le ' + fmtDate(imp.date));
+}
+
 function showSection(sec) {
   const changement = currentSection !== sec;
   currentSection = sec;
@@ -3462,6 +3765,7 @@ function showSection(sec) {
     case 'habillement': c.innerHTML = renderHabillement(); break;
     case 'icp': c.innerHTML = renderICP(); break;
     case 'hyrox': c.innerHTML = renderHyroxSection(); break;
+    case 'course': c.innerHTML = renderCourse(); break;
     case 'finance': c.innerHTML = renderFinance(); break;
     case 'organigramme': c.innerHTML = renderOrganigramme(); break;
     case 'subventions': c.innerHTML = renderSubventions(); break;
