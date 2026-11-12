@@ -14844,31 +14844,61 @@ function getProgrammeJourPartage(dateStr) {
   });
   return lignes;
 }
-function genererTextePlanningMois(moisActif) {
+var PARTAGE_MOIS_LONGS = ['','janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+var PARTAGE_MOIS_COURTS = ['','JANV.','FÉVR.','MARS','AVR.','MAI','JUIN','JUIL.','AOÛT','SEPT.','OCT.','NOV.','DÉC.'];
+var PARTAGE_JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+var PARTAGE_TYPES = {
+  formation: { lbl:'Formation', c:'#1d4ed8', bg:'#dbeafe', emo:'🎓' },
+  exercice:  { lbl:'Exercice',  c:'#c2410c', bg:'#ffedd5', emo:'🚒' },
+  ceremonie: { lbl:'Cérémonie', c:'#15803d', bg:'#dcfce7', emo:'🎖️' },
+  controle:  { lbl:'Contrôle',  c:'#b91c1c', bg:'#fee2e2', emo:'📝' },
+  sortie:    { lbl:'Sortie',    c:'#7e22ce', bg:'#f3e8ff', emo:'🚌' }
+};
+// Couleurs des grades (JSP 1 blanc, JSP 2 jaune, JSP 3 orange, JSP 4 vert)
+var PARTAGE_GRADES = {
+  JSP1: { c:'#ffffff', fg:'#163a64', bord:'#94a3b8', emo:'⚪' },
+  JSP2: { c:'#facc15', fg:'#3f2a05', bord:'#eab308', emo:'🟡' },
+  JSP3: { c:'#f97316', fg:'#ffffff', bord:'#ea580c', emo:'🟠' },
+  JSP4: { c:'#16a34a', fg:'#ffffff', bord:'#166534', emo:'🟢' }
+};
+function donneesPlanningMois(moisActif) {
   moisActif = resoudreMoisActifPlanning(moisActif);
-  var mois = getSaisonMois(DB.saison);
-  var parts = moisActif.split('-'); var mActif = parts[0], aActif = parts[1];
-  var moisInfo = mois.find(function(m){ return m.num===mActif && m.an===aActif; });
-  var evts = DB.planning.filter(function(p){ return p.date.startsWith(aActif+'-'+mActif); }).sort(function(a,b){ return a.date.localeCompare(b.date); });
-  var joursNoms = ['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'];
-  var txt = '📅 *Planning JSP '+getSectionLabelPlanning()+' — '+(moisInfo?moisInfo.label:moisActif)+'*\n\n';
-  if (!evts.length) { txt += 'Aucune séance prévue ce mois-ci.'; return txt; }
-  var datesProgDejaMises = {};
-  evts.forEach(function(e) {
-    var d = new Date(e.date+'T00:00:00');
-    var jourNom = joursNoms[d.getDay()];
-    var dd = e.date.slice(8,10)+'/'+e.date.slice(5,7);
-    txt += '🔸 *'+jourNom+' '+dd+'* — '+e.titre+'\n';
-    if (e.lieu && e.lieu.trim()) txt += '📍 '+e.lieu.trim()+'\n';
-    if (!datesProgDejaMises[e.date]) {
-      datesProgDejaMises[e.date] = true;
-      getProgrammeJourPartage(e.date).forEach(function(l){ txt += '   ▫️ '+l.cycle+' : '+l.texte+'\n'; });
-    }
-    txt += '\n';
+  var parts = moisActif.split('-'), m = parts[0], an = parts[1];
+  var evts = DB.planning.filter(function(p){ return p.date.startsWith(an+'-'+m); }).sort(function(a,b){ return a.date.localeCompare(b.date); });
+  var debut = an+'-'+m+'-01', fin = an+'-'+m+'-'+String(new Date(parseInt(an), parseInt(m), 0).getDate()).padStart(2,'0');
+  var vacances = VACANCES_ZONE_C.filter(function(v){ return v.debut <= fin && v.fin >= debut; });
+  var vus = {};
+  var blocs = evts.map(function(e) {
+    var prog = [];
+    if (!vus[e.date]) { vus[e.date] = true; prog = getProgrammeJourPartage(e.date); }
+    return { e: e, prog: prog, lieu: (e.lieu || '').trim(), type: PARTAGE_TYPES[e.type] || { lbl: libelleTypePlanning(e.type) || 'Activité', c:'#334155', bg:'#e2e8f0', emo:'📌' } };
   });
-  if (estJourVacancesMois(aActif, mActif)) txt += '🏖️ Pas de séance pendant les vacances scolaires.\n\n';
-  txt += '— Envoyé depuis Carnet JSP';
+  return { moisActif: moisActif, m: m, an: an, nomMois: PARTAGE_MOIS_LONGS[parseInt(m)], blocs: blocs, vacances: vacances };
+}
+function nomVacancesLong(nom) { return nom==='Été'?'d\'été':nom==='Noël'?'de Noël':nom==='Toussaint'?'de la Toussaint':nom==='Hiver'?'d\'hiver':'de printemps'; }
+function dateCourtePartage(d) { return parseInt(d.slice(8,10)) + ' ' + PARTAGE_MOIS_LONGS[parseInt(d.slice(5,7))]; }
+function cycleLabel(c) { return c.replace('JSP', 'JSP '); }
+
+function genererTextePlanningMois(moisActif) {
+  var D = donneesPlanningMois(moisActif);
+  var txt = '🚒 *PLANNING JSP · ' + D.nomMois.toUpperCase() + ' ' + D.an + '* 🚒\n_Section JSP Cruzy-Quarante_\n';
+  if (!D.blocs.length) txt += '\nPas de séance prévue ce mois-ci.\n';
+  D.blocs.forEach(function(b) {
+    var d = new Date(b.e.date+'T00:00:00');
+    txt += '\n━━━━━━━━━━━━━━\n📆 *' + PARTAGE_JOURS[d.getDay()].toUpperCase() + ' ' + dateCourtePartage(b.e.date).toUpperCase() + '*\n';
+    txt += b.type.emo + ' ' + b.type.lbl + ' : *' + b.e.titre + '*\n';
+    if (b.lieu) txt += '📍 ' + b.lieu + '\n';
+    b.prog.forEach(function(l){ txt += (PARTAGE_GRADES[l.cycle] ? PARTAGE_GRADES[l.cycle].emo : '▫️') + ' ' + cycleLabel(l.cycle) + ' : ' + l.texte + '\n'; });
+  });
+  if (D.vacances.length) {
+    txt += '\n━━━━━━━━━━━━━━\n';
+    D.vacances.forEach(function(v){ txt += '🏖️ Vacances ' + nomVacancesLong(v.nom) + ' du ' + dateCourtePartage(v.debut) + ' au ' + dateCourtePartage(v.fin) + ' : pas de séance\n'; });
+  }
+  txt += '\n👉 Tout le planning dans le Carnet JSP :\n' + LIEN_APP_JSP + '\n\nChef Galiana · Section JSP Cruzy-Quarante';
   return txt;
+}
+function legendePartagePlanning(D) {
+  return '📅 Planning JSP de ' + D.nomMois + ' ' + D.an + ' 🚒\nTout le détail dans le Carnet JSP : ' + LIEN_APP_JSP;
 }
 function estJourVacancesMois(an, mois) {
   var dernier = new Date(parseInt(an), parseInt(mois), 0).getDate();
@@ -14876,16 +14906,13 @@ function estJourVacancesMois(an, mois) {
   return false;
 }
 function ouvrirWhatsAppPlanning() {
-  var txt = genererTextePlanningMois(window._planningMois);
-  window.open('https://wa.me/?text='+encodeURIComponent(txt), '_blank');
+  window.open('https://wa.me/?text='+encodeURIComponent(genererTextePlanningMois(window._partageMois)), '_blank');
 }
 function copierTextePlanning() {
-  var txt = genererTextePlanningMois(window._planningMois);
+  var txt = genererTextePlanningMois(window._partageMois);
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(txt).then(function(){ showNotifToast('✅ Texte copié !'); }).catch(function(){ alert('Copie impossible — sélectionne le texte manuellement dans la zone ci-dessus.'); });
-  } else {
-    alert('Copie impossible — sélectionne le texte manuellement dans la zone ci-dessus.');
-  }
+    navigator.clipboard.writeText(txt).then(function(){ showNotifToast('✅ Texte copié : colle-le dans WhatsApp'); }).catch(function(){ alert('Copie impossible.'); });
+  } else alert('Copie impossible.');
 }
 // Découpe un texte en lignes qui tiennent dans la largeur donnée (canvas)
 function decouperTexteCanvas(ctx, texte, largeurMax) {
@@ -14898,126 +14925,187 @@ function decouperTexteCanvas(ctx, texte, largeurMax) {
   if (ligne) lignes.push(ligne);
   return lignes;
 }
-function telechargerImagePlanning() {
-  var moisActif = resoudreMoisActifPlanning(window._planningMois);
-  var mois = getSaisonMois(DB.saison);
-  var parts = moisActif.split('-'); var mActif = parts[0], aActif = parts[1];
-  var moisInfo = mois.find(function(m){ return m.num===mActif && m.an===aActif; });
-  var evts = DB.planning.filter(function(p){ return p.date.startsWith(aActif+'-'+mActif); }).sort(function(a,b){ return a.date.localeCompare(b.date); });
-  var joursNoms = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
-  var typeColors = {formation:'#2563b0',exercice:'#b45309',ceremonie:'#166534',controle:'#b91c1c',sortie:'#6b21a8'};
-  var cycleColors = {JSP1:'#7c3aed',JSP2:'#ea580c',JSP3:'#0d9488',JSP4:'#db2777'};
-  var cycleBg = {JSP1:'#ede9fe',JSP2:'#ffedd5',JSP3:'#ccfbf1',JSP4:'#fce7f3'};
 
-  var W = 1000, headerH = 150, footerH = 60, padX = 56, largeurTexte = W - padX - 60;
-  var FONT_PROG = '18px Arial', LH_PROG = 24, labelW = 78;
+// ══ Image du planning du mois : affiche « fun » et lisible, avec l'emblème ══
+async function dessinerImagePlanning(moisActif) {
+  try { await Promise.all([document.fonts.load('700 120px "Barlow Condensed"'), document.fonts.load('600 30px "Barlow Condensed"'), document.fonts.load('600 28px Barlow'), document.fonts.load('700 40px Barlow')]); } catch (e) {}
+  var D = donneesPlanningMois(moisActif);
+  var FC = '"Barlow Condensed","Arial Narrow",Arial,sans-serif', FB = 'Barlow,Arial,sans-serif';
+  var W = 1080, HEAD = 430, PADX = 54, TILE = 150, CX = PADX + TILE + 34, CW = W - PADX - CX - 34;
+  var mes = document.createElement('canvas').getContext('2d');
+  var ls = function(c, v){ if ('letterSpacing' in c) c.letterSpacing = v; };
 
-  // 1) Mesure : préparer chaque bloc et sa hauteur
-  var mesure = document.createElement('canvas').getContext('2d');
-  var datesProgDejaMises = {};
-  var blocs = evts.map(function(e) {
-    var prog = [];
-    if (!datesProgDejaMises[e.date]) {
-      datesProgDejaMises[e.date] = true;
-      mesure.font = FONT_PROG;
-      getProgrammeJourPartage(e.date).forEach(function(l) {
-        prog.push({ cycle: l.cycle, lignes: decouperTexteCanvas(mesure, l.texte, largeurTexte - labelW - 20) });
+  // 1) Mesures
+  D.blocs.forEach(function(b) {
+    mes.font = '700 42px ' + FB; b.titreL = decouperTexteCanvas(mes, b.e.titre, CW);
+    mes.font = '500 27px ' + FB; b.lieuL = b.lieu ? decouperTexteCanvas(mes, b.lieu, CW - 40) : [];
+    mes.font = '500 26px ' + FB; b.progL = b.prog.map(function(p){ return { cycle: p.cycle, lignes: decouperTexteCanvas(mes, p.texte, CW - 150) }; });
+    var h = 34 + 44 + 18 + b.titreL.length * 50 + (b.lieuL.length ? 10 + b.lieuL.length * 36 : 0);
+    if (b.progL.length) h += 18 + b.progL.reduce(function(t,p){ return t + Math.max(52, p.lignes.length * 34 + 18) + 10; }, 0);
+    b.h = Math.max(h + 26, TILE + 60);
+  });
+  var vacH = D.vacances.length ? D.vacances.length * 46 + 70 : 0;
+  var corps = D.blocs.length ? D.blocs.reduce(function(t,b){ return t + b.h + 26; }, 0) : 260;
+  var FOOT = 200, H = HEAD + 44 + corps + (vacH ? vacH + 26 : 0) + 20 + FOOT;
+
+  var cv = document.createElement('canvas'); cv.width = W; cv.height = H; var x = cv.getContext('2d');
+  var rr = function(X, Y, w, h, r){ x.beginPath(); x.moveTo(X+r, Y); x.arcTo(X+w, Y, X+w, Y+h, r); x.arcTo(X+w, Y+h, X, Y+h, r); x.arcTo(X, Y+h, X, Y, r); x.arcTo(X, Y, X+w, Y, r); x.closePath(); };
+
+  // Fond
+  x.fillStyle = '#eef2f7'; x.fillRect(0, 0, W, H);
+  x.save(); x.globalAlpha = .045; x.fillStyle = '#163a64';
+  for (var py = HEAD + 20; py < H - FOOT; py += 34) for (var px = (py/34 % 2) * 17; px < W; px += 34) { x.beginPath(); x.arc(px, py, 2.4, 0, Math.PI*2); x.fill(); }
+  x.restore();
+
+  // En-tête
+  var g = x.createLinearGradient(0, 0, W, HEAD); g.addColorStop(0, '#0b1d3a'); g.addColorStop(1, '#1d4580'); x.fillStyle = g; x.fillRect(0, 0, W, HEAD);
+  x.save(); x.beginPath(); x.rect(0, 0, W, HEAD); x.clip(); x.globalAlpha = .06; x.strokeStyle = '#fff'; x.lineWidth = 2;
+  for (var i = -HEAD; i < W; i += 44) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + HEAD, HEAD); x.stroke(); } x.restore();
+  g = x.createRadialGradient(205, 215, 20, 205, 215, 330); g.addColorStop(0, 'rgba(255,255,255,.20)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 600, HEAD);
+  x.fillStyle = '#c62828'; x.fillRect(0, 0, W, 14);
+  // emblème
+  x.save(); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 34; x.shadowOffsetY = 10; x.beginPath(); x.arc(205, 215, 135, 0, Math.PI*2); x.fillStyle = '#fff'; x.fill(); x.restore();
+  x.beginPath(); x.arc(205, 215, 135, 0, Math.PI*2); x.lineWidth = 8; x.strokeStyle = '#c62828'; x.stroke();
+  var img = await carteImageCharger(LOGO_JSP_BASE64);
+  if (img) { var lh = 212, lw = lh * img.width / img.height; x.drawImage(img, 205 - lw/2, 215 - lh/2, lw, lh); }
+  // titres
+  var TX = 385; x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  x.fillStyle = 'rgba(255,255,255,.78)'; x.font = '600 34px ' + FC; ls(x, '7px'); x.fillText('PLANNING JSP', TX, 120);
+  ls(x, '2px'); var fsM = 132; x.font = '700 ' + fsM + 'px ' + FC;
+  while (x.measureText(D.nomMois.toUpperCase()).width > W - TX - 50 && fsM > 70) { fsM -= 4; x.font = '700 ' + fsM + 'px ' + FC; }
+  x.fillStyle = '#fff'; x.fillText(D.nomMois.toUpperCase(), TX, 120 + fsM * .92);
+  ls(x, '4px'); x.font = '700 46px ' + FC; x.fillStyle = '#facc15'; x.fillText(D.an, TX + 2, 120 + fsM * .92 + 56);
+  ls(x, '3px'); x.font = '600 28px ' + FC; x.fillStyle = '#fca5a5'; x.fillText('SECTION CRUZY-QUARANTE', TX + 2, 120 + fsM * .92 + 98);
+  ls(x, '0px');
+  [['#c62828', 0], ['#ffffff', 82], ['#2f6fd0', 164]].forEach(function(b){ x.fillStyle = b[0]; rr(TX + b[1], 120 + fsM * .92 + 120, 70, 8, 4); x.fill(); });
+  // pastille compteur
+  var nbRdv = D.blocs.length, txtRdv = nbRdv ? (nbRdv + (nbRdv > 1 ? ' RENDEZ-VOUS CE MOIS-CI' : ' RENDEZ-VOUS CE MOIS-CI')) : 'PAS DE SÉANCE CE MOIS-CI';
+  x.font = '700 30px ' + FC; ls(x, '2px'); var wR = x.measureText(txtRdv).width + 56;
+  x.save(); x.shadowColor = 'rgba(0,0,0,.3)'; x.shadowBlur = 16; x.shadowOffsetY = 6; x.fillStyle = '#facc15'; rr(W/2 - wR/2, HEAD - 28, wR, 56, 28); x.fill(); x.restore();
+  x.fillStyle = '#3f2a05'; x.textAlign = 'center'; x.fillText(txtRdv, W/2, HEAD + 10); ls(x, '0px');
+
+  // Cartes des séances
+  var y = HEAD + 58;
+  var aujourdhui = new Date().toISOString().slice(0,10);
+  if (!D.blocs.length) {
+    x.save(); x.shadowColor = 'rgba(15,35,66,.12)'; x.shadowBlur = 24; x.shadowOffsetY = 8; x.fillStyle = '#fff'; rr(PADX, y, W - 2*PADX, 230, 30); x.fill(); x.restore();
+    x.textAlign = 'center'; x.fillStyle = '#0f2342'; x.font = '700 50px ' + FC; x.fillText('Pas de séance ce mois-ci', W/2, y + 105);
+    x.fillStyle = '#64748b'; x.font = '500 30px ' + FB; x.fillText(D.vacances.length ? 'Bonnes vacances à tous !' : 'Rendez-vous le mois prochain !', W/2, y + 160);
+    y += 260;
+  }
+  D.blocs.forEach(function(b) {
+    var e = b.e, d = new Date(e.date + 'T00:00:00'), passe = e.date < aujourdhui;
+    // carte
+    x.save(); x.shadowColor = 'rgba(15,35,66,.14)'; x.shadowBlur = 26; x.shadowOffsetY = 8; x.fillStyle = '#fff'; rr(PADX - 14, y, W - 2*PADX + 28, b.h, 30); x.fill(); x.restore();
+    x.save(); rr(PADX - 14, y, W - 2*PADX + 28, b.h, 30); x.clip(); x.fillStyle = b.type.c; x.fillRect(PADX - 14, y, 10, b.h); x.restore();
+    // tuile date (page de calendrier)
+    var tx = PADX + 14, ty = y + 30;
+    x.save(); x.shadowColor = 'rgba(0,0,0,.12)'; x.shadowBlur = 10; x.shadowOffsetY = 4; x.fillStyle = '#fff'; rr(tx, ty, TILE, TILE + 10, 22); x.fill(); x.restore();
+    x.lineWidth = 2; x.strokeStyle = '#e2e8f0'; rr(tx, ty, TILE, TILE + 10, 22); x.stroke();
+    x.save(); rr(tx, ty, TILE, TILE + 10, 22); x.clip(); x.fillStyle = '#c62828'; x.fillRect(tx, ty, TILE, 46); x.restore();
+    x.textAlign = 'center'; x.fillStyle = '#fff'; x.font = '700 28px ' + FC; ls(x, '3px'); x.fillText(PARTAGE_JOURS[d.getDay()].slice(0,3).toUpperCase() + '.', tx + TILE/2, ty + 33); ls(x, '0px');
+    x.fillStyle = '#0f2342'; x.font = '700 82px ' + FC; x.fillText(String(d.getDate()), tx + TILE/2, ty + 122);
+    x.fillStyle = '#64748b'; x.font = '600 24px ' + FC; ls(x, '2px'); x.fillText(PARTAGE_MOIS_COURTS[d.getMonth() + 1], tx + TILE/2, ty + 150); ls(x, '0px');
+    // contenu
+    var cy = y + 34; x.textAlign = 'left';
+    x.font = '700 24px ' + FC; ls(x, '2px'); var lblT = b.type.lbl.toUpperCase(), wT = x.measureText(lblT).width + 36;
+    x.fillStyle = b.type.bg; rr(CX, cy, wT, 42, 21); x.fill(); x.fillStyle = b.type.c; x.fillText(lblT, CX + 18, cy + 30);
+    ls(x, '0px'); if (passe) { x.font = '600 26px ' + FB; x.fillStyle = '#94a3b8'; x.fillText('déjà passé', CX + wT + 16, cy + 30); }
+    cy += 44 + 18;
+    x.fillStyle = '#0f2342'; x.font = '700 42px ' + FB;
+    b.titreL.forEach(function(l){ x.fillText(l, CX, cy + 38); cy += 50; });
+    if (b.lieuL.length) {
+      cy += 10;
+      // épingle
+      var px0 = CX + 12, py0 = cy + 14; x.fillStyle = '#c62828'; x.beginPath(); x.arc(px0, py0, 11, Math.PI, 0); x.lineTo(px0, py0 + 20); x.closePath(); x.fill();
+      x.fillStyle = '#fff'; x.beginPath(); x.arc(px0, py0, 4.5, 0, Math.PI*2); x.fill();
+      x.fillStyle = '#475569'; x.font = '500 27px ' + FB;
+      b.lieuL.forEach(function(l){ x.fillText(l, CX + 36, cy + 26); cy += 36; });
+    }
+    if (b.progL.length) {
+      cy += 18;
+      b.progL.forEach(function(p) {
+        var gr = PARTAGE_GRADES[p.cycle] || PARTAGE_GRADES.JSP1, hP = Math.max(52, p.lignes.length * 34 + 18);
+        x.fillStyle = '#f1f5f9'; rr(CX, cy, CW, hP, 16); x.fill();
+        x.fillStyle = gr.c; rr(CX + 8, cy + 8, 112, 36, 18); x.fill();
+        x.lineWidth = 2; x.strokeStyle = gr.bord; rr(CX + 8, cy + 8, 112, 36, 18); x.stroke();
+        x.textAlign = 'center'; x.fillStyle = gr.fg; x.font = '700 24px ' + FC; ls(x, '1px'); x.fillText(cycleLabel(p.cycle), CX + 64, cy + 35); ls(x, '0px');
+        x.textAlign = 'left'; x.fillStyle = '#1f2937'; x.font = '500 26px ' + FB;
+        p.lignes.forEach(function(l, k){ x.fillText(l, CX + 138, cy + 35 + k * 34); });
+        cy += hP + 10;
       });
     }
-    var lieu = (e.lieu && e.lieu.trim()) ? e.lieu.trim() : '';
-    var h = 20 + 30 + 30 + (lieu ? 28 : 0);
-    prog.forEach(function(p){ h += p.lignes.length*LH_PROG + 10; });
-    h += 14;
-    return { e: e, prog: prog, lieu: lieu, h: h };
+    y += b.h + 26;
   });
 
-  var corpsH = blocs.length ? blocs.reduce(function(t,b){ return t + b.h + 14; }, 0) : 80;
-  var H = headerH + 16 + corpsH + footerH;
-  var canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  var ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#f3f4f6';
-  ctx.fillRect(0,0,W,H);
-  ctx.fillStyle = '#163a64';
-  ctx.fillRect(0,0,W,headerH);
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.font = 'bold 34px Arial';
-  ctx.fillText('Planning JSP '+getSectionLabelPlanning(), W/2, 68);
-  ctx.font = '24px Arial';
-  ctx.fillText((moisInfo?moisInfo.label:moisActif), W/2, 108);
-
-  var y = headerH + 16;
-  if (!blocs.length) {
-    ctx.fillStyle = '#374151';
-    ctx.font = '26px Arial';
-    ctx.fillText('Aucune séance prévue ce mois-ci.', W/2, y+40);
-  } else {
-    blocs.forEach(function(b) {
-      var e = b.e;
-      var d = new Date(e.date+'T00:00:00');
-      var dd = e.date.slice(8,10)+'/'+e.date.slice(5,7);
-      var col = typeColors[e.type] || '#374151';
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(30, y, W-60, b.h);
-      ctx.fillStyle = col;
-      ctx.fillRect(30, y, 8, b.h);
-
-      var cy = y + 20;
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#1f2937';
-      ctx.font = 'bold 26px Arial';
-      ctx.fillText(joursNoms[d.getDay()]+' '+dd, padX, cy+14);
-      cy += 30;
-      ctx.font = '22px Arial';
-      ctx.fillStyle = col;
-      ctx.fillText(e.titre, padX, cy+14);
-      cy += 30;
-      if (b.lieu) {
-        ctx.font = '18px Arial';
-        ctx.fillStyle = '#6b7280';
-        ctx.fillText('📍 '+b.lieu, padX, cy+12);
-        cy += 28;
-      }
-      b.prog.forEach(function(p) {
-        var hBloc = p.lignes.length*LH_PROG + 4;
-        ctx.fillStyle = cycleBg[p.cycle];
-        ctx.fillRect(padX, cy, largeurTexte, hBloc);
-        ctx.fillStyle = cycleColors[p.cycle];
-        ctx.font = 'bold 18px Arial';
-        ctx.fillText(p.cycle, padX+10, cy+19);
-        ctx.font = FONT_PROG;
-        ctx.fillStyle = '#1f2937';
-        p.lignes.forEach(function(l, i){ ctx.fillText(l, padX+labelW, cy+19+i*LH_PROG); });
-        cy += hBloc + 6;
-      });
-      y += b.h + 14;
-    });
+  // Bandeau vacances
+  if (D.vacances.length) {
+    x.save(); x.shadowColor = 'rgba(15,35,66,.10)'; x.shadowBlur = 20; x.shadowOffsetY = 6; x.fillStyle = '#fef3c7'; rr(PADX - 14, y, W - 2*PADX + 28, vacH, 30); x.fill(); x.restore();
+    x.lineWidth = 3; x.setLineDash([12, 10]); x.strokeStyle = '#f59e0b'; rr(PADX - 14, y, W - 2*PADX + 28, vacH, 30); x.stroke(); x.setLineDash([]);
+    // petit soleil
+    var sx = PADX + 40, sy = y + vacH/2; x.fillStyle = '#f59e0b'; x.beginPath(); x.arc(sx, sy, 17, 0, Math.PI*2); x.fill();
+    x.strokeStyle = '#f59e0b'; x.lineWidth = 4; for (var r = 0; r < 8; r++) { var a = r * Math.PI/4; x.beginPath(); x.moveTo(sx + Math.cos(a)*24, sy + Math.sin(a)*24); x.lineTo(sx + Math.cos(a)*33, sy + Math.sin(a)*33); x.stroke(); }
+    x.textAlign = 'left'; x.fillStyle = '#92400e'; x.font = '700 28px ' + FC; ls(x, '3px'); x.fillText('VACANCES SCOLAIRES · PAS DE SÉANCE', PADX + 96, y + 48); ls(x, '0px');
+    x.fillStyle = '#78350f'; x.font = '600 27px ' + FB;
+    D.vacances.forEach(function(v, k){ x.fillText('Vacances ' + nomVacancesLong(v.nom) + ' : du ' + dateCourtePartage(v.debut) + ' au ' + dateCourtePartage(v.fin), PADX + 96, y + 92 + k * 46); });
+    y += vacH + 26;
   }
 
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#9ca3af';
-  ctx.font = '16px Arial';
-  ctx.fillText('Généré depuis Carnet JSP — '+fmtDate(new Date().toISOString().slice(0,10)), W/2, H-24);
-
-  var a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
-  a.download = 'Planning_JSP_'+(moisInfo?moisInfo.label.replace(/\s+/g,'_'):moisActif)+'.png';
-  a.click();
+  // Pied de page
+  var fy = H - FOOT; g = x.createLinearGradient(0, fy, W, H); g.addColorStop(0, '#0b1d3a'); g.addColorStop(1, '#1d4580'); x.fillStyle = g; x.fillRect(0, fy, W, FOOT);
+  x.fillStyle = '#c62828'; x.fillRect(0, H - 14, W, 14);
+  x.textAlign = 'center'; x.fillStyle = 'rgba(255,255,255,.75)'; x.font = '600 26px ' + FC; ls(x, '4px'); x.fillText('TOUT LE PLANNING DANS LE CARNET JSP', W/2, fy + 54); ls(x, '0px');
+  x.fillStyle = '#93c5fd'; x.font = '700 34px ' + FB; x.fillText(LIEN_APP_JSP.replace('https://', '').replace(/\/$/, ''), W/2, fy + 104);
+  x.fillStyle = '#fff'; x.font = '600 30px ' + FC; ls(x, '2px'); x.fillText('Chef Galiana · Section JSP Cruzy-Quarante', W/2, fy + 152); ls(x, '0px');
+  return { canvas: cv, D: D };
+}
+function nomFichierPlanning(D) { return 'Planning_JSP_' + D.nomMois.charAt(0).toUpperCase() + D.nomMois.slice(1) + '_' + D.an + '.png'; }
+function telechargerImagePlanning() {
+  var P = window._partagePlanning; if (!P) return;
+  var a = document.createElement('a'); a.href = P.canvas.toDataURL('image/png'); a.download = nomFichierPlanning(P.D); a.click();
+}
+async function partagerImagePlanning() {
+  var P = window._partagePlanning; if (!P) return;
+  var blob = await new Promise(function(r){ P.canvas.toBlob(r, 'image/png'); });
+  var file = new File([blob], nomFichierPlanning(P.D), { type: 'image/png' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], text: legendePartagePlanning(P.D) }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  telechargerImagePlanning();
+  showNotifToast('Image téléchargée : joins-la dans le groupe WhatsApp des parents');
+}
+function changerMoisPartage(delta) {
+  var mois = getSaisonMois(DB.saison), cur = resoudreMoisActifPlanning(window._partageMois);
+  var i = mois.findIndex(function(m){ return m.num + '-' + m.an === cur; });
+  var n = mois[Math.max(0, Math.min(mois.length - 1, i + delta))];
+  window._partageMois = n.num + '-' + n.an; rafraichirPartagePlanning();
+}
+async function rafraichirPartagePlanning() {
+  var zone = document.getElementById('partageZone'); if (!zone) return;
+  zone.innerHTML = '<div style="padding:40px 0;color:var(--gris-txt)">Préparation de l\'image…</div>';
+  var P = await dessinerImagePlanning(window._partageMois); window._partagePlanning = P;
+  var mois = getSaisonMois(DB.saison), i = mois.findIndex(function(m){ return m.num + '-' + m.an === P.D.moisActif; });
+  var lbl = document.getElementById('partageMoisLbl'); if (lbl) lbl.textContent = P.D.nomMois.charAt(0).toUpperCase() + P.D.nomMois.slice(1) + ' ' + P.D.an;
+  var bp = document.getElementById('partagePrev'), bn = document.getElementById('partageNext');
+  if (bp) bp.disabled = i <= 0; if (bn) bn.disabled = i >= mois.length - 1;
+  zone.innerHTML = '<img alt="Aperçu du planning" src="' + P.canvas.toDataURL('image/png') + '" style="width:100%;max-width:420px;max-height:62vh;object-fit:contain;border-radius:14px;box-shadow:0 6px 24px rgba(15,35,66,.18)">';
 }
 function modalPartagerPlanning() {
-  var txt = genererTextePlanningMois(window._planningMois);
-  openModal(`<h3><i class="ti ti-brand-whatsapp"></i> Partager le planning du mois</h3>
-    <p style="font-size:13px;color:var(--gris-txt);margin:0 0 12px">Le plus simple pour les parents peu à l'aise avec l'informatique : télécharge l'image et envoie-la directement dans le groupe WhatsApp des parents. Tu peux aussi ouvrir WhatsApp avec le texte déjà rempli, ou copier le texte pour le coller ailleurs.</p>
-    <textarea readonly style="width:100%;min-height:180px;padding:10px;border:1px solid var(--gris-bord);border-radius:8px;font-family:Arial,sans-serif;font-size:13px">${escAttr(txt)}</textarea>
-    <div class="modal-btns" style="flex-wrap:wrap;gap:8px">
-      <button class="btn-cancel" onclick="closeModal()">Fermer</button>
-      <button class="btn-save" style="background:#166534" onclick="copierTextePlanning()"><i class="ti ti-copy"></i> Copier le texte</button>
-      <button class="btn-save" style="background:#25D366" onclick="ouvrirWhatsAppPlanning()"><i class="ti ti-brand-whatsapp"></i> Ouvrir WhatsApp</button>
-      <button class="btn-save" onclick="telechargerImagePlanning()"><i class="ti ti-download"></i> Télécharger l'image</button>
-    </div>`);
+  window._partageMois = resoudreMoisActifPlanning(window._planningMois);
+  openModalWide('<h3 style="margin:0 0 10px"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i> Partager le planning du mois</h3>'
+    + '<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px">'
+    + '<button id="partagePrev" class="btn-cancel" style="padding:6px 12px" onclick="changerMoisPartage(-1)" aria-label="Mois précédent"><i class="ti ti-chevron-left"></i></button>'
+    + '<b id="partageMoisLbl" style="min-width:150px;text-align:center;font-size:17px"></b>'
+    + '<button id="partageNext" class="btn-cancel" style="padding:6px 12px" onclick="changerMoisPartage(1)" aria-label="Mois suivant"><i class="ti ti-chevron-right"></i></button></div>'
+    + '<div id="partageZone" style="text-align:center"></div>'
+    + '<div class="modal-btns" style="flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px">'
+    + '<button class="btn-cancel" onclick="closeModal()">Fermer</button>'
+    + '<button class="btn-cancel" onclick="copierTextePlanning()"><i class="ti ti-copy"></i> Copier le texte</button>'
+    + '<button class="btn-cancel" onclick="ouvrirWhatsAppPlanning()"><i class="ti ti-message"></i> Texte seul</button>'
+    + '<button class="btn-cancel" onclick="telechargerImagePlanning()"><i class="ti ti-download"></i> Télécharger</button>'
+    + '<button class="btn-save" style="background:#25D366" onclick="partagerImagePlanning()"><i class="ti ti-share"></i> Partager sur WhatsApp</button></div>'
+    + '<p style="font-size:11px;color:var(--gris-txt);text-align:center;margin:8px 0 0">Sur téléphone ou tablette, « Partager » envoie l\'image directement : choisis le groupe des parents dans WhatsApp. Sur ordinateur, l\'image est téléchargée pour que tu la joignes.</p>');
+  rafraichirPartagePlanning();
 }
 
 function modalAddPlanning(datePreremplie) {
