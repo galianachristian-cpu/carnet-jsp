@@ -23729,6 +23729,8 @@ function renderInscriptions() {
     <div style="text-align:center">
       <div id="insc_qr" style="background:#fff;padding:8px;border-radius:8px;display:inline-block;min-width:150px;min-height:150px"></div>
       <div><button class="btn-add" style="padding:6px 12px;font-size:13px;margin-top:6px" onclick="inscImprimerAffiche()"><i class="ti ti-printer"></i> Imprimer l'affiche</button></div>
+      <div><button class="btn-add" style="padding:6px 12px;font-size:13px;margin-top:6px;background:#25D366" onclick="inscPartagerWhatsApp()"><i class="ti ti-brand-whatsapp"></i> Partager sur WhatsApp</button></div>
+      <div><button class="btn-cancel" style="padding:4px 10px;font-size:12px;margin-top:6px" onclick="inscWhatsAppTexte()"><i class="ti ti-message"></i> Envoyer le lien seul</button></div>
     </div>
   </div>
 
@@ -23810,6 +23812,52 @@ async function inscImprimerAffiche() {
     <scr` + `ipt>window.onload=function(){window.print()}</scr` + `ipt></body></html>`);
   w.document.close();
 }
+
+// ── Partage WhatsApp du QR code d'inscription : image (QR + blason + lien) + message ──
+function inscTextePartage() {
+  return "Inscriptions JSP – Section de Cruzy-Quarante\n"
+    + "Votre enfant veut devenir Jeune Sapeur-Pompier ? Remplissez la demande d'inscription en ligne :\n"
+    + inscLienPublic()
+    + (INSC.config && INSC.config.code_section ? "\nCode de la section : " + INSC.config.code_section : "");
+}
+async function inscImageQR() {
+  const qr = await inscQRAvecLogo(inscLienPublic(), 720);
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = qr; });
+  const W = 1080, H = 1350, cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+  let g = x.createLinearGradient(0, 0, W, 230); g.addColorStop(0, '#0b1d3a'); g.addColorStop(1, '#1d4580');
+  x.fillStyle = g; x.fillRect(0, 0, W, 230);
+  x.fillStyle = '#c62828'; x.fillRect(0, 230, W, 12);
+  x.textAlign = 'center'; x.fillStyle = '#fff';
+  x.font = 'bold 76px Arial, sans-serif'; x.fillText('Inscriptions JSP', W / 2, 120);
+  x.font = '600 38px Arial, sans-serif'; x.fillStyle = 'rgba(255,255,255,.85)'; x.fillText('Section de Cruzy-Quarante', W / 2, 185);
+  x.drawImage(img, (W - 720) / 2, 300, 720, 720);
+  x.fillStyle = '#163a64'; x.font = 'bold 40px Arial, sans-serif';
+  x.fillText("Scannez avec l'appareil photo", W / 2, 1090);
+  x.font = '32px Arial, sans-serif'; x.fillStyle = '#333';
+  x.fillText("pour remplir la demande d'inscription", W / 2, 1140);
+  x.fillStyle = '#1d4580'; x.fillRect(0, H - 130, W, 130);
+  x.fillStyle = '#93c5fd'; x.font = 'bold 30px Arial, sans-serif';
+  x.fillText(inscLienPublic().replace('https://', '').replace(/\/$/, ''), W / 2, H - 55, W - 60);
+  return cv;
+}
+async function inscPartagerWhatsApp() {
+  let cv;
+  try { cv = await inscImageQR(); } catch (e) { alert('QR code indisponible (pas de connexion ?)'); return; }
+  const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+  const file = new File([blob], 'Inscriptions_JSP_Cruzy-Quarante.png', { type: 'image/png' });
+  const texte = inscTextePartage();
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], text: texte }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  // Ordinateur : on télécharge l'image et on copie le message
+  const a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = file.name; a.click();
+  if (navigator.clipboard) navigator.clipboard.writeText(texte).catch(() => {});
+  showNotifToast('Image téléchargée et message copié : joins-les dans WhatsApp');
+}
+function inscWhatsAppTexte() { window.open('https://wa.me/?text=' + encodeURIComponent(inscTextePartage()), '_blank'); }
 
 async function inscChangerConfig(modif) {
   try {
