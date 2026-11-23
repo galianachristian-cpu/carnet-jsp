@@ -4350,16 +4350,35 @@ function gradeBesoins(annee) {
   if (!S || S.applique) return b;
   (DB.jsps || []).forEach(j => {
     const n = gradeNum(j.promotion);
-    if (S.decisions && S.decisions[j.id] === 'passe' && n >= 1 && n <= 3) { const v = 'JSP ' + (n + 1); b[v] = (b[v] || 0) + 1; }
+    if (S.decisions && S.decisions[j.id] === 'passe' && n >= 1 && n <= 3) {
+      const v = 'JSP ' + (n + 1);
+      if (gradePorteJSP(j) === v) return; // il a déjà ce grade (dotation)
+      b[v] = (b[v] || 0) + 1;
+    }
   });
   return b;
+}
+function gradePorteJSP(j) { const h = (DB.habillement || []).find(x => x.jspId === j.id); return (h && h.gradePorte) || ''; }
+// Anciens grades qui reviendront en stock à l'application (grade porté, sinon grade actuel)
+function gradeRecuperables(annee) {
+  const S = getPassagesGrade()[annee || String(new Date().getFullYear())], r = {};
+  if (!S || S.applique) return r;
+  (DB.jsps || []).forEach(j => {
+    const n = gradeNum(j.promotion);
+    if (S.decisions && S.decisions[j.id] === 'passe' && n >= 1 && n <= 3) {
+      const v = 'JSP ' + (n + 1), ancien = gradePorteJSP(j) || j.promotion;
+      if (ancien && ancien !== v) r[ancien] = (r[ancien] || 0) + 1;
+    }
+  });
+  return r;
 }
 function gradeCarteStock(S, a) {
   const e = escTexte;
   const besoins = S.applique ? {} : gradeBesoins(a);
-  const lignes = ['JSP 2', 'JSP 3', 'JSP 4'].map(g => {
+  const recup = S.applique ? {} : gradeRecuperables(a);
+  const lignes = ['JSP 1', 'JSP 2', 'JSP 3', 'JSP 4'].map(g => {
     const besoin = besoins[g] || 0, stock = getStockQte('grade', g).qte, manque = Math.max(0, besoin - stock);
-    return { g, besoin, stock, manque };
+    return { g, besoin, stock, manque, recup: recup[g] || 0 };
   });
   const manqueTotal = lignes.reduce((t, l) => t + l.manque, 0);
   const retire = S.stockRetire || {};
@@ -4370,11 +4389,12 @@ function gradeCarteStock(S, a) {
         ${!S.applique && manqueTotal ? `<button class="btn-save" onclick="gradeCommander()"><i class="ti ti-clipboard-list"></i> Préparer une commande de grades</button>` : ''}
         <button class="an-btn" onclick="showSection('habillement');setTimeout(()=>{try{document.getElementById('content').innerHTML=renderHabillement('stock')}catch(e){}},0)"><i class="ti ti-boxes"></i> Voir le stock</button></div></div>
     ${S.applique
-      ? `<p style="font-size:14px">Grades retirés du stock à l'application : ${Object.keys(retire).length ? Object.entries(retire).map(([g, n]) => `${n} × ${e(g)}`).join(', ') : 'aucun'}.</p>`
-      : `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:var(--gris-txt)"><th style="padding:6px">Grade</th><th>À remettre</th><th>En stock</th><th>Manque</th></tr></thead><tbody>
+      ? `<p style="font-size:14px">À l'application : grades sortis du stock ${Object.keys(retire).length ? Object.entries(retire).map(([g, n]) => `${n} × ${e(g)}`).join(', ') : 'aucun'} · anciens grades remis en stock ${Object.keys(S.stockRecupere || {}).length ? Object.entries(S.stockRecupere).map(([g, n]) => `${n} × ${e(g)}`).join(', ') : 'aucun'}.</p>`
+      : `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:var(--gris-txt)"><th style="padding:6px">Grade</th><th>À remettre</th><th>En stock</th><th>Manque</th><th>Récupérés</th></tr></thead><tbody>
         ${lignes.map(l => `<tr style="border-top:1px solid var(--gris-bord)"><td style="padding:8px 6px">${promoBadge(l.g)}</td><td><b>${l.besoin}</b></td><td>${l.stock}</td>
-          <td>${l.manque ? `<span class="badge badge-rouge">${l.manque} à commander</span>` : (l.besoin ? '<span class="badge badge-vert">OK</span>' : '—')}</td></tr>`).join('')}</tbody></table>
-        <p class="an-small an-muted" style="margin-top:8px">${manqueTotal ? 'Il manque des grades pour la cérémonie.' : 'Le stock couvre les passages décidés.'} Les quantités se saisissent dans Habillement › Stock (ligne « Grades JSP »). À l'application des passages, les grades remis sont retirés du stock automatiquement.</p>`}
+          <td>${l.manque ? `<span class="badge badge-rouge">${l.manque} à commander</span>` : (l.besoin ? '<span class="badge badge-vert">OK</span>' : '—')}</td>
+          <td>${l.recup ? '+' + l.recup : '—'}</td></tr>`).join('')}</tbody></table>
+        <p class="an-small an-muted" style="margin-top:8px">${manqueTotal ? 'Il manque des grades pour la cérémonie.' : 'Le stock couvre les passages décidés.'} Un JSP qui porte déjà son nouveau grade (fiche dotation) n'est pas compté. À l'application, les grades remis sortent du stock et les anciens grades récupérés y reviennent (colonne « Récupérés », utiles pour les nouveaux JSP 1).</p>`}
   </div>`;
 }
 // Ouvre la commande habillement pré-remplie avec les grades manquants uniquement
@@ -4402,17 +4422,33 @@ function gradeAppliquer() {
   const S = gradeSession(); if (S.applique) return;
   const passe = (DB.jsps || []).filter(j => S.decisions[j.id] === 'passe' && gradeNum(j.promotion) >= 1 && gradeNum(j.promotion) <= 3);
   const red = (DB.jsps || []).filter(j => S.decisions[j.id] === 'redouble');
-  if (!confirm(`Appliquer les passages de grade ?\n\n${passe.length} JSP passent au grade supérieur, ${red.length} redoublent.\nLes grades sont mis à jour, les grades remis sont retirés du stock habillement et les cartes de félicitations apparaissent dans le Carnet des JSP qui passent.`)) return;
-  S.resultat = {};
+  if (!confirm(`Appliquer les passages de grade ?\n\n${passe.length} JSP passent au grade supérieur, ${red.length} redoublent.\nLes grades sont mis à jour, les grades remis sortent du stock habillement, les anciens grades y reviennent et les cartes de félicitations apparaissent dans le Carnet des JSP qui passent.`)) return;
+  S.resultat = {}; S.habAvant = {}; S.mvtIds = [];
+  const remis = {}, recup = {};
+  if (!DB.habillement) DB.habillement = [];
+  if (!DB.mouvementsHabillement) DB.mouvementsHabillement = [];
   passe.forEach(j => {
-    const de = j.promotion, vers = 'JSP ' + (gradeNum(de) + 1);
-    j.promotion = vers; j.dernierPassage = { de, vers, date: S.date || dateISOLocale(new Date()) };
+    const de = j.promotion, vers = 'JSP ' + (gradeNum(de) + 1), date = S.date || dateISOLocale(new Date());
+    j.promotion = vers; j.dernierPassage = { de, vers, date };
     S.resultat[j.id] = { de, vers };
+    // Dotation : grade porté mis à jour, ancien grade récupéré, mouvement tracé
+    let hab = DB.habillement.find(h => h.jspId === j.id);
+    if (!hab) { hab = { jspId: j.id, statut: 'En attente' }; DB.habillement.push(hab); (S.habCrees = S.habCrees || []).push(j.id); }
+    const ancien = hab.gradePorte || de;
+    S.habAvant[j.id] = hab.gradePorte || '';
+    if (ancien !== vers) {
+      remis[vers] = (remis[vers] || 0) + 1;
+      if (ancien) recup[ancien] = (recup[ancien] || 0) + 1;
+      const m = { id: nextId(DB.mouvementsHabillement), jspId: j.id, type: 'passage_grade', article: 'Grade', ancienneTaille: ancien, nouvelleTaille: vers, date,
+        remarque: 'Passage de grade (Sainte-Barbe ' + gradeAnnee() + ')', saison: getSaisonFromDate(date) };
+      DB.mouvementsHabillement.push(m); S.mvtIds.push(m.id);
+    }
+    hab.gradePorte = vers; hab.maj = new Date().toLocaleDateString('fr-FR');
   });
   // Grades remis : retirés du stock habillement
   // (on ne retire que ce qui était réellement en stock, pour pouvoir le remettre à l'identique en cas d'annulation)
-  const remis = {}; S.stockRetire = {};
-  Object.values(S.resultat).forEach(r => { remis[r.vers] = (remis[r.vers] || 0) + 1; });
+  S.stockRetire = {}; S.stockRecupere = recup;
+  Object.entries(recup).forEach(([g, n]) => incrementStockQte('grade', g, n));
   Object.entries(remis).forEach(([g, n]) => { const pris = Math.min(n, getStockQte('grade', g).qte); if (pris) { incrementStockQte('grade', g, -pris); S.stockRetire[g] = pris; } });
   S.applique = true; S.appliqueLe = new Date().toISOString();
   saveData(); showSection('passages-grade'); showToast('Passages de grade appliqués 🎉');
@@ -4426,7 +4462,11 @@ function gradeAnnuler() {
     if (j.dernierPassage && j.dernierPassage.vers === r.vers) delete j.dernierPassage;
   });
   Object.entries(S.stockRetire || {}).forEach(([g, n]) => incrementStockQte('grade', g, n));
-  S.applique = false; delete S.appliqueLe; delete S.resultat; delete S.stockRetire;
+  Object.entries(S.stockRecupere || {}).forEach(([g, n]) => incrementStockQte('grade', g, -n));
+  Object.entries(S.habAvant || {}).forEach(([id, g]) => { const h = (DB.habillement || []).find(x => String(x.jspId) === String(id)); if (h) h.gradePorte = g; });
+  if (S.habCrees) DB.habillement = (DB.habillement || []).filter(h => !S.habCrees.includes(h.jspId));
+  if (S.mvtIds && DB.mouvementsHabillement) DB.mouvementsHabillement = DB.mouvementsHabillement.filter(m => !S.mvtIds.includes(m.id));
+  S.applique = false; delete S.appliqueLe; delete S.resultat; delete S.stockRetire; delete S.stockRecupere; delete S.habAvant; delete S.mvtIds; delete S.habCrees;
   saveData(); showSection('passages-grade'); showToast('Passages annulés, anciens grades remis');
 }
 
@@ -23579,7 +23619,7 @@ function renderHabillement(ongletActif) {
                 : `<div style="width:32px;height:32px;border-radius:50%;background:var(--bleu);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${jsp.prenom[0]}${jsp.nom[0]}</div>`}
               <strong>${jsp.prenom} ${jsp.nom}</strong>
             </div></td>
-            <td>${promoBadge(jsp.promotion)}</td>
+            <td>${promoBadge(jsp.promotion)}${hab?.gradePorte && hab.gradePorte !== jsp.promotion ? `<div style="font-size:11px;color:var(--orange)" title="Grade porté (dotation)">porte ${hab.gradePorte}</div>` : ''}</td>
             <td>${val(hab?.veste)}</td>
             <td>${val(hab?.poloTsi)}</td>
             <td>${val(hab?.pantalon)}${hab?.pantalonLongueur ? ` <span style="color:var(--gris-txt);font-size:11px">(${hab.pantalonLongueur} cm)</span>` : ''}</td>
@@ -23716,6 +23756,13 @@ function modalHabillement(jspId) {
         <input type="number" id="hab-pantalonSportLongueur" min="0" step="1" value="${v('pantalonSportLongueur')}" placeholder="Ex : 76">
       </div>
       <div class="form-group">
+        <label>Grade porté</label>
+        <select id="hab-gradePorte">
+          <option value="">--</option>
+          ${['JSP 1','JSP 2','JSP 3','JSP 4'].map(s=>`<option ${v('gradePorte')===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
         <label>Statut</label>
         <select id="hab-statut">
           <option ${v('statut')==='En attente'||!v('statut')?'selected':''} value="En attente">⏳ En attente</option>
@@ -23756,12 +23803,13 @@ function saveHabillement(jspId) {
   const pantalonSportLongueur = document.getElementById('hab-pantalonSportLongueur').value.trim();
   const statut    = document.getElementById('hab-statut').value;
   const remarques = document.getElementById('hab-remarques').value.trim();
+  const gradePorte = document.getElementById('hab-gradePorte')?.value || '';
 
   // Auto-incomplet si champs manquants (tenue de base — la tenue de sport n'est exigée qu'en fin de cycle)
   const autoStatut = (statut !== 'Validé' && (!veste || !poloTsi || !pantalon || !casque || !gants || !chaussures || !ceinture || !parka))
     ? 'Incomplet' : statut;
 
-  const entry = { jspId: id, veste, poloTsi, pantalon, pantalonLongueur, casque, gants, chaussures, ceinture, parka, tshirtSport, vesteSport, pantalonSport, pantalonSportLongueur, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
+  const entry = { jspId: id, gradePorte, veste, poloTsi, pantalon, pantalonLongueur, casque, gants, chaussures, ceinture, parka, tshirtSport, vesteSport, pantalonSport, pantalonSportLongueur, statut: autoStatut, remarques, maj: new Date().toLocaleDateString('fr-FR') };
 
   const idx = DB.habillement.findIndex(h => h.jspId === id);
   if (idx >= 0) DB.habillement[idx] = entry;
@@ -23783,13 +23831,14 @@ function deleteHabillement(jspId) {
 // ══════════════════════════════════════════
 //  MOUVEMENTS HABILLEMENT (historique)
 // ══════════════════════════════════════════
-const HAB_ARTICLES = ['Veste TSI','Polo TSI','Pantalon TSI','Parka','Ceinture','Casque','Gants','Chaussures','T-shirt sport','Veste sport','Pantalon sport'];
+const HAB_ARTICLES = ['Grade','Veste TSI','Polo TSI','Pantalon TSI','Parka','Ceinture','Casque','Gants','Chaussures','T-shirt sport','Veste sport','Pantalon sport'];
 const HAB_ARTICLE_FIELD = {
-  'Veste TSI':'veste', 'Polo TSI':'poloTsi', 'Pantalon TSI':'pantalon', 'Parka':'parka', 'Ceinture':'ceinture',
+  'Grade':'gradePorte', 'Veste TSI':'veste', 'Polo TSI':'poloTsi', 'Pantalon TSI':'pantalon', 'Parka':'parka', 'Ceinture':'ceinture',
   'Casque':'casque', 'Gants':'gants', 'Chaussures':'chaussures',
   'T-shirt sport':'tshirtSport', 'Veste sport':'vesteSport', 'Pantalon sport':'pantalonSport'
 };
 const HAB_TAILLES = {
+  'Grade':['JSP 1','JSP 2','JSP 3','JSP 4'],
   'Veste TSI':['XS','S','M','L','XL','XXL','3XL'],
   'Polo TSI':['XS','S','M','L','XL','XXL','3XL'],
   'Pantalon TSI':['32','34','36','38','40','42','44','46','48','50'],
@@ -23807,7 +23856,8 @@ const HAB_TYPES_MVT = [
   { val:'retour_fin_annee', label:"Retour fin d'année / fin de saison", icon:'🔄' },
   { val:'retour_depart', label:'Retour suite à un départ', icon:'🚪' },
   { val:'echange', label:'Échange (déchiré/abîmé/perdu)', icon:'🧵' },
-  { val:'taille', label:'Changement de taille (croissance)', icon:'📏' }
+  { val:'taille', label:'Changement de taille (croissance)', icon:'📏' },
+  { val:'passage_grade', label:'Passage de grade', icon:'🎖️' }
 ];
 function habTypeLabel(val) { const t = HAB_TYPES_MVT.find(x=>x.val===val); return t ? t.icon+' '+t.label : val; }
 
@@ -24152,6 +24202,7 @@ function printFicheHabillement(jspId) {
         </tr>
       </thead>
       <tbody>
+        ${row('Grade porté', hab.gradePorte, '🎖️')}
         ${row('Veste TSI', hab.veste, '🧥')}
         ${row('Polo TSI', hab.poloTsi, '👕')}
         ${row('Pantalon TSI', (hab.pantalon || '') + (hab.pantalonLongueur ? (hab.pantalon ? ' ' : '') + '('+hab.pantalonLongueur+' cm)' : ''), '👖')}
