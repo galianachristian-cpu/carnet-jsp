@@ -1386,6 +1386,9 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         <div class="nav-item" onclick="showSection('livret')">
           <i class="ti ti-book-2"></i><span>Livret JSP officiel</span>
         </div>
+        <div class="nav-item" onclick="showSection('passages-grade')">
+          <i class="ti ti-award"></i><span>Passages de grade</span>
+        </div>
         <div class="nav-item" onclick="showSection('animation')">
           <i class="ti ti-presentation"></i><span>Guide d'animation</span>
         </div>
@@ -2490,6 +2493,7 @@ const MODULES_ACCES = [
   { key:'planning', label:'Planning', icon:'ti-calendar-event', section:'planning', groupe:'Suivi JSP' },
   { key:'bilans', label:'Bilans annuels', icon:'ti-clipboard-list', section:'bilans', groupe:'Suivi JSP' },
   { key:'livret', label:'Livret JSP officiel', icon:'ti-book-2', section:'livret', groupe:'Suivi JSP' },
+  { key:'passages-grade', label:'Passages de grade', icon:'ti-award', section:'passages-grade', groupe:'Suivi JSP' },
   { key:'animation', label:"Guide d'animation", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'animation-edit', label:"Guide d'animation : modifier les fiches", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'jsps', label:'JSP (fiches)', icon:'ti-users', section:'jsps', groupe:'Administration' },
@@ -3909,6 +3913,7 @@ function showSection(sec) {
     case 'subventions': c.innerHTML = renderSubventions(); break;
     case 'tombola': c.innerHTML = renderTombola(); break;
     case 'reunions': c.innerHTML = renderReunions(); break;
+    case 'passages-grade': c.innerHTML = renderPassagesGrade(); break;
   }
   if (changement) { c.classList.remove('entree'); void c.offsetWidth; c.classList.add('entree'); }
   fermerMenuMobile(); majNavBas(sec);
@@ -4269,6 +4274,216 @@ function banniereAnniversaireJSP(j) {
   return `<button class="anniv-bandeau" onclick="annivOuvrirCarte(${JSON.stringify(j.id).replace(/"/g, '&quot;')})">
     <span class="anniv-bandeau-ico" aria-hidden="true">🎂</span>
     <span><b>Joyeux anniversaire ${escTexte(j.prenom)}&nbsp;!</b><small>La section t'a préparé une carte : touche ici pour la voir.</small></span></button>`;
+}
+
+// ══════════════════════════════════════════
+//  PASSAGES DE GRADE (Sainte-Barbe / soirée coquillage)
+//  1. Le chef de section décide pour chaque JSP : passe au grade supérieur ou redouble (rien n'est visible des familles).
+//  2. Le soir de la cérémonie, « Appliquer les passages » met à jour les grades et fait apparaître la carte
+//     de félicitations dans le Carnet des JSP qui passent. Les redoublants ne voient rien.
+//  DB.passagesGrade = { <année>: { date, decisions: { <jspId>: 'passe'|'redouble' }, applique, appliqueLe, resultat: { <jspId>: { de, vers } } } }
+//  Sur la fiche du JSP qui passe : j.dernierPassage = { de, vers, date }
+// ══════════════════════════════════════════
+const GRADE_CARTE_JOURS = 15; // la carte reste sur l'accueil pendant 15 jours après la cérémonie
+function gradeNum(p) { const m = /([1-4])/.exec(p || ''); return m ? +m[1] : 0; }
+function getPassagesGrade() {
+  if (!DB.passagesGrade || typeof DB.passagesGrade !== 'object' || Array.isArray(DB.passagesGrade)) DB.passagesGrade = {};
+  return DB.passagesGrade;
+}
+function gradeAnnee() { return window._gradeAnnee || String(new Date().getFullYear()); }
+function gradeSession(annee) {
+  const P = getPassagesGrade(), a = annee || gradeAnnee();
+  if (!P[a]) P[a] = { date: a + '-12-04', decisions: {}, applique: false };
+  if (!P[a].decisions) P[a].decisions = {};
+  return P[a];
+}
+function renderPassagesGrade() {
+  const a = gradeAnnee(), S = gradeSession(a), e = escTexte;
+  const jsps = (DB.jsps || []).slice().sort((x, y) => gradeNum(x.promotion) - gradeNum(y.promotion) || (x.nom || '').localeCompare(y.nom || ''));
+  const dejaPasse = j => !!(S.applique && (S.resultat || {})[j.id]);
+  const concernes = jsps.filter(j => dejaPasse(j) || (gradeNum(j.promotion) >= 1 && gradeNum(j.promotion) <= 3));
+  const nb = { passe: 0, redouble: 0, attente: 0 };
+  concernes.forEach(j => { const d = S.decisions[j.id]; nb[d === 'passe' ? 'passe' : d === 'redouble' ? 'redouble' : 'attente']++; });
+  const annees = Object.keys(getPassagesGrade()).sort().reverse();
+  if (!annees.includes(a)) annees.unshift(a);
+  const ligne = j => {
+    const n = gradeNum(j.promotion), d = S.decisions[j.id] || '';
+    if (S.applique) {
+      const r = (S.resultat || {})[j.id];
+      return `<tr><td style="padding:8px 6px"><b>${e(j.prenom)} ${e(j.nom)}</b></td><td>${r ? promoBadge(r.de) + ' → ' + promoBadge(r.vers) : (d === 'redouble' ? 'Redouble ' + promoBadge(j.promotion) : promoBadge(j.promotion))}</td></tr>`;
+    }
+    return `<tr><td style="padding:8px 6px"><b>${e(j.prenom)} ${e(j.nom)}</b><div class="an-small an-muted">${e(j.promotion || '')}</div></td>
+      <td style="padding:8px 6px;width:230px"><select style="width:100%;min-height:44px;padding:8px;border:1px solid var(--gris-bord);border-radius:8px;font-size:15px;${d === 'passe' ? 'background:var(--vert-pale)' : d === 'redouble' ? 'background:var(--orange-pale)' : ''}" onchange="gradeDecider('${e(String(j.id))}',this.value)">
+        <option value="" ${!d ? 'selected' : ''}>À décider</option>
+        <option value="passe" ${d === 'passe' ? 'selected' : ''}>Passe JSP ${n + 1}</option>
+        <option value="redouble" ${d === 'redouble' ? 'selected' : ''}>Redouble (reste JSP ${n})</option></select></td></tr>`;
+  };
+  const jsp4 = jsps.filter(j => gradeNum(j.promotion) === 4 && !dejaPasse(j));
+  return `<div class="section-header"><h2><i class="ti ti-award"></i> Passages de grade</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select onchange="window._gradeAnnee=this.value;showSection('passages-grade')" style="min-height:44px;padding:8px;border:1px solid var(--gris-bord);border-radius:8px">${annees.map(x => `<option ${x === a ? 'selected' : ''}>${x}</option>`).join('')}</select>
+      <button class="an-btn" onclick="gradeImprimerCartes()"><i class="ti ti-printer"></i> Imprimer les cartes</button></div></div>
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
+      <div class="form-group" style="margin:0;min-width:200px"><label>Date de la cérémonie (Sainte-Barbe)</label>
+        <input type="date" value="${e(S.date || '')}" ${S.applique ? 'disabled' : ''} onchange="gradeSession().date=this.value;saveData();showSection('passages-grade')"></div>
+      <div style="flex:1;min-width:220px;font-size:14px">
+        <span class="badge badge-vert">${nb.passe} passent</span> <span class="badge badge-orange">${nb.redouble} redoublent</span> ${nb.attente ? `<span class="badge badge-rouge">${nb.attente} à décider</span>` : ''}</div>
+      ${S.applique ? `<span class="badge badge-vert">Appliqué le ${e(new Date(S.appliqueLe).toLocaleDateString('fr-FR'))}</span>`
+        : `<button class="an-btn" onclick="gradeTousPassent()"><i class="ti ti-checks"></i> Les autres « Passe »</button>`}
+    </div>
+    <p class="an-small an-muted" style="margin-top:10px">${S.applique
+      ? "Les grades ont été mis à jour. Les JSP qui sont passés voient leur carte de félicitations sur leur Carnet pendant " + GRADE_CARTE_JOURS + " jours."
+      : "Tes choix restent privés : les familles ne voient rien tant que tu n'as pas cliqué sur « Appliquer les passages » le soir de la cérémonie. Les redoublants ne reçoivent aucune carte."}</p>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    ${concernes.length ? `<table style="width:100%;border-collapse:collapse"><tbody>${concernes.map(ligne).join('')}</tbody></table>` : '<p class="an-muted">Aucun JSP 1 à JSP 3 dans la liste.</p>'}
+    ${jsp4.length ? `<p class="an-small an-muted" style="margin-top:10px">JSP 4 (pas de grade supérieur, fin de cycle avec le brevet) : ${jsp4.map(j => e(j.prenom + ' ' + j.nom)).join(', ')}</p>` : ''}
+  </div>
+  ${S.applique ? `<div style="display:flex;justify-content:flex-end"><button class="btn-cancel" onclick="gradeAnnuler()"><i class="ti ti-arrow-back-up"></i> Annuler l'application (remettre les anciens grades)</button></div>`
+    : `<div style="display:flex;justify-content:flex-end"><button class="btn-save" ${nb.attente ? 'disabled title="Décide d\'abord pour chaque JSP"' : ''} onclick="gradeAppliquer()"><i class="ti ti-award"></i> Appliquer les passages</button></div>`}`;
+}
+function gradeDecider(id, v) {
+  const S = gradeSession(); if (S.applique) return;
+  if (v) S.decisions[id] = v; else delete S.decisions[id];
+  saveData(); showSection('passages-grade');
+}
+function gradeTousPassent() {
+  const S = gradeSession(); if (S.applique) return;
+  (DB.jsps || []).forEach(j => { const n = gradeNum(j.promotion); if (n >= 1 && n <= 3 && !S.decisions[j.id]) S.decisions[j.id] = 'passe'; });
+  saveData(); showSection('passages-grade');
+}
+function gradeAppliquer() {
+  const S = gradeSession(); if (S.applique) return;
+  const passe = (DB.jsps || []).filter(j => S.decisions[j.id] === 'passe' && gradeNum(j.promotion) >= 1 && gradeNum(j.promotion) <= 3);
+  const red = (DB.jsps || []).filter(j => S.decisions[j.id] === 'redouble');
+  if (!confirm(`Appliquer les passages de grade ?\n\n${passe.length} JSP passent au grade supérieur, ${red.length} redoublent.\nLes grades sont mis à jour et les cartes de félicitations apparaissent dans le Carnet des JSP qui passent.`)) return;
+  S.resultat = {};
+  passe.forEach(j => {
+    const de = j.promotion, vers = 'JSP ' + (gradeNum(de) + 1);
+    j.promotion = vers; j.dernierPassage = { de, vers, date: S.date || dateISOLocale(new Date()) };
+    S.resultat[j.id] = { de, vers };
+  });
+  S.applique = true; S.appliqueLe = new Date().toISOString();
+  saveData(); showSection('passages-grade'); showToast('Passages de grade appliqués 🎉');
+}
+function gradeAnnuler() {
+  const S = gradeSession(); if (!S.applique) return;
+  if (!confirm('Remettre les anciens grades et retirer les cartes de félicitations ?')) return;
+  Object.entries(S.resultat || {}).forEach(([id, r]) => {
+    const j = (DB.jsps || []).find(x => String(x.id) === String(id)); if (!j) return;
+    if (j.promotion === r.vers) j.promotion = r.de;
+    if (j.dernierPassage && j.dernierPassage.vers === r.vers) delete j.dernierPassage;
+  });
+  S.applique = false; delete S.appliqueLe; delete S.resultat;
+  saveData(); showSection('passages-grade'); showToast('Passages annulés, anciens grades remis');
+}
+
+// ── Carte « Félicitations, tu passes JSP n » ──
+async function gradeDessiner(j, de, vers) {
+  try { await document.fonts.load('800 90px "Barlow Condensed"'); await document.fonts.load('600 30px Barlow'); } catch (e) {}
+  const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  const F = '"Barlow Condensed","Arial Narrow",Arial,sans-serif', FB = 'Barlow,Arial,sans-serif';
+  const ls = v => { if ('letterSpacing' in x) x.letterSpacing = v; };
+  const rr = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
+  const gN = ANNIV_GRADES[gradeNum(vers)] || ANNIV_GRADES[1], gA = ANNIV_GRADES[gradeNum(de)] || ANNIV_GRADES[1];
+  let g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0b1d3a'); g.addColorStop(1, '#173d73'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // Rayons dorés
+  x.save(); x.translate(W / 2, 290); x.globalAlpha = .07; x.fillStyle = '#facc15';
+  for (let i = 0; i < 24; i++) { x.rotate(Math.PI / 12); x.beginPath(); x.moveTo(0, 0); x.lineTo(-40, -1400); x.lineTo(40, -1400); x.closePath(); x.fill(); }
+  x.restore();
+  g = x.createRadialGradient(W / 2, 290, 30, W / 2, 290, 520); g.addColorStop(0, 'rgba(250,204,21,.35)'); g.addColorStop(1, 'rgba(250,204,21,0)'); x.fillStyle = g; x.fillRect(0, 0, W, 900);
+  x.fillStyle = '#c62828'; x.fillRect(0, 0, W, 16); x.fillRect(0, H - 16, W, 16);
+  // Emblème
+  x.save(); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 40; x.shadowOffsetY = 12; x.beginPath(); x.arc(W / 2, 250, 140, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.restore();
+  x.beginPath(); x.arc(W / 2, 250, 140, 0, Math.PI * 2); x.lineWidth = 9; x.strokeStyle = '#facc15'; x.stroke();
+  const img = await carteImageCharger(LOGO_JSP_BASE64);
+  if (img) { const h = 220, w = h * img.width / img.height; x.drawImage(img, W / 2 - w / 2, 250 - h / 2, w, h); }
+  x.textAlign = 'center';
+  ls('4px'); x.font = '800 118px ' + F; x.fillStyle = '#fff';
+  for (let t = 118; x.measureText('FÉLICITATIONS').width > W - 100 && t > 70; t -= 4) x.font = '800 ' + t + 'px ' + F;
+  x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 18; x.shadowOffsetY = 6; x.fillText('FÉLICITATIONS', W / 2, 520); x.restore();
+  // Prénom
+  ls('2px'); let fs = 96; x.font = '800 96px ' + F; const prenom = String(j.prenom || '').toUpperCase();
+  const wP = Math.min(W - 120, x.measureText(prenom).width + 110);
+  x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 24; x.shadowOffsetY = 10; x.fillStyle = '#c62828'; rr(W / 2 - wP / 2, 565, wP, 140, 70); x.fill(); x.restore();
+  x.fillStyle = '#fff'; while (x.measureText(prenom).width > wP - 60 && fs > 50) { fs -= 4; x.font = '800 ' + fs + 'px ' + F; }
+  x.fillText(prenom, W / 2, 668);
+  // « Tu passes »
+  ls('6px'); x.font = '700 44px ' + F; x.fillStyle = '#facc15'; x.fillText('TU PASSES', W / 2, 800);
+  // Galons : ancien grade → nouveau grade
+  const pastille = (cx, cy, r, gr, txt, fsz, contour) => {
+    x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 20; x.shadowOffsetY = 8; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fillStyle = gr.c; x.fill(); x.restore();
+    x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.lineWidth = contour; x.strokeStyle = '#fff'; x.stroke();
+    ls('2px'); x.fillStyle = gr.t; x.font = '800 ' + fsz + 'px ' + F; x.fillText(txt, cx, cy + fsz * .35);
+  };
+  x.globalAlpha = .55; pastille(W / 2 - 250, 950, 78, gA, de.toUpperCase(), 40, 4); x.globalAlpha = 1;
+  x.fillStyle = '#fff'; x.beginPath(); x.moveTo(W / 2 - 140, 935); x.lineTo(W / 2 - 70, 935); x.lineTo(W / 2 - 70, 915); x.lineTo(W / 2 - 30, 950); x.lineTo(W / 2 - 70, 985); x.lineTo(W / 2 - 70, 965); x.lineTo(W / 2 - 140, 965); x.closePath(); x.fill();
+  pastille(W / 2 + 130, 950, 128, gN, vers.toUpperCase(), 62, 8);
+  // Message
+  ls('0px'); x.font = '500 36px ' + FB; x.fillStyle = 'rgba(255,255,255,.92)';
+  x.fillText('Bravo pour ton travail et ton engagement.', W / 2, 1160);
+  x.fillText('Toute la section est fière de toi !', W / 2, 1208);
+  ls('3px'); x.fillStyle = 'rgba(255,255,255,.65)'; fs = 28; x.font = '600 28px ' + F;
+  const pied = 'SECTION DES JEUNES SAPEURS-POMPIERS · CIS CRUZY-QUARANTE';
+  while (x.measureText(pied).width > W - 100 && fs > 16) { fs -= 1; x.font = '600 ' + fs + 'px ' + F; }
+  x.fillText(pied, W / 2, 1290); ls('0px');
+  return cv;
+}
+async function gradeOuvrirCarte(jspId, de, vers) {
+  const j = (DB.jsps || []).find(x => String(x.id) === String(jspId)); if (!j) return;
+  if (!de || !vers) { const p = j.dernierPassage; if (!p) return; de = p.de; vers = p.vers; }
+  let fond = document.getElementById('annivFond');
+  if (!fond) { fond = document.createElement('div'); fond.id = 'annivFond'; fond.className = 'anniv-fond'; fond.onclick = ev => { if (ev.target === fond) annivFermerCarte(); }; document.body.appendChild(fond); }
+  fond.innerHTML = '<div class="anniv-boite"><div class="anniv-charge">🎖️</div></div>'; fond.classList.add('ouvert');
+  const cv = await gradeDessiner(j, de, vers), url = cv.toDataURL('image/png');
+  window._annivImage = { url, nom: 'Passage-' + vers.replace(/\s+/g, '') + '-' + String(j.prenom || 'JSP').replace(/[^\wÀ-ÿ-]+/g, '_') + '.png' };
+  const confettis = Array.from({ length: 40 }, (_, i) => `<i style="left:${(i * 37) % 100}%;animation-delay:${(i % 10) * .25}s;background:${['#c62828', '#facc15', '#fff', '#f97316', '#60a5fa', '#16a34a'][i % 6]}"></i>`).join('');
+  fond.innerHTML = `<div class="anniv-confettis" aria-hidden="true">${confettis}</div>
+    <div class="anniv-boite" role="dialog" aria-label="Carte de passage de grade">
+      <img src="${url}" alt="Carte : félicitations ${escTexte(j.prenom)}, tu passes ${escTexte(vers)}">
+      <div class="anniv-actions">
+        <button class="btn-save" onclick="annivTelecharger()"><i class="ti ti-download"></i> Télécharger la carte</button>
+        ${navigator.share ? '<button class="an-btn" onclick="annivPartager()"><i class="ti ti-share"></i> Partager</button>' : ''}
+        <button class="btn-cancel" onclick="annivFermerCarte()">Fermer</button></div></div>`;
+}
+// Accueil famille / JSP : bandeau pendant 15 jours après la cérémonie, ouverture automatique une fois
+function banniereGradeJSP(j) {
+  const p = j && j.dernierPassage; if (!p || !p.date || !p.vers) return '';
+  const auj = dateISOLocale(new Date());
+  if (auj < p.date) return '';
+  const fin = new Date(p.date + 'T12:00:00'); fin.setDate(fin.getDate() + GRADE_CARTE_JOURS);
+  if (auj > dateISOLocale(fin)) return '';
+  const cle = 'grade_vu_' + j.id + '_' + p.vers;
+  let vu = false; try { vu = !!localStorage.getItem(cle); } catch (e) {}
+  if (!vu && !estAnniversaireAujourdhui(j)) setTimeout(() => { try { localStorage.setItem(cle, '1'); } catch (e) {} gradeOuvrirCarte(j.id); }, 700);
+  return `<button class="anniv-bandeau" onclick="gradeOuvrirCarte(${JSON.stringify(j.id).replace(/"/g, '&quot;')})">
+    <span class="anniv-bandeau-ico" aria-hidden="true">🎖️</span>
+    <span><b>Félicitations ${escTexte(j.prenom)}, tu passes ${escTexte(p.vers)}&nbsp;!</b><small>Touche ici pour voir ta carte.</small></span></button>`;
+}
+// Impression de toutes les cartes (une par page) pour les remettre en main propre
+async function gradeImprimerCartes() {
+  const S = gradeSession();
+  const liste = (DB.jsps || []).map(j => {
+    const r = (S.resultat || {})[j.id];
+    if (r) return { j, de: r.de, vers: r.vers };
+    if (!S.applique && S.decisions[j.id] === 'passe' && gradeNum(j.promotion) >= 1 && gradeNum(j.promotion) <= 3) return { j, de: j.promotion, vers: 'JSP ' + (gradeNum(j.promotion) + 1) };
+    return null;
+  }).filter(Boolean);
+  if (!liste.length) { showToast('Aucun JSP marqué « Passe » pour l\'instant'); return; }
+  const w = window.open('', '_blank'); if (!w) { alert('Le navigateur a bloqué la fenêtre : autorise les fenêtres pour ce site.'); return; }
+  w.document.write('<p style="font-family:Arial;padding:20px">Préparation des cartes…</p>');
+  const imgs = [];
+  for (const it of liste) imgs.push((await gradeDessiner(it.j, it.de, it.vers)).toDataURL('image/jpeg', .92));
+  w.document.open();
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Cartes de passage de grade</title><style>
+    *{margin:0;padding:0;box-sizing:border-box} body{background:#eef1f6;font-family:Arial,sans-serif}
+    .barre{position:sticky;top:0;display:flex;gap:10px;justify-content:center;padding:12px;background:#163a64} .barre button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;background:#cf1419;color:#fff} .barre button.sec{background:rgba(255,255,255,.18)}
+    .page{width:210mm;height:297mm;margin:16px auto;background:#fff;display:flex;align-items:center;justify-content:center;break-after:page} .page img{width:180mm;height:auto;border-radius:6mm}
+    @media print{body{background:#fff}.barre{display:none}.page{margin:0;box-shadow:none}@page{size:A4;margin:0}}
+  </style></head><body><div class="barre"><button onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button><button class="sec" onclick="window.close()">Fermer</button></div>
+  ${imgs.map(u => `<div class="page"><img src="${u}" alt=""></div>`).join('')}</body></html>`);
+  w.document.close();
 }
 
 // ══════════════════════════════════════════
@@ -15762,6 +15977,7 @@ function renderParentAccueil() {
 
   // Carte « Prochaine séance » (ou bouton simple s'il n'y a rien de prévu)
   html2 += banniereAnniversaireJSP(j);
+  html2 += banniereGradeJSP(j);
   html2 += renderCarteProchaineSeance(j);
 
   // Anniversaires (si activés par le chef de section)
