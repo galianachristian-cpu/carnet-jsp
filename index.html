@@ -394,8 +394,8 @@
   .prochaine-type.type-sortie { background:#f3e8ff; color:#6b21a8; }
   .prochaine-lieu { font-size: 14px; color: var(--gris-txt); margin-top: 4px; }
   .prochaine-prog { margin-top: 14px; border-radius: 10px; padding: 12px 14px; background: var(--gris-bg); border-left: 4px solid var(--bleu); }
-  .prochaine-prog.cycle-JSP1 { border-left-color:#7c3aed; } .prochaine-prog.cycle-JSP2 { border-left-color:#ea580c; }
-  .prochaine-prog.cycle-JSP3 { border-left-color:#0d9488; } .prochaine-prog.cycle-JSP4 { border-left-color:#db2777; }
+  .prochaine-prog.cycle-JSP1 { border-left-color:#94a3b8; } .prochaine-prog.cycle-JSP2 { border-left-color:#eab308; }
+  .prochaine-prog.cycle-JSP3 { border-left-color:#f97316; } .prochaine-prog.cycle-JSP4 { border-left-color:#16a34a; }
   .prochaine-prog-titre { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
   .pp-bloc + .pp-bloc { margin-top: 10px; }
   .pp-theme { font-size: 13px; font-weight: 600; color: var(--gris-txt); margin-bottom: 3px; }
@@ -445,8 +445,8 @@
   .agenda-titre { font-size: 16px; font-weight: 600; }
   .agenda-lieu { font-size: 13px; color: var(--gris-txt); margin-top: 2px; }
   .agenda-prog { font-size: 13px; margin-top: 4px; padding-left: 8px; border-left: 3px solid var(--bleu); color: var(--gris-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .agenda-prog.cycle-JSP1 { border-left-color:#7c3aed; } .agenda-prog.cycle-JSP2 { border-left-color:#ea580c; }
-  .agenda-prog.cycle-JSP3 { border-left-color:#0d9488; } .agenda-prog.cycle-JSP4 { border-left-color:#db2777; }
+  .agenda-prog.cycle-JSP1 { border-left-color:#94a3b8; } .agenda-prog.cycle-JSP2 { border-left-color:#eab308; }
+  .agenda-prog.cycle-JSP3 { border-left-color:#f97316; } .agenda-prog.cycle-JSP4 { border-left-color:#16a34a; }
   .agenda-chevron { color: var(--gris-txt); font-size: 18px; }
   .agenda-vacances { display: flex; gap: 10px; align-items: center; background: #fef2f2; border: 1px dashed #fecaca; color: #991b1b; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
   .agenda-vacances i { font-size: 20px; }
@@ -906,9 +906,15 @@
   .sn-rep.ouvert-ko > summary { color:#991b1b; }
   .sn-note { font-size:12px; color:var(--gris-txt); margin-top:12px; line-height:1.5; }
   .sn-sous { font-size:14px; font-weight:800; margin:18px 0 8px; color:var(--bleu); }
-  .promo-1 { --promo: #7c3aed; } .promo-2 { --promo: #ea580c; } .promo-3 { --promo: #0d9488; } .promo-4 { --promo: #db2777; }
+  /* Couleurs des grades : JSP 1 blanc, JSP 2 jaune, JSP 3 orange, JSP 4 vert.
+     --promo = teinte d'accent lisible sur fond clair (le blanc du JSP 1 devient gris-bleu pour les traits, avatars, titres). */
+  .promo-1 { --promo: #64748b; --grade-fond: #ffffff; --grade-txt: #0f2342; --grade-bord: #94a3b8; }
+  .promo-2 { --promo: #ca8a04; --grade-fond: #facc15; --grade-txt: #3b2f00; --grade-bord: #eab308; }
+  .promo-3 { --promo: #ea580c; --grade-fond: #f97316; --grade-txt: #ffffff; --grade-bord: #ea580c; }
+  .promo-4 { --promo: #16a34a; --grade-fond: #16a34a; --grade-txt: #ffffff; --grade-bord: #15803d; }
   .badge-promo { background: color-mix(in srgb, var(--promo, var(--bleu)) 14%, transparent); color: var(--promo, var(--bleu)); border: 1px solid color-mix(in srgb, var(--promo, var(--bleu)) 30%, transparent); }
-  [data-theme="dark"] .badge-promo { color: color-mix(in srgb, var(--promo, var(--bleu)) 60%, #fff); }
+  .badge-promo[class*="promo-"] { background: var(--grade-fond); color: var(--grade-txt); border-color: var(--grade-bord); font-weight: 700; }
+  [data-theme="dark"] .badge-promo:not([class*="promo-"]) { color: color-mix(in srgb, var(--promo, var(--bleu)) 60%, #fff); }
   tbody tr.ligne-alerte { background: var(--rouge-pale); }
   .trombi-card.trombi-card[class*="promo-"] { border-top: 4px solid var(--promo); }
   [data-theme="dark"] .trombi-card { background: #1f2937; border-color: #374151; }
@@ -5022,7 +5028,7 @@ ${pages.map(c2 => `<div class="page"><div class="tete"><img src="${LOGO_JSP_BASE
 ${c2}<div class="pied"><span>Carnet JSP · CIS Cruzy-Quarante</span><span>Édité le ${new Date().toLocaleDateString('fr-FR')}</span></div></div>`).join('')}</body></html>`);
   w.document.close();
 }
-const COULEURS_PROMO = { 'promo-1': '#7c3aed', 'promo-2': '#ea580c', 'promo-3': '#0d9488', 'promo-4': '#db2777' };
+const COULEURS_PROMO = { 'promo-1': '#64748b', 'promo-2': '#ca8a04', 'promo-3': '#ea580c', 'promo-4': '#16a34a' };
 
 // ══════════════════════════════════════════
 //  TOMBOLA : affiche A4 (lot offert par l'Amicale)
