@@ -1091,6 +1091,22 @@
   .ca-txt small::first-letter { text-transform: uppercase; }
   @media (prefers-reduced-motion: reduce) { .ca-gateau, .etat-pt.rouge, .recherche-fond.ouvert, .recherche-boite { animation: none !important; } }
 
+  /* ── Carte d'anniversaire du JSP ── */
+  .anniv-bandeau { display: flex; align-items: center; gap: 14px; width: 100%; margin-bottom: 18px; padding: 14px 18px; border-radius: 16px; border: 0; cursor: pointer; text-align: left; font: inherit; color: #fff;
+    background: linear-gradient(120deg, #0b1d3a, #1d4580 60%, #c62828); box-shadow: 0 10px 24px rgba(15,35,66,.25); }
+  .anniv-bandeau b { display: block; font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 24px; letter-spacing: .5px; }
+  .anniv-bandeau small { font-size: 14px; opacity: .9; }
+  .anniv-bandeau-ico { font-size: 38px; animation: float 3s ease-in-out infinite; }
+  .anniv-fond { position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(8,18,36,.78); overflow: hidden; }
+  .anniv-fond.ouvert { display: flex; }
+  .anniv-boite { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 14px; max-height: 100%; animation: anniv-pop .5s cubic-bezier(.2,1.4,.4,1); }
+  .anniv-boite img { max-width: min(92vw, 520px); max-height: calc(100vh - 120px); border-radius: 18px; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .anniv-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .anniv-charge { font-size: 70px; animation: float 1s ease-in-out infinite; }
+  .anniv-confettis i { position: absolute; top: -20px; width: 10px; height: 16px; border-radius: 2px; animation: anniv-chute 3.2s linear infinite; }
+  @keyframes anniv-chute { to { transform: translateY(110vh) rotate(720deg); } }
+  @keyframes anniv-pop { from { transform: scale(.6); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .anniv-boite, .anniv-confettis i, .anniv-bandeau-ico { animation: none !important; } .anniv-confettis { display: none; } }
   /* ── Assiduité de la saison ── */
   .as-carte { background: var(--blanc); border: 1px solid var(--gris-bord); border-radius: 14px; box-shadow: var(--ombre); padding: 18px 20px 14px; }
   .as-haut { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; margin-bottom: 36px; }
@@ -4091,6 +4107,7 @@ function carteAnniversaires() {
   return `<div class="carte-anniv">
     <div class="ca-titre"><span class="ca-gateau" aria-hidden="true">🎂</span> Anniversaires des 15 prochains jours</div>
     <label class="ca-option"><input type="checkbox" ${anniversairesFamillesActifs() ? 'checked' : ''} onchange="basculerAnniversairesFamilles(this.checked)"> Montrer aussi les anniversaires aux familles et aux JSP (prénom et jour seulement, sans âge)</label>
+    <div class="ca-option" style="cursor:default;flex-wrap:wrap">🎉 Le jour J, chaque JSP voit sa carte d'anniversaire en ouvrant son Carnet (aucun e-mail envoyé). <button class="an-btn" style="min-height:32px;padding:4px 10px" onclick="annivOuvrirCarte(${JSON.stringify(liste[0].j.id).replace(/"/g, '&quot;')})">Aperçu de la carte de ${escTexte(liste[0].j.prenom)}</button></div>
     <div class="ca-liste">${liste.map(x => `<button class="ca-item ${promoClasse(x.j.promotion)}${x.dans === 0 ? ' aujourdhui' : ''}" onclick="ficheJSP(${x.j.id})">
       <span class="ca-av">${x.j.photo ? `<img src="${x.j.photo}" alt="">` : escTexte((x.j.prenom || '?')[0] + (x.j.nom || '?')[0])}</span>
       <span class="ca-txt"><b>${escTexte(x.j.prenom)} ${escTexte(x.j.nom)}</b><small>${quand(x)} · ${x.age} ans</small></span></button>`).join('')}</div>
@@ -4125,6 +4142,134 @@ function carteAnniversairesFamille() {
       <span class="ca-av">${av(x.j)}</span>
       <span class="ca-txt"><b>${escTexte(x.j.prenom)}</b><small>${quand(x)}</small></span></div>`).join('')}</div>
   </div>`;
+}
+
+// ══════════════════════════════════════════
+//  CARTE D'ANNIVERSAIRE DU JSP (le jour J, sur son propre Carnet)
+//  Aucun envoi d'e-mail : la carte s'affiche quand le JSP ou sa famille ouvre le Carnet.
+// ══════════════════════════════════════════
+// Jour d'anniversaire cette année (29 février → 28 février les années non bissextiles)
+function annivCetteAnnee(j, ref) {
+  if (!j || !/^\d{4}-\d{2}-\d{2}/.test(j.dateNaissance || '')) return null;
+  const [a, m, d] = j.dateNaissance.slice(0, 10).split('-').map(Number);
+  const an = (ref || new Date()).getFullYear();
+  let jour = d;
+  if (m === 2 && d === 29 && !(an % 4 === 0 && (an % 100 !== 0 || an % 400 === 0))) jour = 28;
+  return { date: new Date(an, m - 1, jour), age: an - a };
+}
+function estAnniversaireAujourdhui(j) {
+  const x = annivCetteAnnee(j); if (!x) return false;
+  const auj = new Date();
+  return x.date.getDate() === auj.getDate() && x.date.getMonth() === auj.getMonth();
+}
+const ANNIV_GRADES = { 1: { c: '#f8fafc', t: '#0f2342', n: 'JSP 1' }, 2: { c: '#facc15', t: '#3b2f00', n: 'JSP 2' }, 3: { c: '#f97316', t: '#fff', n: 'JSP 3' }, 4: { c: '#16a34a', t: '#fff', n: 'JSP 4' } };
+
+async function annivDessiner(j) {
+  try { await document.fonts.load('800 90px "Barlow Condensed"'); await document.fonts.load('600 30px "Barlow Condensed"'); await document.fonts.load('600 30px Barlow'); } catch (e) {}
+  const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  const F = '"Barlow Condensed","Arial Narrow",Arial,sans-serif', FB = 'Barlow,Arial,sans-serif';
+  const ls = v => { if ('letterSpacing' in x) x.letterSpacing = v; };
+  const rr = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
+  const an = annivCetteAnnee(j) || { age: '' };
+  const m = /([1-4])/.exec(j.promotion || ''), grade = m ? ANNIV_GRADES[m[1]] : null;
+  // Fond nuit + rayons
+  let g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0b1d3a'); g.addColorStop(1, '#173d73'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.save(); x.translate(W / 2, 300); x.globalAlpha = .06; x.fillStyle = '#fff';
+  for (let i = 0; i < 24; i++) { x.rotate(Math.PI / 12); x.beginPath(); x.moveTo(0, 0); x.lineTo(-40, -1400); x.lineTo(40, -1400); x.closePath(); x.fill(); }
+  x.restore();
+  g = x.createRadialGradient(W / 2, 300, 30, W / 2, 300, 520); g.addColorStop(0, 'rgba(255,214,102,.35)'); g.addColorStop(1, 'rgba(255,214,102,0)'); x.fillStyle = g; x.fillRect(0, 0, W, 900);
+  // Confettis (tirage fixe : même carte à chaque affichage)
+  let s = 0; String(j.id || j.prenom || 'x').split('').forEach(ch => s = (s * 31 + ch.charCodeAt(0)) % 2147483647); s = s || 7;
+  const rnd = () => (s = s * 16807 % 2147483647) / 2147483647;
+  const cols = ['#c62828', '#facc15', '#ffffff', '#f97316', '#60a5fa', '#16a34a'];
+  for (let i = 0; i < 130; i++) {
+    const px = rnd() * W, py = rnd() * H; if (py > 420 && py < 1320 && px > 70 && px < W - 70) continue;
+    x.save(); x.translate(px, py); x.rotate(rnd() * Math.PI); x.fillStyle = cols[i % cols.length]; x.globalAlpha = .55 + rnd() * .45;
+    if (i % 3) x.fillRect(-9, -4, 18, 8); else { x.beginPath(); x.arc(0, 0, 6, 0, Math.PI * 2); x.fill(); }
+    x.restore();
+  }
+  // Bandes tricolores
+  x.fillStyle = '#c62828'; x.fillRect(0, 0, W, 16); x.fillRect(0, H - 16, W, 16);
+  // Emblème dans un médaillon
+  x.save(); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 40; x.shadowOffsetY = 12; x.beginPath(); x.arc(W / 2, 250, 140, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.restore();
+  x.beginPath(); x.arc(W / 2, 250, 140, 0, Math.PI * 2); x.lineWidth = 9; x.strokeStyle = '#facc15'; x.stroke();
+  const img = await carteImageCharger(LOGO_JSP_BASE64);
+  if (img) { const h = 220, w = h * img.width / img.height; x.drawImage(img, W / 2 - w / 2, 250 - h / 2, w, h); }
+  // Titre
+  x.textAlign = 'center';
+  ls('10px'); x.font = '700 46px ' + F; x.fillStyle = '#facc15'; x.fillText('JOYEUX', W / 2, 470);
+  ls('4px'); x.font = '800 120px ' + F; x.fillStyle = '#fff';
+  for (let t = 120; x.measureText('ANNIVERSAIRE').width > W - 100 && t > 70; t -= 4) x.font = '800 ' + t + 'px ' + F;
+  x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 18; x.shadowOffsetY = 6; x.fillText('ANNIVERSAIRE', W / 2, 590); x.restore();
+  // Prénom dans un cartouche
+  ls('2px'); x.font = '800 104px ' + F; const prenom = String(j.prenom || '').toUpperCase();
+  const wP = Math.min(W - 120, x.measureText(prenom).width + 110);
+  x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 24; x.shadowOffsetY = 10; x.fillStyle = '#c62828'; rr(W / 2 - wP / 2, 640, wP, 150, 75); x.fill(); x.restore();
+  x.fillStyle = '#fff'; let fs = 104; while (x.measureText(prenom).width > wP - 60 && fs > 50) { fs -= 4; x.font = '800 ' + fs + 'px ' + F; }
+  x.fillText(prenom, W / 2, 750);
+  // Âge + grade
+  ls('1px'); x.font = '600 52px ' + F; x.fillStyle = '#fff';
+  if (an.age) x.fillText(an.age + ' ANS AUJOURD\'HUI !', W / 2, 880);
+  if (grade) {
+    x.font = '700 34px ' + F; ls('3px'); const wG = x.measureText(grade.n).width + 60;
+    x.fillStyle = grade.c; rr(W / 2 - wG / 2, 912, wG, 58, 29); x.fill(); x.fillStyle = grade.t; x.fillText(grade.n, W / 2, 953);
+  }
+  // Message
+  ls('0px'); x.font = '500 36px ' + FB; x.fillStyle = 'rgba(255,255,255,.92)';
+  x.fillText('Toute la section JSP de Cruzy-Quarante', W / 2, 1050);
+  x.fillText('te souhaite une super journée !', W / 2, 1098);
+  // Signature
+  x.font = 'italic 600 32px ' + FB; x.fillStyle = '#facc15'; x.fillText('Chef Galiana et toute l\'équipe d\'encadrement', W / 2, 1190);
+  ls('3px'); x.fillStyle = 'rgba(255,255,255,.65)'; fs = 28; x.font = '600 28px ' + F;
+  const pied = 'SECTION DES JEUNES SAPEURS-POMPIERS · CIS CRUZY-QUARANTE';
+  while (x.measureText(pied).width > W - 100 && fs > 16) { fs -= 1; x.font = '600 ' + fs + 'px ' + F; }
+  x.fillText(pied, W / 2, 1290);
+  ls('0px');
+  return cv;
+}
+
+// Affiche la carte en grand (fenêtre) avec confettis et bouton de téléchargement
+async function annivOuvrirCarte(jspId) {
+  const j = (DB.jsps || []).find(x => String(x.id) === String(jspId)); if (!j) return;
+  let fond = document.getElementById('annivFond');
+  if (!fond) {
+    fond = document.createElement('div'); fond.id = 'annivFond'; fond.className = 'anniv-fond';
+    fond.onclick = e => { if (e.target === fond) annivFermerCarte(); };
+    document.body.appendChild(fond);
+  }
+  fond.innerHTML = '<div class="anniv-boite"><div class="anniv-charge">🎂</div></div>';
+  fond.classList.add('ouvert');
+  const cv = await annivDessiner(j), url = cv.toDataURL('image/png');
+  window._annivImage = { url, nom: 'Joyeux-anniversaire-' + String(j.prenom || 'JSP').replace(/[^\wÀ-ÿ-]+/g, '_') + '.png' };
+  const confettis = Array.from({ length: 40 }, (_, i) => `<i style="left:${(i * 37) % 100}%;animation-delay:${(i % 10) * .25}s;background:${['#c62828', '#facc15', '#fff', '#f97316', '#60a5fa', '#16a34a'][i % 6]}"></i>`).join('');
+  fond.innerHTML = `<div class="anniv-confettis" aria-hidden="true">${confettis}</div>
+    <div class="anniv-boite" role="dialog" aria-label="Carte d'anniversaire">
+      <img src="${url}" alt="Carte : joyeux anniversaire ${escTexte(j.prenom)} de la part de la section JSP">
+      <div class="anniv-actions">
+        <button class="btn-save" onclick="annivTelecharger()"><i class="ti ti-download"></i> Télécharger la carte</button>
+        ${navigator.share ? '<button class="an-btn" onclick="annivPartager()"><i class="ti ti-share"></i> Partager</button>' : ''}
+        <button class="btn-cancel" onclick="annivFermerCarte()">Fermer</button></div></div>`;
+}
+function annivFermerCarte() { const f = document.getElementById('annivFond'); if (f) { f.classList.remove('ouvert'); f.innerHTML = ''; } }
+function annivTelecharger() {
+  const im = window._annivImage; if (!im) return;
+  const a = document.createElement('a'); a.href = im.url; a.download = im.nom; document.body.appendChild(a); a.click(); a.remove();
+}
+async function annivPartager() {
+  const im = window._annivImage; if (!im) return;
+  try { const b = await (await fetch(im.url)).blob(); const f = new File([b], im.nom, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: 'Joyeux anniversaire !' }); else annivTelecharger();
+  } catch (e) {}
+}
+// Accueil famille / JSP : bandeau le jour J + ouverture automatique une fois par jour
+function banniereAnniversaireJSP(j) {
+  if (!estAnniversaireAujourdhui(j)) return '';
+  const cle = 'anniv_vu_' + j.id + '_' + dateISOLocale(new Date());
+  let vu = false; try { vu = !!localStorage.getItem(cle); } catch (e) {}
+  if (!vu) setTimeout(() => { try { localStorage.setItem(cle, '1'); } catch (e) {} annivOuvrirCarte(j.id); }, 600);
+  return `<button class="anniv-bandeau" onclick="annivOuvrirCarte(${JSON.stringify(j.id).replace(/"/g, '&quot;')})">
+    <span class="anniv-bandeau-ico" aria-hidden="true">🎂</span>
+    <span><b>Joyeux anniversaire ${escTexte(j.prenom)}&nbsp;!</b><small>La section t'a préparé une carte : touche ici pour la voir.</small></span></button>`;
 }
 
 // ══════════════════════════════════════════
@@ -15617,6 +15762,7 @@ function renderParentAccueil() {
     +'<p>'+j.promotion+' — Saison '+saison+'</p></div></div>';
 
   // Carte « Prochaine séance » (ou bouton simple s'il n'y a rien de prévu)
+  html2 += banniereAnniversaireJSP(j);
   html2 += renderCarteProchaineSeance(j);
 
   // Anniversaires (si activés par le chef de section)
