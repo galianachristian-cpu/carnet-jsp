@@ -4336,12 +4336,57 @@ function renderPassagesGrade() {
       ? "Les grades ont été mis à jour. Les JSP qui sont passés voient leur carte de félicitations sur leur Carnet pendant " + GRADE_CARTE_JOURS + " jours."
       : "Tes choix restent privés : les familles ne voient rien tant que tu n'as pas cliqué sur « Appliquer les passages » le soir de la cérémonie. Les redoublants ne reçoivent aucune carte."}</p>
   </div>
+  ${gradeCarteStock(S, a)}
   <div class="card" style="margin-bottom:14px">
     ${concernes.length ? `<table style="width:100%;border-collapse:collapse"><tbody>${concernes.map(ligne).join('')}</tbody></table>` : '<p class="an-muted">Aucun JSP 1 à JSP 3 dans la liste.</p>'}
     ${jsp4.length ? `<p class="an-small an-muted" style="margin-top:10px">JSP 4 (pas de grade supérieur, fin de cycle avec le brevet) : ${jsp4.map(j => e(j.prenom + ' ' + j.nom)).join(', ')}</p>` : ''}
   </div>
   ${S.applique ? `<div style="display:flex;justify-content:flex-end"><button class="btn-cancel" onclick="gradeAnnuler()"><i class="ti ti-arrow-back-up"></i> Annuler l'application (remettre les anciens grades)</button></div>`
     : `<div style="display:flex;justify-content:flex-end"><button class="btn-save" ${nb.attente ? 'disabled title="Décide d\'abord pour chaque JSP"' : ''} onclick="gradeAppliquer()"><i class="ti ti-award"></i> Appliquer les passages</button></div>`}`;
+}
+// Grades à remettre pour la cérémonie (décisions « passe » pas encore appliquées) : { 'JSP 2': n, ... }
+function gradeBesoins(annee) {
+  const S = getPassagesGrade()[annee || String(new Date().getFullYear())], b = {};
+  if (!S || S.applique) return b;
+  (DB.jsps || []).forEach(j => {
+    const n = gradeNum(j.promotion);
+    if (S.decisions && S.decisions[j.id] === 'passe' && n >= 1 && n <= 3) { const v = 'JSP ' + (n + 1); b[v] = (b[v] || 0) + 1; }
+  });
+  return b;
+}
+function gradeCarteStock(S, a) {
+  const e = escTexte;
+  const besoins = S.applique ? {} : gradeBesoins(a);
+  const lignes = ['JSP 2', 'JSP 3', 'JSP 4'].map(g => {
+    const besoin = besoins[g] || 0, stock = getStockQte('grade', g).qte, manque = Math.max(0, besoin - stock);
+    return { g, besoin, stock, manque };
+  });
+  const manqueTotal = lignes.reduce((t, l) => t + l.manque, 0);
+  const retire = S.stockRetire || {};
+  return `<div class="card" style="margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      <h3 style="margin:0;font-size:16px"><i class="ti ti-boxes"></i> Grades à remettre (stock habillement)</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${!S.applique && manqueTotal ? `<button class="btn-save" onclick="gradeCommander()"><i class="ti ti-clipboard-list"></i> Préparer une commande de grades</button>` : ''}
+        <button class="an-btn" onclick="showSection('habillement');setTimeout(()=>{try{document.getElementById('content').innerHTML=renderHabillement('stock')}catch(e){}},0)"><i class="ti ti-boxes"></i> Voir le stock</button></div></div>
+    ${S.applique
+      ? `<p style="font-size:14px">Grades retirés du stock à l'application : ${Object.keys(retire).length ? Object.entries(retire).map(([g, n]) => `${n} × ${e(g)}`).join(', ') : 'aucun'}.</p>`
+      : `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:var(--gris-txt)"><th style="padding:6px">Grade</th><th>À remettre</th><th>En stock</th><th>Manque</th></tr></thead><tbody>
+        ${lignes.map(l => `<tr style="border-top:1px solid var(--gris-bord)"><td style="padding:8px 6px">${promoBadge(l.g)}</td><td><b>${l.besoin}</b></td><td>${l.stock}</td>
+          <td>${l.manque ? `<span class="badge badge-rouge">${l.manque} à commander</span>` : (l.besoin ? '<span class="badge badge-vert">OK</span>' : '—')}</td></tr>`).join('')}</tbody></table>
+        <p class="an-small an-muted" style="margin-top:8px">${manqueTotal ? 'Il manque des grades pour la cérémonie.' : 'Le stock couvre les passages décidés.'} Les quantités se saisissent dans Habillement › Stock (ligne « Grades JSP »). À l'application des passages, les grades remis sont retirés du stock automatiquement.</p>`}
+  </div>`;
+}
+// Ouvre la commande habillement pré-remplie avec les grades manquants uniquement
+function gradeCommander() {
+  const b = gradeBesoins(gradeAnnee());
+  const lignes = ['JSP 2', 'JSP 3', 'JSP 4'].map(g => ({ g, m: Math.max(0, (b[g] || 0) - getStockQte('grade', g).qte) })).filter(x => x.m > 0);
+  if (!lignes.length) { showToast('Le stock de grades est suffisant'); return; }
+  modalGenererCommande();
+  const art = STOCK_ARTICLES.find(a => a.id === 'grade');
+  _cmdDraftLignes = lignes.map(x => ({ articleId: 'grade', article: art.label.replace(/ \(.*\)$/, ''), taille: x.g, qte: x.m, checked: true }));
+  const corps = document.getElementById('cmd-lignes-body'); if (corps) corps.innerHTML = renderCmdLignesBody();
+  const rem = document.getElementById('cmd-remarques'); if (rem && !rem.value) rem.value = 'Grades pour les passages de grade (Sainte-Barbe ' + gradeAnnee() + ')';
 }
 function gradeDecider(id, v) {
   const S = gradeSession(); if (S.applique) return;
@@ -4357,13 +4402,18 @@ function gradeAppliquer() {
   const S = gradeSession(); if (S.applique) return;
   const passe = (DB.jsps || []).filter(j => S.decisions[j.id] === 'passe' && gradeNum(j.promotion) >= 1 && gradeNum(j.promotion) <= 3);
   const red = (DB.jsps || []).filter(j => S.decisions[j.id] === 'redouble');
-  if (!confirm(`Appliquer les passages de grade ?\n\n${passe.length} JSP passent au grade supérieur, ${red.length} redoublent.\nLes grades sont mis à jour et les cartes de félicitations apparaissent dans le Carnet des JSP qui passent.`)) return;
+  if (!confirm(`Appliquer les passages de grade ?\n\n${passe.length} JSP passent au grade supérieur, ${red.length} redoublent.\nLes grades sont mis à jour, les grades remis sont retirés du stock habillement et les cartes de félicitations apparaissent dans le Carnet des JSP qui passent.`)) return;
   S.resultat = {};
   passe.forEach(j => {
     const de = j.promotion, vers = 'JSP ' + (gradeNum(de) + 1);
     j.promotion = vers; j.dernierPassage = { de, vers, date: S.date || dateISOLocale(new Date()) };
     S.resultat[j.id] = { de, vers };
   });
+  // Grades remis : retirés du stock habillement
+  // (on ne retire que ce qui était réellement en stock, pour pouvoir le remettre à l'identique en cas d'annulation)
+  const remis = {}; S.stockRetire = {};
+  Object.values(S.resultat).forEach(r => { remis[r.vers] = (remis[r.vers] || 0) + 1; });
+  Object.entries(remis).forEach(([g, n]) => { const pris = Math.min(n, getStockQte('grade', g).qte); if (pris) { incrementStockQte('grade', g, -pris); S.stockRetire[g] = pris; } });
   S.applique = true; S.appliqueLe = new Date().toISOString();
   saveData(); showSection('passages-grade'); showToast('Passages de grade appliqués 🎉');
 }
@@ -4375,7 +4425,8 @@ function gradeAnnuler() {
     if (j.promotion === r.vers) j.promotion = r.de;
     if (j.dernierPassage && j.dernierPassage.vers === r.vers) delete j.dernierPassage;
   });
-  S.applique = false; delete S.appliqueLe; delete S.resultat;
+  Object.entries(S.stockRetire || {}).forEach(([g, n]) => incrementStockQte('grade', g, n));
+  S.applique = false; delete S.appliqueLe; delete S.resultat; delete S.stockRetire;
   saveData(); showSection('passages-grade'); showToast('Passages annulés, anciens grades remis');
 }
 
@@ -22741,7 +22792,9 @@ const STOCK_ARTICLES = [
   { id: 'parka',         label: 'Parka',          champ: 'parka',         tailles: ['XS','S','M','L','XL','XXL','3XL'] },
   { id: 'tshirtSport',   label: 'T-shirt sport',  champ: 'tshirtSport',   tailles: ['XS','S','M','L','XL','XXL','3XL'] },
   { id: 'vesteSport',    label: 'Veste sport',    champ: 'vesteSport',    tailles: ['XS','S','M','L','XL','XXL','3XL'] },
-  { id: 'pantalonSport', label: 'Pantalon sport', champ: 'pantalonSport', tailles: ['XS','S','M','L','XL','XXL','3XL'] }
+  { id: 'pantalonSport', label: 'Pantalon sport', champ: 'pantalonSport', tailles: ['XS','S','M','L','XL','XXL','3XL'] },
+  // Grades (galons) : le besoin vient des passages de grade décidés et pas encore appliqués
+  { id: 'grade',         label: 'Grades JSP (besoin = passages de grade prévus)', champ: null, tailles: ['JSP 1','JSP 2','JSP 3','JSP 4'] }
 ];
 
 function getStockQte(articleId, taille) {
@@ -22763,6 +22816,7 @@ function setStockQte(articleId, taille, field, value) {
 
 // Besoins = nb de JSP actuels portant cette taille pour cet article
 function getBesoinsArticle(articleId, champ) {
+  if (articleId === 'grade') return gradeBesoins();
   const besoins = {};
   DB.jsps.forEach(j => {
     const hab = DB.habillement.find(h => h.jspId === j.id);
