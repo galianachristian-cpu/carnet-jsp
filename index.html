@@ -1395,6 +1395,9 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         <div class="nav-item" onclick="showSection('passages-grade')">
           <i class="ti ti-award"></i><span>Passages de grade</span>
         </div>
+        <div class="nav-item" onclick="showSection('cursus')">
+          <i class="ti ti-list-check"></i><span>Suivi du cursus</span>
+        </div>
         <div class="nav-item" onclick="showSection('animation')">
           <i class="ti ti-presentation"></i><span>Guide d'animation</span>
         </div>
@@ -2500,6 +2503,7 @@ const MODULES_ACCES = [
   { key:'bilans', label:'Bilans annuels', icon:'ti-clipboard-list', section:'bilans', groupe:'Suivi JSP' },
   { key:'livret', label:'Livret JSP officiel', icon:'ti-book-2', section:'livret', groupe:'Suivi JSP' },
   { key:'passages-grade', label:'Passages de grade', icon:'ti-award', section:'passages-grade', groupe:'Suivi JSP' },
+  { key:'cursus', label:'Suivi du cursus', icon:'ti-list-check', section:'cursus', groupe:'Suivi JSP' },
   { key:'animation', label:"Guide d'animation", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'animation-edit', label:"Guide d'animation : modifier les fiches", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'jsps', label:'JSP (fiches)', icon:'ti-users', section:'jsps', groupe:'Administration' },
@@ -3920,6 +3924,7 @@ function showSection(sec) {
     case 'tombola': c.innerHTML = renderTombola(); break;
     case 'reunions': c.innerHTML = renderReunions(); break;
     case 'passages-grade': c.innerHTML = renderPassagesGrade(); break;
+    case 'cursus': c.innerHTML = renderCursus(); break;
   }
   if (changement) { c.classList.remove('entree'); void c.offsetWidth; c.classList.add('entree'); }
   fermerMenuMobile(); majNavBas(sec);
@@ -4048,7 +4053,7 @@ function ficheJSP(id) {
     </div>
     ${blocDocumentsFiche(j)}
     ${contacts ? `<div class="fj-bloc"><h4><i class="ti ti-address-book" aria-hidden="true"></i> Contacts</h4><div class="fj-contacts">${contacts}</div></div>` : ''}
-    <div class="modal-btns fj-actions"><button class="btn-cancel" onclick="retrospectiveJSP(${j.id})"><i class="ti ti-sparkles" aria-hidden="true"></i> Rétrospective</button><button class="btn-cancel" onclick="modalAttestation(${j.id})"><i class="ti ti-certificate" aria-hidden="true"></i> Attestation</button><span style="flex:1"></span><button class="btn-cancel" onclick="closeModal()">Fermer</button><button class="btn-save" onclick="closeModal();modalEditJSP(${j.id})"><i class="ti ti-pencil" aria-hidden="true"></i> Modifier la fiche</button></div>
+    <div class="modal-btns fj-actions"><button class="btn-cancel" onclick="closeModal();modalFeliciter(${j.id})"><i class="ti ti-confetti" aria-hidden="true"></i> Féliciter</button><button class="btn-cancel" onclick="retrospectiveJSP(${j.id})"><i class="ti ti-sparkles" aria-hidden="true"></i> Rétrospective</button><button class="btn-cancel" onclick="modalAttestation(${j.id})"><i class="ti ti-certificate" aria-hidden="true"></i> Attestation</button><span style="flex:1"></span><button class="btn-cancel" onclick="closeModal()">Fermer</button><button class="btn-save" onclick="closeModal();modalEditJSP(${j.id})"><i class="ti ti-pencil" aria-hidden="true"></i> Modifier la fiche</button></div>
   </div>`);
 }
 // ══════════════════════════════════════════
@@ -4276,7 +4281,7 @@ function banniereAnniversaireJSP(j) {
   if (!estAnniversaireAujourdhui(j)) return '';
   const cle = 'anniv_vu_' + j.id + '_' + dateISOLocale(new Date());
   let vu = false; try { vu = !!localStorage.getItem(cle); } catch (e) {}
-  if (!vu) setTimeout(() => { try { localStorage.setItem(cle, '1'); } catch (e) {} annivOuvrirCarte(j.id); }, 600);
+  if (!vu) carteAuto(cle, () => annivOuvrirCarte(j.id), 600);
   return `<button class="anniv-bandeau" onclick="annivOuvrirCarte(${JSON.stringify(j.id).replace(/"/g, '&quot;')})">
     <span class="anniv-bandeau-ico" aria-hidden="true">🎂</span>
     <span><b>Joyeux anniversaire ${escTexte(j.prenom)}&nbsp;!</b><small>La section t'a préparé une carte : touche ici pour la voir.</small></span></button>`;
@@ -4554,7 +4559,7 @@ function banniereGradeJSP(j) {
   if (auj > dateISOLocale(fin)) return '';
   const cle = 'grade_vu_' + j.id + '_' + p.vers;
   let vu = false; try { vu = !!localStorage.getItem(cle); } catch (e) {}
-  if (!vu && !estAnniversaireAujourdhui(j)) setTimeout(() => { try { localStorage.setItem(cle, '1'); } catch (e) {} gradeOuvrirCarte(j.id); }, 700);
+  if (!vu) carteAuto(cle, () => gradeOuvrirCarte(j.id), 700);
   return `<button class="anniv-bandeau" onclick="gradeOuvrirCarte(${JSON.stringify(j.id).replace(/"/g, '&quot;')})">
     <span class="anniv-bandeau-ico" aria-hidden="true">🎖️</span>
     <span><b>Félicitations ${escTexte(j.prenom)}, tu passes ${escTexte(p.vers)}&nbsp;!</b><small>Touche ici pour voir ta carte.</small></span></button>`;
@@ -4628,6 +4633,253 @@ async function gradeImprimerCartes() {
   w.document.close();
 }
 
+// ══════════════════════════════════════════
+//  CARTES DE FÉLICITATIONS (brevet, podium, cross…)
+//  Sur la fiche du JSP : j.felicitations = [{ id, motif, titre, texte, date }]
+//  La carte s'affiche 15 jours sur l'accueil du JSP (ouverture automatique une fois). Aucun e-mail.
+// ══════════════════════════════════════════
+const FELIC_JOURS = 15;
+const FELIC_MOTIFS = {
+  brevet: { label: 'Brevet national de JSP', titre: 'BREVET NATIONAL DE JSP', texte: "Bravo pour l'obtention de ton brevet !", ico: '🎓' },
+  podium: { label: 'Podium en compétition', titre: '1RE PLACE', texte: 'Bravo pour ta performance en compétition !', ico: '🏆' },
+  cross: { label: 'Cross', titre: 'CROSS DÉPARTEMENTAL', texte: 'Bravo pour ta course et ton courage !', ico: '🏃' },
+  autre: { label: 'Autre', titre: 'BRAVO', texte: 'Toute la section est fière de toi !', ico: '🎉' }
+};
+// Une seule carte s'ouvre toute seule à la fois (anniversaire, grade ou félicitations)
+function carteAuto(cle, fn, delai) {
+  let vu = false; try { vu = !!localStorage.getItem(cle); } catch (e) {}
+  if (vu || window._carteAutoPrise) return;
+  window._carteAutoPrise = true;
+  setTimeout(() => { try { localStorage.setItem(cle, '1'); } catch (e) {} window._carteAutoPrise = false; fn(); }, delai || 650);
+}
+function modalFeliciter(jspId) {
+  const j = DB.jsps.find(x => x.id === jspId); if (!j) return;
+  const e = escTexte, liste = (j.felicitations || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  openModal(`<h3><i class="ti ti-confetti"></i> Féliciter ${e(j.prenom)}</h3>
+    <p class="an-small an-muted" style="margin-bottom:10px">La carte apparaît dans le Carnet de ${e(j.prenom)} pendant ${FELIC_JOURS} jours, à partir de la date choisie. Aucun e-mail n'est envoyé.</p>
+    <div class="form-group"><label>Pour quoi ?</label><select id="fe_motif" onchange="felicMotif()">${Object.entries(FELIC_MOTIFS).map(([k, m]) => `<option value="${k}">${m.ico} ${m.label}</option>`).join('')}</select></div>
+    <div class="form-group" id="fe_place_g" style="display:none"><label>Place</label><select id="fe_place" onchange="felicMotif(true)"><option>1re place</option><option>2e place</option><option>3e place</option></select></div>
+    <div class="form-group"><label>Titre sur la carte</label><input id="fe_titre" maxlength="32" value="${e(FELIC_MOTIFS.brevet.titre)}"></div>
+    <div class="form-group"><label>Message</label><input id="fe_texte" maxlength="70" value="${e(FELIC_MOTIFS.brevet.texte)}"></div>
+    <div class="form-group"><label>Date</label><input id="fe_date" type="date" value="${dateISOLocale(new Date())}"></div>
+    <div class="modal-btns" style="flex-wrap:wrap"><button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="an-btn" onclick="felicApercu(${j.id})"><i class="ti ti-eye"></i> Aperçu</button>
+      <button class="btn-save" onclick="felicEnregistrer(${j.id})"><i class="ti ti-confetti"></i> Envoyer la carte</button></div>
+    ${liste.length ? `<div style="margin-top:16px;border-top:1px solid var(--gris-bord);padding-top:10px"><b style="font-size:14px">Cartes déjà envoyées</b>
+      ${liste.map(f => `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;font-size:14px"><span style="flex:1">${(FELIC_MOTIFS[f.motif] || FELIC_MOTIFS.autre).ico} ${e(f.titre)} · ${e(new Date(f.date + 'T12:00:00').toLocaleDateString('fr-FR'))}</span>
+        <button class="an-btn" title="Voir" onclick="felicOuvrir(${j.id},'${e(f.id)}')"><i class="ti ti-eye"></i></button>
+        <button class="an-btn" title="Retirer" onclick="felicSupprimer(${j.id},'${e(f.id)}')"><i class="ti ti-trash"></i></button></div>`).join('')}</div>` : ''}`);
+}
+function felicMotif(placeSeule) {
+  const k = document.getElementById('fe_motif').value, m = FELIC_MOTIFS[k];
+  document.getElementById('fe_place_g').style.display = k === 'podium' ? '' : 'none';
+  document.getElementById('fe_titre').value = k === 'podium' ? document.getElementById('fe_place').value.toUpperCase() : m.titre;
+  if (!placeSeule) document.getElementById('fe_texte').value = m.texte;
+}
+function felicLire() {
+  return { motif: document.getElementById('fe_motif').value, titre: document.getElementById('fe_titre').value.trim() || 'BRAVO',
+    texte: document.getElementById('fe_texte').value.trim(), date: document.getElementById('fe_date').value || dateISOLocale(new Date()) };
+}
+function felicApercu(jspId) { const f = felicLire(); f.id = 'apercu'; felicAfficher(DB.jsps.find(x => x.id === jspId), f); }
+function felicEnregistrer(jspId) {
+  const j = DB.jsps.find(x => x.id === jspId); if (!j) return;
+  const f = felicLire(); f.id = 'f' + Date.now().toString(36);
+  (j.felicitations = j.felicitations || []).push(f);
+  saveData(); closeModal(); showToast('Carte envoyée dans le Carnet de ' + j.prenom + ' 🎉');
+}
+function felicSupprimer(jspId, fid) {
+  const j = DB.jsps.find(x => x.id === jspId); if (!j) return;
+  if (!confirm('Retirer cette carte du Carnet de ' + j.prenom + ' ?')) return;
+  j.felicitations = (j.felicitations || []).filter(f => f.id !== fid); saveData(); modalFeliciter(jspId);
+}
+async function felicDessiner(j, f) {
+  try { await document.fonts.load('800 90px "Barlow Condensed"'); await document.fonts.load('600 30px Barlow'); } catch (e) {}
+  const W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+  const F = '"Barlow Condensed","Arial Narrow",Arial,sans-serif', FB = 'Barlow,Arial,sans-serif';
+  const ls = v => { if ('letterSpacing' in x) x.letterSpacing = v; };
+  const rr = (X, Y, w, h, r) => { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
+  const ajuste = (t, poids, max, min, larg) => { let fs = max; x.font = poids + ' ' + fs + 'px ' + F; while (x.measureText(t).width > larg && fs > min) { fs -= 2; x.font = poids + ' ' + fs + 'px ' + F; } };
+  let g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0b1d3a'); g.addColorStop(1, '#173d73'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.save(); x.translate(W / 2, 290); x.globalAlpha = .07; x.fillStyle = '#facc15';
+  for (let i = 0; i < 24; i++) { x.rotate(Math.PI / 12); x.beginPath(); x.moveTo(0, 0); x.lineTo(-40, -1400); x.lineTo(40, -1400); x.closePath(); x.fill(); }
+  x.restore();
+  g = x.createRadialGradient(W / 2, 290, 30, W / 2, 290, 520); g.addColorStop(0, 'rgba(250,204,21,.35)'); g.addColorStop(1, 'rgba(250,204,21,0)'); x.fillStyle = g; x.fillRect(0, 0, W, 900);
+  // Confettis hors zone de texte
+  let s = 0; String((f.id || '') + (j.id || '')).split('').forEach(ch => s = (s * 31 + ch.charCodeAt(0)) % 2147483647); s = s || 11;
+  const rnd = () => (s = s * 16807 % 2147483647) / 2147483647, cols = ['#c62828', '#facc15', '#ffffff', '#f97316', '#60a5fa', '#16a34a'];
+  for (let i = 0; i < 120; i++) { const px = rnd() * W, py = rnd() * H; if (py > 420 && py < 1320 && px > 70 && px < W - 70) continue;
+    x.save(); x.translate(px, py); x.rotate(rnd() * Math.PI); x.fillStyle = cols[i % 6]; x.globalAlpha = .6 + rnd() * .4; if (i % 3) x.fillRect(-9, -4, 18, 8); else { x.beginPath(); x.arc(0, 0, 6, 0, Math.PI * 2); x.fill(); } x.restore(); }
+  x.fillStyle = '#c62828'; x.fillRect(0, 0, W, 16); x.fillRect(0, H - 16, W, 16);
+  x.save(); x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 40; x.shadowOffsetY = 12; x.beginPath(); x.arc(W / 2, 250, 140, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.restore();
+  x.beginPath(); x.arc(W / 2, 250, 140, 0, Math.PI * 2); x.lineWidth = 9; x.strokeStyle = '#facc15'; x.stroke();
+  const img = await carteImageCharger(LOGO_JSP_BASE64);
+  if (img) { const h = 220, w = h * img.width / img.height; x.drawImage(img, W / 2 - w / 2, 250 - h / 2, w, h); }
+  x.textAlign = 'center';
+  ls('4px'); ajuste('FÉLICITATIONS', '800', 118, 70, W - 100); x.fillStyle = '#fff';
+  x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 18; x.shadowOffsetY = 6; x.fillText('FÉLICITATIONS', W / 2, 520); x.restore();
+  ls('2px'); const prenom = String(j.prenom || '').toUpperCase(); x.font = '800 96px ' + F;
+  const wP = Math.min(W - 120, x.measureText(prenom).width + 110);
+  x.save(); x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 24; x.shadowOffsetY = 10; x.fillStyle = '#c62828'; rr(W / 2 - wP / 2, 565, wP, 140, 70); x.fill(); x.restore();
+  x.fillStyle = '#fff'; ajuste(prenom, '800', 96, 50, wP - 60); x.fillText(prenom, W / 2, 668);
+  // Titre du motif dans un bandeau doré
+  ls('5px'); const titre = String(f.titre || '').toUpperCase(); ajuste(titre, '800', 78, 40, W - 200);
+  const wT = Math.min(W - 100, x.measureText(titre).width + 120);
+  x.save(); x.shadowColor = 'rgba(0,0,0,.3)'; x.shadowBlur = 20; x.shadowOffsetY = 8; x.fillStyle = '#facc15'; rr(W / 2 - wT / 2, 790, wT, 120, 18); x.fill(); x.restore();
+  x.fillStyle = '#3b2f00'; x.fillText(titre, W / 2, 878);
+  // Icône
+  x.font = '90px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; ls('0px');
+  x.fillText((FELIC_MOTIFS[f.motif] || FELIC_MOTIFS.autre).ico, W / 2, 1030);
+  // Message (2 lignes max)
+  x.font = '500 38px ' + FB; x.fillStyle = 'rgba(255,255,255,.92)';
+  const mots = String(f.texte || '').split(/\s+/), lignes = []; let l = '';
+  mots.forEach(m => { const t = l ? l + ' ' + m : m; if (x.measureText(t).width > W - 160 && l) { lignes.push(l); l = m; } else l = t; }); if (l) lignes.push(l);
+  lignes.slice(0, 2).forEach((t, k) => x.fillText(t, W / 2, 1130 + k * 50));
+  ls('3px'); x.fillStyle = 'rgba(255,255,255,.65)'; ajuste('SECTION DES JEUNES SAPEURS-POMPIERS · CIS CRUZY-QUARANTE', '600', 28, 16, W - 100);
+  x.fillText('SECTION DES JEUNES SAPEURS-POMPIERS · CIS CRUZY-QUARANTE', W / 2, 1290); ls('0px');
+  return cv;
+}
+async function felicAfficher(j, f) {
+  if (!j || !f) return;
+  let fond = document.getElementById('annivFond');
+  if (!fond) { fond = document.createElement('div'); fond.id = 'annivFond'; fond.className = 'anniv-fond'; fond.onclick = ev => { if (ev.target === fond) annivFermerCarte(); }; document.body.appendChild(fond); }
+  fond.innerHTML = '<div class="anniv-boite"><div class="anniv-charge">🎉</div></div>'; fond.classList.add('ouvert');
+  const url = (await felicDessiner(j, f)).toDataURL('image/png');
+  window._annivImage = { url, nom: 'Felicitations-' + String(j.prenom || 'JSP').replace(/[^\wÀ-ÿ-]+/g, '_') + '.png' };
+  const confettis = Array.from({ length: 40 }, (_, i) => `<i style="left:${(i * 37) % 100}%;animation-delay:${(i % 10) * .25}s;background:${['#c62828', '#facc15', '#fff', '#f97316', '#60a5fa', '#16a34a'][i % 6]}"></i>`).join('');
+  fond.innerHTML = `<div class="anniv-confettis" aria-hidden="true">${confettis}</div>
+    <div class="anniv-boite" role="dialog" aria-label="Carte de félicitations">
+      <img src="${url}" alt="Carte : félicitations ${escTexte(j.prenom)}, ${escTexte(f.titre)}">
+      <div class="anniv-actions">
+        <button class="btn-save" onclick="annivTelecharger()"><i class="ti ti-download"></i> Télécharger la carte</button>
+        ${navigator.share ? '<button class="an-btn" onclick="annivPartager()"><i class="ti ti-share"></i> Partager</button>' : ''}
+        <button class="btn-cancel" onclick="annivFermerCarte()">Fermer</button></div></div>`;
+}
+function felicOuvrir(jspId, fid) {
+  const j = (DB.jsps || []).find(x => String(x.id) === String(jspId)); if (!j) return;
+  felicAfficher(j, (j.felicitations || []).find(f => f.id === fid));
+}
+// Accueil famille / JSP : cartes de félicitations des 15 derniers jours
+function banniereFelicJSP(j) {
+  const auj = dateISOLocale(new Date()), lim = new Date(); lim.setDate(lim.getDate() - FELIC_JOURS); const limISO = dateISOLocale(lim);
+  const l = (j && j.felicitations || []).filter(f => f.date && f.date <= auj && f.date >= limISO).sort((a, b) => b.date.localeCompare(a.date));
+  if (!l.length) return '';
+  carteAuto('felic_vu_' + j.id + '_' + l[0].id, () => felicOuvrir(j.id, l[0].id), 800);
+  return l.map(f => `<button class="anniv-bandeau" onclick="felicOuvrir(${JSON.stringify(j.id).replace(/"/g, '&quot;')},'${escTexte(f.id)}')">
+    <span class="anniv-bandeau-ico" aria-hidden="true">${(FELIC_MOTIFS[f.motif] || FELIC_MOTIFS.autre).ico}</span>
+    <span><b>Félicitations ${escTexte(j.prenom)}&nbsp;!</b><small>${escTexte(f.titre)} · touche ici pour voir ta carte.</small></span></button>`).join('');
+}
+// ══════════════════════════════════════════
+//  SUIVI DU CURSUS (check-list par JSP : rien oublier de JSP 1 à JSP 4)
+//  Reprend ce qui existe déjà (documents de la saison, compétences du livret, APS) et ajoute
+//  des points à cocher par grade + l'échéance du vaccin antitétanique.
+//  DB.cursusSuivi = { items: [{ id, label, grades: ['JSP 4'] (vide = tous), type: 'coche'|'echeance' }],
+//                     valeurs: { <jspId>: { <itemId>: date } } }   (objet : non transmis aux familles)
+// ══════════════════════════════════════════
+const CURSUS_ITEMS_DEFAUT = [
+  { id: 'vat', label: 'Vaccin antitétanique valable jusqu\'au', grades: [], type: 'echeance' },
+  { id: 'nat50', label: 'Attestation 50 m natation', grades: ['JSP 4'], type: 'coche' },
+  { id: 'aptbrevet', label: "Certificat d'aptitude physique (brevet)", grades: ['JSP 4'], type: 'coche' },
+  { id: 'candbrevet', label: 'Candidature au brevet + autorisation parentale', grades: ['JSP 4'], type: 'coche' }
+];
+function getCursus() {
+  if (!DB.cursusSuivi || typeof DB.cursusSuivi !== 'object' || Array.isArray(DB.cursusSuivi)) DB.cursusSuivi = {};
+  const C = DB.cursusSuivi;
+  if (!Array.isArray(C.items)) C.items = JSON.parse(JSON.stringify(CURSUS_ITEMS_DEFAUT));
+  if (!C.valeurs || typeof C.valeurs !== 'object') C.valeurs = {};
+  return C;
+}
+function cursusItemsJSP(j) { return getCursus().items.filter(it => !(it.grades || []).length || it.grades.includes(j.promotion)); }
+function cursusCompetences(j) {
+  const cy = cycleKey(j.promotion), tot = (LIVRET_CONNAISSANCES[cy] || []).length;
+  const faits = (DB.livretConnaissances || []).filter(r => r.jspId == j.id && r.cycle === cy && r.date).length;
+  return { faits: Math.min(faits, tot), tot };
+}
+function cursusAPS(j) {
+  const r = getAPS(j.id, cycleKey(j.promotion)); if (!r) return false;
+  return ['eval1', 'eval2'].some(k => Object.values(r[k] || {}).some(v => v));
+}
+// État d'un JSP : rouge = pièce ou vaccin manquant/expiré, orange = cursus en cours, vert = à jour
+function cursusEtat(j) {
+  const auj = dateISOLocale(new Date()), C = getCursus(), v = C.valeurs[j.id] || {}, manques = [], enCours = [];
+  const docs = docsSaison() ? docsManquants(j) : DOCS_PIECES;
+  if (docs.length) manques.push(docs.length + ' pièce' + (docs.length > 1 ? 's' : '') + ' du dossier');
+  cursusItemsJSP(j).forEach(it => {
+    if (it.type === 'echeance') { if (!v[it.id]) manques.push(it.label.replace(/ valable jusqu'au$/, '') + ' : date à saisir'); else if (v[it.id] < auj) manques.push(it.label.replace(/ valable jusqu'au$/, '') + ' expiré'); }
+    else if (!v[it.id]) manques.push(it.label);
+  });
+  const c = cursusCompetences(j); if (c.tot && c.faits < c.tot) enCours.push('compétences ' + c.faits + '/' + c.tot);
+  if (!cursusAPS(j)) enCours.push('APS à évaluer');
+  return { etat: manques.length ? 'rouge' : enCours.length ? 'orange' : 'vert', manques, enCours };
+}
+function renderCursus() {
+  const e = escTexte, C = getCursus(), filtre = window._cursusFiltre || 'tous', auj = dateISOLocale(new Date());
+  const jsps = (DB.jsps || []).filter(j => filtre === 'tous' || j.promotion === filtre)
+    .sort((a, b) => gradeNum(a.promotion) - gradeNum(b.promotion) || (a.nom || '').localeCompare(b.nom || ''));
+  const etats = {}; (DB.jsps || []).forEach(j => etats[j.id] = cursusEtat(j));
+  const nb = k => jsps.filter(j => etats[j.id].etat === k).length;
+  const pastille = k => `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${k === 'rouge' ? 'var(--rouge)' : k === 'orange' ? 'var(--orange)' : 'var(--vert)'}"></span>`;
+  const itemsAffiches = C.items.filter(it => filtre === 'tous' || !(it.grades || []).length || it.grades.includes(filtre));
+  const cellItem = (j, it) => {
+    if ((it.grades || []).length && !it.grades.includes(j.promotion)) return '<td style="text-align:center;color:var(--gris-txt)">·</td>';
+    const v = (C.valeurs[j.id] || {})[it.id] || '';
+    if (it.type === 'echeance') return `<td><input type="date" value="${e(v)}" onchange="cursusMaj(${j.id},'${e(it.id)}',this.value)" style="padding:6px;border:1px solid ${!v || v < auj ? 'var(--rouge)' : 'var(--gris-bord)'};border-radius:8px;font-size:13px;${v && v < auj ? 'color:var(--rouge);font-weight:700' : ''}"></td>`;
+    return `<td style="text-align:center"><input type="checkbox" ${v ? 'checked' : ''} title="${e(it.label)}" style="width:22px;height:22px" onchange="cursusMaj(${j.id},'${e(it.id)}',this.checked?dateISOLocale(new Date()):'')"></td>`;
+  };
+  const ligne = j => {
+    const st = etats[j.id], docs = docsSaison() ? docsManquants(j) : DOCS_PIECES, c = cursusCompetences(j), aps = cursusAPS(j);
+    return `<tr style="border-top:1px solid var(--gris-bord)">
+      <td style="padding:8px 6px">${pastille(st.etat)}</td>
+      <td style="padding:8px 6px;min-width:150px"><b style="cursor:pointer" onclick="ficheJSP(${j.id})">${e(j.prenom)} ${e(j.nom)}</b><div>${promoBadge(j.promotion)}</div></td>
+      <td><button class="an-btn" style="min-height:34px;padding:4px 10px;${docs.length ? 'color:var(--rouge)' : ''}" onclick="modalDocuments()" title="${e(docs.map(p => p.label).join(', ') || 'Complet')}">${docs.length ? docs.length + ' manque' + (docs.length > 1 ? 'nt' : '') : '✔ Complet'}</button></td>
+      <td><button class="an-btn" style="min-height:34px;padding:4px 10px" onclick="renderLivretGo(${j.id},'competences')">${c.tot ? c.faits + ' / ' + c.tot : '—'}</button></td>
+      <td><button class="an-btn" style="min-height:34px;padding:4px 10px;${aps ? '' : 'color:var(--orange)'}" onclick="renderLivretGo(${j.id},'aps')">${aps ? '✔ Fait' : 'À faire'}</button></td>
+      ${itemsAffiches.map(it => cellItem(j, it)).join('')}
+    </tr>`;
+  };
+  return `<div class="section-header"><h2><i class="ti ti-list-check"></i> Suivi du cursus</h2>
+    <button class="an-btn" onclick="cursusModalItems()"><i class="ti ti-settings"></i> Points à suivre</button></div>
+  <p class="an-small an-muted" style="margin:-4px 0 12px">Pour ne rien oublier de JSP 1 à JSP 4 : dossier de la saison (dont vaccins et certificat), compétences du livret, APS, et les points propres à chaque grade (brevet pour les JSP 4). Ces informations ne sont pas visibles des familles.</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    ${['tous', 'JSP 1', 'JSP 2', 'JSP 3', 'JSP 4'].map(f => `<button class="an-btn" style="${f === filtre ? 'background:var(--bleu);color:#fff' : ''}" onclick="window._cursusFiltre='${f}';showSection('cursus')">${f === 'tous' ? 'Tous' : f}</button>`).join('')}
+    <span style="margin-left:auto;font-size:14px">${pastille('rouge')} ${nb('rouge')} à régulariser &nbsp; ${pastille('orange')} ${nb('orange')} en cours &nbsp; ${pastille('vert')} ${nb('vert')} à jour</span></div>
+  <div class="card" style="overflow-x:auto">
+    ${jsps.length ? `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:var(--gris-txt);font-size:12px">
+      <th></th><th>JSP</th><th>Dossier saison</th><th>Compétences</th><th>APS</th>${itemsAffiches.map(it => `<th style="max-width:120px">${e(it.label)}${(it.grades || []).length ? ' <span style="font-weight:400">(' + e(it.grades.join(', ')) + ')</span>' : ''}</th>`).join('')}</tr></thead>
+      <tbody>${jsps.map(ligne).join('')}</tbody></table>` : '<p class="an-muted">Aucun JSP.</p>'}
+  </div>
+  ${(() => { const r = jsps.filter(j => etats[j.id].etat === 'rouge'); return r.length ? `<div class="card" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:16px">${pastille('rouge')} À régulariser</h3>
+    ${r.map(j => `<div style="padding:6px 0;border-top:1px solid var(--gris-bord);font-size:14px"><b>${e(j.prenom)} ${e(j.nom)}</b> : ${e(etats[j.id].manques.join(' · '))}</div>`).join('')}</div>` : ''; })()}`;
+}
+function cursusMaj(jspId, itemId, v) {
+  const C = getCursus(); C.valeurs[jspId] = C.valeurs[jspId] || {};
+  if (v) C.valeurs[jspId][itemId] = v; else delete C.valeurs[jspId][itemId];
+  saveData(); showSection('cursus');
+}
+function cursusModalItems() {
+  window._cursusBrouillon = JSON.parse(JSON.stringify(getCursus().items)); cursusDessinerItems();
+}
+function cursusDessinerItems() {
+  const e = escTexte, l = window._cursusBrouillon;
+  openModalWide(`<h3><i class="ti ti-settings"></i> Points à suivre</h3>
+    <p class="an-small an-muted" style="margin-bottom:10px">Le dossier de la saison, les compétences du livret et les APS sont toujours suivis. Ajoute ici les autres points, pour tous les JSP ou pour certains grades.</p>
+    <div style="max-height:60vh;overflow:auto">${l.map((it, i) => `<div style="border:1px solid var(--gris-bord);border-radius:10px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input value="${e(it.label)}" oninput="window._cursusBrouillon[${i}].label=this.value" style="flex:1;min-width:200px;padding:8px;border:1px solid var(--gris-bord);border-radius:8px">
+        <select onchange="window._cursusBrouillon[${i}].type=this.value" style="padding:8px;border:1px solid var(--gris-bord);border-radius:8px"><option value="coche" ${it.type !== 'echeance' ? 'selected' : ''}>Case à cocher</option><option value="echeance" ${it.type === 'echeance' ? 'selected' : ''}>Date de fin de validité</option></select>
+        <button class="an-btn" title="Retirer" onclick="window._cursusBrouillon.splice(${i},1);cursusDessinerItems()"><i class="ti ti-trash"></i></button></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:13px"><span class="an-muted">Pour :</span>
+        ${['JSP 1', 'JSP 2', 'JSP 3', 'JSP 4'].map(g => `<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" ${(it.grades || []).includes(g) ? 'checked' : ''} onchange="cursusBrouillonGrade(${i},'${g}',this.checked)" style="width:auto"> ${g}</label>`).join('')}
+        <span class="an-muted">(aucun coché = tous)</span></div></div>`).join('')}</div>
+    <button class="an-btn" onclick="window._cursusBrouillon.push({id:'c'+Date.now().toString(36),label:'Nouveau point',grades:[],type:'coche'});cursusDessinerItems()"><i class="ti ti-plus"></i> Ajouter un point</button>
+    <div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="cursusEnregistrerItems()">Enregistrer</button></div>`);
+}
+function cursusBrouillonGrade(i, g, v) {
+  const it = window._cursusBrouillon[i]; it.grades = (it.grades || []).filter(x => x !== g); if (v) it.grades.push(g);
+}
+function cursusEnregistrerItems() {
+  getCursus().items = window._cursusBrouillon.filter(it => (it.label || '').trim()).map(it => ({ ...it, label: it.label.trim() }));
+  saveData(); closeModal(); showSection('cursus'); showToast('Points à suivre enregistrés');
+}
 // ══════════════════════════════════════════
 //  RECHERCHE RAPIDE (admin) : JSP et rubriques
 // ══════════════════════════════════════════
@@ -5360,6 +5612,58 @@ function reuCompte(r) {
 }
 function reuCrRedige(r) { return (r.points || []).some(p => (p.cr || '').trim() || (p.decisions || '').trim()); }
 
+// ── Actions à suivre (décisions → qui fait quoi, pour quand) ──
+function reuActions() {
+  const res = [];
+  reuListe().forEach(r => (r.points || []).forEach((p, pi) => (p.actions || []).forEach((a, ai) => { if (a && (a.texte || '').trim()) res.push({ r, pi, ai, a }); })));
+  return res;
+}
+function reuActionsOuvertes() {
+  return reuActions().filter(x => !x.a.fait).sort((x, y) => (x.a.echeance || '9999').localeCompare(y.a.echeance || '9999'));
+}
+function reuCarteActionsEnCours() {
+  const l = reuActionsOuvertes(), e = escTexte, auj = dateISOLocale(new Date());
+  if (!l.length) return '';
+  return `<div class="card" style="margin-bottom:14px">
+    <h3 style="margin:0 0 8px;font-size:16px"><i class="ti ti-checklist"></i> Actions en cours (${l.length})</h3>
+    ${l.map(x => { const tard = x.a.echeance && x.a.echeance < auj;
+      return `<label style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--gris-bord);cursor:pointer">
+        <input type="checkbox" style="width:22px;height:22px;flex:none;margin-top:2px" onchange="reuActionFaite('${x.r.id}',${x.pi},${x.ai},this.checked)">
+        <span style="flex:1"><b>${e(x.a.texte)}</b><span class="an-small an-muted" style="display:block">${x.a.resp ? e(x.a.resp) + ' · ' : ''}${x.a.echeance ? `<span style="${tard ? 'color:var(--rouge);font-weight:700' : ''}">${tard ? 'en retard, ' : ''}pour le ${e(new Date(x.a.echeance + 'T12:00:00').toLocaleDateString('fr-FR'))}</span> · ` : ''}réunion du ${e(reuDateLongue(x.r.date))}</span></span></label>`; }).join('')}
+  </div>`;
+}
+function reuActionFaite(rid, pi, ai, v) {
+  const r = getReunions()[rid]; const a = r && r.points[pi] && (r.points[pi].actions || [])[ai]; if (!a) return;
+  a.fait = !!v; a.faitLe = v ? dateISOLocale(new Date()) : ''; reuToucher(r); saveData();
+  showSection('reunions'); if (v) showToast('Action terminée ✔');
+}
+function reuBlocActions(r, i, noms) {
+  const e = escTexte, acts = r.points[i].actions || [];
+  const ligne = (a, ai) => `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--gris-bord)">
+    <input type="checkbox" title="Fait" ${a.fait ? 'checked' : ''} style="width:22px;height:22px;flex:none" onchange="reuMajAction(${i},${ai},'fait',this.checked);saveData()">
+    <input type="text" value="${e(a.texte || '')}" placeholder="Ce qu'il faut faire" oninput="reuMajAction(${i},${ai},'texte',this.value)" onchange="saveData()" style="flex:2;min-width:180px;padding:8px;border:1px solid var(--gris-bord);border-radius:8px;${a.fait ? 'text-decoration:line-through;opacity:.6' : ''}">
+    <select onchange="reuMajAction(${i},${ai},'resp',this.value);saveData()" style="flex:1;min-width:140px;min-height:40px;padding:6px;border:1px solid var(--gris-bord);border-radius:8px"><option value="">Qui ?</option>${noms.concat(a.resp && !noms.includes(a.resp) ? [a.resp] : []).map(n => `<option ${n === a.resp ? 'selected' : ''}>${e(n)}</option>`).join('')}</select>
+    <input type="date" value="${e(a.echeance || '')}" title="Pour quand" onchange="reuMajAction(${i},${ai},'echeance',this.value);saveData()" style="padding:7px;border:1px solid var(--gris-bord);border-radius:8px">
+    <button class="an-btn" title="Retirer" onclick="reuSupprimerAction(${i},${ai})"><i class="ti ti-x"></i></button></div>`;
+  return `<div class="form-group"><label>Actions à suivre <span style="font-weight:400;color:var(--gris-txt)">(qui fait quoi, pour quand)</span></label>
+    ${acts.map(ligne).join('')}
+    <button class="an-btn" style="margin-top:6px" onclick="reuAjouterAction(${i})"><i class="ti ti-plus"></i> Ajouter une action</button></div>`;
+}
+function reuMajAction(i, ai, champ, v) {
+  const r = reuCourante(); const a = r && r.points[i] && (r.points[i].actions || [])[ai]; if (!a) return;
+  a[champ] = v; if (champ === 'fait') a.faitLe = v ? dateISOLocale(new Date()) : '';
+  reuToucher(r);
+}
+function reuAjouterAction(i) {
+  const r = reuCourante(); if (!r || !r.points[i]) return;
+  (r.points[i].actions = r.points[i].actions || []).push({ id: 'a' + Date.now().toString(36), texte: '', resp: '', echeance: '', fait: false });
+  reuToucher(r); saveData(); showSection('reunions');
+}
+function reuSupprimerAction(i, ai) {
+  const r = reuCourante(); if (!r || !r.points[i]) return;
+  (r.points[i].actions || []).splice(ai, 1); reuToucher(r); saveData(); showSection('reunions');
+}
+
 // ── Écran principal ──
 function renderReunions() {
   const id = window._reunionOuverte;
@@ -5386,12 +5690,16 @@ function renderReunions() {
       <button class="btn-add" onclick="reuNouvelle()"><i class="ti ti-plus"></i> Nouvelle réunion</button>
       <button class="an-btn" onclick="reuModalTrame()"><i class="ti ti-template"></i> Modifier la trame</button></div></div>
   <p class="an-small an-muted" style="margin:-4px 0 14px">Chaque nouvelle réunion reprend la trame de l'ordre du jour. Le ou la secrétaire y note ensuite les présents, les absents et le compte rendu.</p>
+  ${reuCarteActionsEnCours()}
   ${liste.length ? liste.map(ligne).join('') : `<div class="card" style="text-align:center;padding:30px"><i class="ti ti-calendar-plus" style="font-size:34px;color:var(--gris-txt)"></i><p style="margin-top:8px">Aucune réunion pour l'instant. Clique sur « Nouvelle réunion » pour préparer la prochaine.</p></div>`}`;
 }
 
 function reuNouvelle() {
   const id = 'reu' + Date.now().toString(36);
-  const points = getTrameReunion().points.map(p => ({ titre: p.titre || '', sous: (p.sous || []).slice(), cr: '', decisions: '' }));
+  const points = getTrameReunion().points.map(p => ({ titre: p.titre || '', sous: (p.sous || []).slice(), cr: '', decisions: '', actions: [] }));
+  const ouvertes = reuActionsOuvertes();
+  if (ouvertes.length) points.unshift({ titre: 'Point sur les actions en cours', auto: true, cr: '', decisions: '', actions: [],
+    sous: ouvertes.map(x => x.a.texte + (x.a.resp ? ' (' + x.a.resp + ')' : '') + (x.a.echeance ? ' · pour le ' + new Date(x.a.echeance + 'T12:00:00').toLocaleDateString('fr-FR') : '')) });
   getReunions()[id] = { id, date: '', heure: '18:30', heureFin: '', lieu: REU_LIEU_DEFAUT, redacteur: reuSecretaireParDefaut(),
     points, participants: {}, autres: [], creeLe: new Date().toISOString(), majLe: new Date().toISOString() };
   saveData();
@@ -5441,7 +5749,7 @@ function reuMajCompteur() {
 }
 function reuAjouterPoint() {
   const r = reuCourante(); if (!r) return;
-  r.points.push({ titre: 'Nouveau point', sous: [], cr: '', decisions: '' });
+  r.points.push({ titre: 'Nouveau point', sous: [], cr: '', decisions: '', actions: [] });
   reuToucher(r); saveData(); showSection('reunions');
 }
 function reuSupprimerPoint(i) {
@@ -5481,6 +5789,7 @@ function renderReunionDetail(r) {
     <div class="form-group"><label>Sous-points <span style="font-weight:400;color:var(--gris-txt)">(un par ligne)</span></label><textarea rows="${Math.max(2, (p.sous || []).length + 1)}" oninput="reuMajPoint(${i},'sous',this.value)" onchange="saveData()">${e((p.sous || []).join('\n'))}</textarea></div>
     ${zone(i, 'cr', 'Compte rendu : ce qui a été dit', 'Résumé des échanges sur ce point…', 3)}
     ${zone(i, 'decisions', 'Décisions prises', 'Ex. : candidature de X retenue, achat validé…', 2)}
+    ${reuBlocActions(r, i, nomsSecr)}
   </div>`;
   const champ = (k, label, type, extra) => `<div class="form-group" style="flex:1;min-width:150px"><label>${label}</label><input type="${type}" value="${e(r[k] || '')}" oninput="reuMaj('${k}',this.value)" onchange="saveData()"${extra || ''}></div>`;
   return `<div class="section-header"><h2><i class="ti ti-users-group"></i> Réunion du bureau</h2>
@@ -5564,7 +5873,8 @@ function reuImprimer(id, type) {
   const points = (r.points || []).map((p, i) => `<div class="point"><h2><span>${i + 1}</span>${e(p.titre)}</h2>
     ${(p.sous || []).length ? `<ul>${p.sous.map(s => `<li>${e(s)}</li>`).join('')}</ul>` : ''}
     ${cr ? `${(p.cr || '').trim() ? `<div class="bloc"><b>Échanges</b>${reuTexteMultiligne(p.cr)}</div>` : ''}
-      ${(p.decisions || '').trim() ? `<div class="bloc dec"><b>Décisions</b>${reuTexteMultiligne(p.decisions)}</div>` : ''}` : ''}</div>`).join('');
+      ${(p.decisions || '').trim() ? `<div class="bloc dec"><b>Décisions</b>${reuTexteMultiligne(p.decisions)}</div>` : ''}
+      ${(p.actions || []).filter(a => (a.texte || '').trim()).length ? `<div class="bloc act"><b>Actions à suivre</b>${p.actions.filter(a => (a.texte || '').trim()).map(a => `<div>${a.fait ? '☑' : '☐'} ${e(a.texte)}${a.resp ? ' · <i>' + e(a.resp) + '</i>' : ''}${a.echeance ? ' · pour le ' + e(new Date(a.echeance + 'T12:00:00').toLocaleDateString('fr-FR')) : ''}</div>`).join('')}</div>` : ''}` : ''}</div>`).join('');
   const titre = cr ? 'Compte rendu de la réunion du bureau' : 'Réunion du bureau · Ordre du jour';
   w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${e(titre)}</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
@@ -5577,7 +5887,7 @@ h1{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:32px;color:#
 .presences{border:1px solid #dde2ec;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:14px;line-height:1.6} .presences b{color:#163a64}
 .point{margin-bottom:14px;break-inside:avoid} h2{font-family:'Barlow Condensed',Arial Narrow,sans-serif;font-size:20px;color:#163a64;display:flex;align-items:center;gap:10px}
 h2 span{flex:none;width:28px;height:28px;border-radius:50%;background:#163a64;color:#fff;display:grid;place-items:center;font-size:16px}
-ul{margin:4px 0 0 52px;font-size:15px;line-height:1.5} .bloc{margin:6px 0 0 38px;padding:8px 12px;background:#f5f7fb;border-radius:8px;font-size:14px;line-height:1.5} .bloc b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#5b6b80} .bloc.dec{background:#fff7ed;border-left:3px solid #cf1419}
+ul{margin:4px 0 0 52px;font-size:15px;line-height:1.5} .bloc{margin:6px 0 0 38px;padding:8px 12px;background:#f5f7fb;border-radius:8px;font-size:14px;line-height:1.5} .bloc b{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#5b6b80} .bloc.dec{background:#fff7ed;border-left:3px solid #cf1419} .bloc.act{background:#eef6ff;border-left:3px solid #163a64}
 .fin{margin-top:16px;font-size:14px;color:#3b4a5e} .sign{display:flex;justify-content:space-between;gap:30px;margin-top:34px} .sign div{flex:1;text-align:center;font-size:14px} .sign .l{margin-top:60px;border-top:1px solid #13263d;padding-top:6px;font-size:12px;color:#5b6b80}
 .pied{margin-top:24px;font-size:11px;color:#8a97a8;display:flex;justify-content:space-between;border-top:1px solid #e5e9f0;padding-top:6px}
 @media print{body{background:#fff}.barre{display:none}.page{margin:0;box-shadow:none;width:auto;min-height:0}@page{size:A4;margin:10mm}}
@@ -16120,6 +16430,7 @@ function renderParentAccueil() {
   // Carte « Prochaine séance » (ou bouton simple s'il n'y a rien de prévu)
   html2 += banniereAnniversaireJSP(j);
   html2 += banniereGradeJSP(j);
+  html2 += banniereFelicJSP(j);
   html2 += renderCarteProchaineSeance(j);
 
   // Anniversaires (si activés par le chef de section)
