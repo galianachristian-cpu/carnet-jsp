@@ -1398,6 +1398,9 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
         <div class="nav-item" onclick="showSection('cursus')">
           <i class="ti ti-list-check"></i><span>Suivi du cursus</span>
         </div>
+        <div class="nav-item" onclick="showSection('fiche-rh')">
+          <i class="ti ti-id-badge-2"></i><span>Fiches RH</span>
+        </div>
         <div class="nav-item" onclick="showSection('animation')">
           <i class="ti ti-presentation"></i><span>Guide d'animation</span>
         </div>
@@ -2504,6 +2507,7 @@ const MODULES_ACCES = [
   { key:'livret', label:'Livret JSP officiel', icon:'ti-book-2', section:'livret', groupe:'Suivi JSP' },
   { key:'passages-grade', label:'Passages de grade', icon:'ti-award', section:'passages-grade', groupe:'Suivi JSP' },
   { key:'cursus', label:'Suivi du cursus', icon:'ti-list-check', section:'cursus', groupe:'Suivi JSP' },
+  { key:'fiche-rh', label:'Fiches RH et documents', icon:'ti-id-badge-2', section:'fiche-rh', groupe:'Suivi JSP' },
   { key:'animation', label:"Guide d'animation", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'animation-edit', label:"Guide d'animation : modifier les fiches", icon:'ti-presentation', section:'animation', groupe:'Animation' },
   { key:'jsps', label:'JSP (fiches)', icon:'ti-users', section:'jsps', groupe:'Administration' },
@@ -3925,6 +3929,7 @@ function showSection(sec) {
     case 'reunions': c.innerHTML = renderReunions(); break;
     case 'passages-grade': c.innerHTML = renderPassagesGrade(); break;
     case 'cursus': c.innerHTML = renderCursus(); break;
+    case 'fiche-rh': c.innerHTML = renderFicheRH(); break;
   }
   if (changement) { c.classList.remove('entree'); void c.offsetWidth; c.classList.add('entree'); }
   fermerMenuMobile(); majNavBas(sec);
@@ -4006,6 +4011,7 @@ function banniereAccueil(p) {
 // ══════════════════════════════════════════
 function ficheJSP(id) {
   const j = DB.jsps.find(x => x.id == id); if (!j) return;
+  window._ficheOuverte = j.id;
   const e = escTexte, pc = promoClasse(j.promotion);
   const st = getAbsenceStats(j.id);
   const ret = DB.retards.filter(r => r.jspId == j.id);
@@ -4052,8 +4058,9 @@ function ficheJSP(id) {
       <div class="fj-bloc"><h4><i class="ti ti-mood-smile" aria-hidden="true"></i> Comportement</h4>${comps || '<p class="fj-vide">Rien à signaler 👍</p>'}</div>
     </div>
     ${blocDocumentsFiche(j)}
+    ${blocEtapesFiche(j)}
     ${contacts ? `<div class="fj-bloc"><h4><i class="ti ti-address-book" aria-hidden="true"></i> Contacts</h4><div class="fj-contacts">${contacts}</div></div>` : ''}
-    <div class="modal-btns fj-actions"><button class="btn-cancel" onclick="closeModal();modalFeliciter(${j.id})"><i class="ti ti-confetti" aria-hidden="true"></i> Féliciter</button><button class="btn-cancel" onclick="retrospectiveJSP(${j.id})"><i class="ti ti-sparkles" aria-hidden="true"></i> Rétrospective</button><button class="btn-cancel" onclick="modalAttestation(${j.id})"><i class="ti ti-certificate" aria-hidden="true"></i> Attestation</button><span style="flex:1"></span><button class="btn-cancel" onclick="closeModal()">Fermer</button><button class="btn-save" onclick="closeModal();modalEditJSP(${j.id})"><i class="ti ti-pencil" aria-hidden="true"></i> Modifier la fiche</button></div>
+    <div class="modal-btns fj-actions"><button class="btn-cancel" onclick="closeModal();modalFeliciter(${j.id})"><i class="ti ti-confetti" aria-hidden="true"></i> Féliciter</button><button class="btn-cancel" onclick="retrospectiveJSP(${j.id})"><i class="ti ti-sparkles" aria-hidden="true"></i> Rétrospective</button><button class="btn-cancel" onclick="modalAttestation(${j.id})"><i class="ti ti-certificate" aria-hidden="true"></i> Attestation</button>${peutFicheRH() ? `<button class="btn-cancel" onclick="closeModal();ouvrirFicheRH(${j.id})"><i class="ti ti-id-badge-2" aria-hidden="true"></i> Fiche RH</button>` : ''}<span style="flex:1"></span><button class="btn-cancel" onclick="closeModal()">Fermer</button><button class="btn-save" onclick="closeModal();modalEditJSP(${j.id})"><i class="ti ti-pencil" aria-hidden="true"></i> Modifier la fiche</button></div>
   </div>`);
 }
 // ══════════════════════════════════════════
@@ -4323,7 +4330,8 @@ function renderPassagesGrade() {
       const r = (S.resultat || {})[j.id];
       return `<tr><td style="padding:8px 6px"><b>${e(j.prenom)} ${e(j.nom)}</b></td><td>${r ? promoBadge(r.de) + ' → ' + promoBadge(r.vers) : (d === 'redouble' ? 'Redouble ' + promoBadge(j.promotion) : promoBadge(j.promotion))}</td></tr>`;
     }
-    return `<tr><td style="padding:8px 6px"><b>${e(j.prenom)} ${e(j.nom)}</b><div class="an-small an-muted">${e(j.promotion || '')}</div></td>
+    const et = etapesJSP(j), manque = et.enRetard.concat(et.aFaire);
+    return `<tr><td style="padding:8px 6px"><b>${e(j.prenom)} ${e(j.nom)}</b><div class="an-small an-muted">${e(j.promotion || '')}</div>${manque.length ? `<div class="an-small" style="color:${et.enRetard.length ? 'var(--rouge)' : 'var(--orange)'};cursor:pointer" onclick="ficheJSP(${j.id})"><i class="ti ti-alert-triangle"></i> Étape${manque.length > 1 ? 's' : ''} non validée${manque.length > 1 ? 's' : ''} : ${e(manque.map(etapeCourt).join(', '))}</div>` : ''}</td>
       <td style="padding:8px 6px;width:230px"><select style="width:100%;min-height:44px;padding:8px;border:1px solid var(--gris-bord);border-radius:8px;font-size:15px;${d === 'passe' ? 'background:var(--vert-pale)' : d === 'redouble' ? 'background:var(--orange-pale)' : ''}" onchange="gradeDecider('${e(String(j.id))}',this.value)">
         <option value="" ${!d ? 'selected' : ''}>À décider</option>
         <option value="passe" ${d === 'passe' ? 'selected' : ''}>Passe JSP ${n + 1}</option>
@@ -4781,14 +4789,106 @@ const CURSUS_ITEMS_DEFAUT = [
   { id: 'aptbrevet', label: "Certificat d'aptitude physique (brevet)", grades: ['JSP 4'], type: 'coche' },
   { id: 'candbrevet', label: 'Candidature au brevet + autorisation parentale', grades: ['JSP 4'], type: 'coche' }
 ];
+// Étapes de formation : à valider pendant un grade donné (champ « etape »). Une étape validée le reste
+// pour toute la suite du cursus ; non validée, elle reste due (« en retard ») dans les grades suivants.
+const ETAPES_FORMATION = [
+  { id: 'psc1', label: 'PSC1', court: 'PSC1', etape: 'JSP 1' },
+  { id: 'nat50', label: '50 m nage libre avec sortie du bassin', court: '50 m natation', etape: 'JSP 1' },
+  { id: 'visiteSP', label: "Visite médicale par un médecin de sapeurs-pompiers (à faire avant l'entrée en JSP 3)", court: 'Visite médicale SP', etape: 'JSP 2' },
+  { id: 'ficheRH', label: 'Fiche RH SDIS 34', court: 'Fiche RH', etape: 'JSP 3' },
+  { id: 'ari', label: 'ARI', court: 'ARI', etape: 'JSP 4' },
+  { id: 'prompt', label: 'Équipier prompt secours', court: 'Prompt secours', etape: 'JSP 4' },
+  { id: 'sap', label: 'Équipier SAP (VSAV)', court: 'Équipier SAP', etape: 'JSP 4' },
+  { id: 'div', label: 'Opérations diverses (DIV)', court: 'DIV', etape: 'JSP 4' },
+  { id: 'inond', label: 'Inondation', court: 'Inondation', etape: 'JSP 4' },
+  { id: 'caisson', label: 'Caisson', court: 'Caisson', etape: 'JSP 4' },
+  { id: 'inc', label: 'Incendie', court: 'Incendie', etape: 'JSP 4' },
+  { id: 'hepb', label: 'Hépatite B à jour (3 injections sur 6 mois : à commencer dès la JSP 3)', court: 'Hépatite B', etape: 'JSP 4' }
+];
 function getCursus() {
   if (!DB.cursusSuivi || typeof DB.cursusSuivi !== 'object' || Array.isArray(DB.cursusSuivi)) DB.cursusSuivi = {};
   const C = DB.cursusSuivi;
   if (!Array.isArray(C.items)) C.items = JSON.parse(JSON.stringify(CURSUS_ITEMS_DEFAUT));
   if (!C.valeurs || typeof C.valeurs !== 'object') C.valeurs = {};
+  if (!C.etapesV1) { // ajout unique des étapes de formation (les cases déjà cochées sont gardées)
+    ETAPES_FORMATION.forEach(d => {
+      const ex = C.items.find(i => i.id === d.id), v = { ...d, grades: [], type: 'coche' };
+      if (ex) Object.assign(ex, v); else C.items.push(v);
+    });
+    // ordre du cursus : JSP 1 → JSP 4
+    C.items = C.items.filter(i => !i.etape).concat(ETAPES_FORMATION.map(d => C.items.find(i => i.id === d.id)).filter(Boolean), C.items.filter(i => i.etape && !ETAPES_FORMATION.some(d => d.id === i.id)));
+    C.etapesV1 = true;
+  }
   return C;
 }
-function cursusItemsJSP(j) { return getCursus().items.filter(it => !(it.grades || []).length || it.grades.includes(j.promotion)); }
+function cursusItemsJSP(j) {
+  return getCursus().items.filter(it => it.etape ? gradeNum(j.promotion) >= gradeNum(it.etape)
+    : !(it.grades || []).length || it.grades.includes(j.promotion));
+}
+// Étapes d'un JSP : faites (avec date), à valider dans son grade, en retard (grade précédent)
+function etapesJSP(j) {
+  const C = getCursus(), v = C.valeurs[j.id] || {}, n = gradeNum(j.promotion), r = { faites: [], aFaire: [], enRetard: [] };
+  C.items.filter(it => it.etape && n >= gradeNum(it.etape)).forEach(it => {
+    if (v[it.id]) r.faites.push(it); else if (n > gradeNum(it.etape)) r.enRetard.push(it); else r.aFaire.push(it);
+  });
+  return r;
+}
+function etapeCourt(it) { return it.court || it.label; }
+function etapeChip(j, it) {
+  const v = (getCursus().valeurs[j.id] || {})[it.id], n = gradeNum(j.promotion), retard = !v && n > gradeNum(it.etape);
+  const st = v ? 'background:var(--vert-pale);color:var(--vert);border-color:var(--vert)' : retard ? 'background:var(--rouge-pale);color:var(--rouge);border-color:var(--rouge)' : 'background:transparent;color:var(--orange);border-color:var(--orange)';
+  const titre = it.label + ' — ' + (v ? 'validée le ' + fmtDate(v) : retard ? 'en retard (à valider en ' + it.etape + ')' : 'à valider en ' + it.etape) + '. Touchez pour ' + (v ? 'retirer la validation' : 'valider');
+  return `<button type="button" title="${escTexte(titre)}" onclick="event.stopPropagation();etapeBasculer(${j.id},'${escTexte(it.id)}')" style="display:inline-flex;align-items:center;gap:4px;min-height:34px;padding:4px 10px;margin:2px;border:1.5px solid;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;${st}">${v ? '✓' : retard ? '!' : '○'} ${escTexte(etapeCourt(it))}</button>`;
+}
+function etapeBasculer(jspId, itemId) {
+  const C = getCursus(), it = C.items.find(x => x.id === itemId), j = DB.jsps.find(x => x.id == jspId); if (!it || !j) return;
+  C.valeurs[jspId] = C.valeurs[jspId] || {};
+  if (C.valeurs[jspId][itemId]) {
+    if (!confirm('Retirer la validation « ' + it.label + ' » pour ' + j.prenom + ' ?')) return;
+    delete C.valeurs[jspId][itemId];
+  } else {
+    const d = prompt('Date de validation de « ' + it.label + ' » pour ' + j.prenom + ' (JJ/MM/AAAA) :', new Date().toLocaleDateString('fr-FR'));
+    if (d === null) return;
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(d.trim());
+    C.valeurs[jspId][itemId] = m ? m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') : dateISOLocale(new Date());
+  }
+  saveData();
+  etapesRafraichir();
+}
+function etapesRafraichir() {
+  const bg = document.getElementById('modalBg'), fiche = document.querySelector('#modalContent .fiche-jsp');
+  if (bg && !bg.classList.contains('hidden') && fiche && window._ficheOuverte) { ficheJSP(window._ficheOuverte); return; }
+  if (['cursus', 'dashboard', 'passages-grade', 'fiche-rh'].includes(currentSection)) showSection(currentSection);
+}
+// Date de la Sainte-Barbe (passages de grade) de l'année, sinon le 4 décembre
+function dateSainteBarbe() {
+  const a = String(new Date().getFullYear()), S = (DB.passagesGrade || {})[a];
+  return (S && S.date) || a + '-12-04';
+}
+// Carte du tableau de bord : rappels des étapes de formation à valider
+function carteEtapes() {
+  if (!(DB.jsps || []).length) return '';
+  const lignes = DB.jsps.map(j => ({ j, e: etapesJSP(j) })).filter(x => x.e.aFaire.length || x.e.enRetard.length)
+    .sort((a, b) => b.e.enRetard.length - a.e.enRetard.length || b.e.aFaire.length - a.e.aFaire.length);
+  const nbRetard = lignes.reduce((t, x) => t + x.e.enRetard.length, 0), nbAFaire = lignes.reduce((t, x) => t + x.e.aFaire.length, 0);
+  const sb = dateSainteBarbe(), jours = Math.ceil((new Date(sb + 'T12:00') - new Date()) / 864e5);
+  const proche = jours >= 0 && jours <= 60 && nbAFaire;
+  if (!lignes.length) return `<div class="carte-docs complet"><div class="cd-txt"><b><i class="ti ti-circle-check" aria-hidden="true"></i> Étapes de formation : tout est validé 🎉</b><small>PSC1, natation, visite médicale, fiche RH, modules JSP 4…</small></div><button class="btn-cancel" onclick="showSection('cursus')">Voir le suivi</button></div>`;
+  return `<div class="carte-docs"><div class="cd-tete"><div class="cd-txt"><b><i class="ti ti-list-check" aria-hidden="true"></i> Étapes de formation à valider</b>
+      <small>${nbRetard ? `<span style="color:var(--rouge);font-weight:700">${nbRetard} en retard</span> · ` : ''}${nbAFaire} à valider cette année${proche ? ` · <b>Sainte-Barbe dans ${jours} jour${jours > 1 ? 's' : ''}</b>` : ''}</small></div>
+      <button class="btn-add" onclick="showSection('cursus')"><i class="ti ti-list-check"></i> Valider</button></div>
+    <div class="cd-liste">${lignes.slice(0, 10).map(x => `<button class="cd-jsp ${promoClasse(x.j.promotion)}" onclick="ficheJSP(${x.j.id})" title="${escTexte((x.e.enRetard.length ? 'En retard : ' + x.e.enRetard.map(etapeCourt).join(', ') + '. ' : '') + (x.e.aFaire.length ? 'À valider : ' + x.e.aFaire.map(etapeCourt).join(', ') : ''))}"><span class="cd-av">${escTexte((x.j.prenom || '?')[0] + (x.j.nom || '?')[0])}</span>${escTexte(x.j.prenom)} ${escTexte(x.j.nom)}<em style="${x.e.enRetard.length ? 'background:var(--rouge)' : 'background:var(--orange)'}">${x.e.enRetard.length + x.e.aFaire.length}</em></button>`).join('')}${lignes.length > 10 ? `<button class="cd-jsp" onclick="showSection('cursus')">+ ${lignes.length - 10} autres</button>` : ''}</div>
+  </div>`;
+}
+// Bloc de la fiche JSP
+function blocEtapesFiche(j) {
+  const its = getCursus().items.filter(it => it.etape && gradeNum(j.promotion) >= gradeNum(it.etape));
+  if (!its.length) return '';
+  const e = etapesJSP(j);
+  return `<div class="fj-bloc"><h4><i class="ti ti-list-check" aria-hidden="true"></i> Étapes de formation <small style="font-weight:400;color:var(--gris-txt)">${e.faites.length}/${its.length} validées</small></h4>
+    <div>${its.map(it => etapeChip(j, it)).join('')}</div>
+    ${e.enRetard.length ? `<p class="an-small" style="color:var(--rouge);margin:6px 0 0">En retard : ${escTexte(e.enRetard.map(etapeCourt).join(', '))}</p>` : ''}</div>`;
+}
 function cursusCompetences(j) {
   const cy = cycleKey(j.promotion), tot = (LIVRET_CONNAISSANCES[cy] || []).length;
   const faits = (DB.livretConnaissances || []).filter(r => r.jspId == j.id && r.cycle === cy && r.date).length;
@@ -4803,7 +4903,10 @@ function cursusEtat(j) {
   const auj = dateISOLocale(new Date()), C = getCursus(), v = C.valeurs[j.id] || {}, manques = [], enCours = [];
   const docs = docsSaison() ? docsManquants(j) : DOCS_PIECES;
   if (docs.length) manques.push(docs.length + ' pièce' + (docs.length > 1 ? 's' : '') + ' du dossier');
-  cursusItemsJSP(j).forEach(it => {
+  const et = etapesJSP(j);
+  if (et.enRetard.length) manques.push('en retard : ' + et.enRetard.map(etapeCourt).join(', '));
+  if (et.aFaire.length) enCours.push('à valider : ' + et.aFaire.map(etapeCourt).join(', '));
+  cursusItemsJSP(j).filter(it => !it.etape).forEach(it => {
     if (it.type === 'echeance') { if (!v[it.id]) manques.push(it.label.replace(/ valable jusqu'au$/, '') + ' : date à saisir'); else if (v[it.id] < auj) manques.push(it.label.replace(/ valable jusqu'au$/, '') + ' expiré'); }
     else if (!v[it.id]) manques.push(it.label);
   });
@@ -4818,7 +4921,8 @@ function renderCursus() {
   const etats = {}; (DB.jsps || []).forEach(j => etats[j.id] = cursusEtat(j));
   const nb = k => jsps.filter(j => etats[j.id].etat === k).length;
   const pastille = k => `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${k === 'rouge' ? 'var(--rouge)' : k === 'orange' ? 'var(--orange)' : 'var(--vert)'}"></span>`;
-  const itemsAffiches = C.items.filter(it => filtre === 'tous' || !(it.grades || []).length || it.grades.includes(filtre));
+  const itemsAffiches = C.items.filter(it => !it.etape && (filtre === 'tous' || !(it.grades || []).length || it.grades.includes(filtre)));
+  const cellEtapes = j => { const its = C.items.filter(it => it.etape && gradeNum(j.promotion) >= gradeNum(it.etape)); return `<td style="padding:6px;min-width:260px">${its.length ? its.map(it => etapeChip(j, it)).join('') : '<span class="an-muted">—</span>'}</td>`; };
   const cellItem = (j, it) => {
     if ((it.grades || []).length && !it.grades.includes(j.promotion)) return '<td style="text-align:center;color:var(--gris-txt)">·</td>';
     const v = (C.valeurs[j.id] || {})[it.id] || '';
@@ -4833,18 +4937,19 @@ function renderCursus() {
       <td><button class="an-btn" style="min-height:34px;padding:4px 10px;${docs.length ? 'color:var(--rouge)' : ''}" onclick="modalDocuments()" title="${e(docs.map(p => p.label).join(', ') || 'Complet')}">${docs.length ? docs.length + ' manque' + (docs.length > 1 ? 'nt' : '') : '✔ Complet'}</button></td>
       <td><button class="an-btn" style="min-height:34px;padding:4px 10px" onclick="renderLivretGo(${j.id},'competences')">${c.tot ? c.faits + ' / ' + c.tot : '—'}</button></td>
       <td><button class="an-btn" style="min-height:34px;padding:4px 10px;${aps ? '' : 'color:var(--orange)'}" onclick="renderLivretGo(${j.id},'aps')">${aps ? '✔ Fait' : 'À faire'}</button></td>
+      ${cellEtapes(j)}
       ${itemsAffiches.map(it => cellItem(j, it)).join('')}
     </tr>`;
   };
   return `<div class="section-header"><h2><i class="ti ti-list-check"></i> Suivi du cursus</h2>
     <button class="an-btn" onclick="cursusModalItems()"><i class="ti ti-settings"></i> Points à suivre</button></div>
-  <p class="an-small an-muted" style="margin:-4px 0 12px">Pour ne rien oublier de JSP 1 à JSP 4 : dossier de la saison (dont vaccins et certificat), compétences du livret, APS, et les points propres à chaque grade (brevet pour les JSP 4). Ces informations ne sont pas visibles des familles.</p>
+  <p class="an-small an-muted" style="margin:-4px 0 12px">Pour ne rien oublier de JSP 1 à JSP 4 : dossier de la saison (dont vaccins et certificat), compétences du livret, APS et étapes de formation (vert = validée, orange = à valider cette année, rouge = en retard d'un grade précédent). Ces informations ne sont pas visibles des familles.</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
     ${['tous', 'JSP 1', 'JSP 2', 'JSP 3', 'JSP 4'].map(f => `<button class="an-btn" style="${f === filtre ? 'background:var(--bleu);color:#fff' : ''}" onclick="window._cursusFiltre='${f}';showSection('cursus')">${f === 'tous' ? 'Tous' : f}</button>`).join('')}
     <span style="margin-left:auto;font-size:14px">${pastille('rouge')} ${nb('rouge')} à régulariser &nbsp; ${pastille('orange')} ${nb('orange')} en cours &nbsp; ${pastille('vert')} ${nb('vert')} à jour</span></div>
   <div class="card" style="overflow-x:auto">
     ${jsps.length ? `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr style="text-align:left;color:var(--gris-txt);font-size:12px">
-      <th></th><th>JSP</th><th>Dossier saison</th><th>Compétences</th><th>APS</th>${itemsAffiches.map(it => `<th style="max-width:120px">${e(it.label)}${(it.grades || []).length ? ' <span style="font-weight:400">(' + e(it.grades.join(', ')) + ')</span>' : ''}</th>`).join('')}</tr></thead>
+      <th></th><th>JSP</th><th>Dossier saison</th><th>Compétences</th><th>APS</th><th>Étapes de formation <span style="font-weight:400">(touchez pour valider)</span></th>${itemsAffiches.map(it => `<th style="max-width:120px">${e(it.label)}${(it.grades || []).length ? ' <span style="font-weight:400">(' + e(it.grades.join(', ')) + ')</span>' : ''}</th>`).join('')}</tr></thead>
       <tbody>${jsps.map(ligne).join('')}</tbody></table>` : '<p class="an-muted">Aucun JSP.</p>'}
   </div>
   ${(() => { const r = jsps.filter(j => etats[j.id].etat === 'rouge'); return r.length ? `<div class="card" style="margin-top:14px"><h3 style="margin:0 0 8px;font-size:16px">${pastille('rouge')} À régulariser</h3>
@@ -4861,17 +4966,26 @@ function cursusModalItems() {
 function cursusDessinerItems() {
   const e = escTexte, l = window._cursusBrouillon;
   openModalWide(`<h3><i class="ti ti-settings"></i> Points à suivre</h3>
-    <p class="an-small an-muted" style="margin-bottom:10px">Le dossier de la saison, les compétences du livret et les APS sont toujours suivis. Ajoute ici les autres points, pour tous les JSP ou pour certains grades.</p>
+    <p class="an-small an-muted" style="margin-bottom:10px">Le dossier de la saison, les compétences du livret et les APS sont toujours suivis. Ajoute ici les autres points : une <b>étape de formation</b> (PSC1, ARI…) se valide une fois pendant un grade et reste rappelée tant qu'elle n'est pas faite.</p>
     <div style="max-height:60vh;overflow:auto">${l.map((it, i) => `<div style="border:1px solid var(--gris-bord);border-radius:10px;padding:10px;margin-bottom:8px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <input value="${e(it.label)}" oninput="window._cursusBrouillon[${i}].label=this.value" style="flex:1;min-width:200px;padding:8px;border:1px solid var(--gris-bord);border-radius:8px">
-        <select onchange="window._cursusBrouillon[${i}].type=this.value" style="padding:8px;border:1px solid var(--gris-bord);border-radius:8px"><option value="coche" ${it.type !== 'echeance' ? 'selected' : ''}>Case à cocher</option><option value="echeance" ${it.type === 'echeance' ? 'selected' : ''}>Date de fin de validité</option></select>
+        <select onchange="cursusBrouillonType(${i},this.value)" style="padding:8px;border:1px solid var(--gris-bord);border-radius:8px"><option value="etape" ${it.etape ? 'selected' : ''}>Étape de formation</option><option value="coche" ${!it.etape && it.type !== 'echeance' ? 'selected' : ''}>Case à cocher</option><option value="echeance" ${!it.etape && it.type === 'echeance' ? 'selected' : ''}>Date de fin de validité</option></select>
         <button class="an-btn" title="Retirer" onclick="window._cursusBrouillon.splice(${i},1);cursusDessinerItems()"><i class="ti ti-trash"></i></button></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:13px"><span class="an-muted">Pour :</span>
+      ${it.etape ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:13px;align-items:center"><span class="an-muted">À valider en :</span>
+        <select onchange="window._cursusBrouillon[${i}].etape=this.value" style="padding:6px;border:1px solid var(--gris-bord);border-radius:8px">${['JSP 1', 'JSP 2', 'JSP 3', 'JSP 4'].map(g => `<option ${it.etape === g ? 'selected' : ''}>${g}</option>`).join('')}</select>
+        <span class="an-muted">Nom court :</span><input value="${e(it.court || '')}" oninput="window._cursusBrouillon[${i}].court=this.value" style="width:140px;padding:6px;border:1px solid var(--gris-bord);border-radius:8px">
+        <span class="an-muted">(reste due les années suivantes tant qu'elle n'est pas validée)</span></div>`
+      : `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:13px"><span class="an-muted">Pour :</span>
         ${['JSP 1', 'JSP 2', 'JSP 3', 'JSP 4'].map(g => `<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" ${(it.grades || []).includes(g) ? 'checked' : ''} onchange="cursusBrouillonGrade(${i},'${g}',this.checked)" style="width:auto"> ${g}</label>`).join('')}
-        <span class="an-muted">(aucun coché = tous)</span></div></div>`).join('')}</div>
+        <span class="an-muted">(aucun coché = tous)</span></div>`}</div>`).join('')}</div>
     <button class="an-btn" onclick="window._cursusBrouillon.push({id:'c'+Date.now().toString(36),label:'Nouveau point',grades:[],type:'coche'});cursusDessinerItems()"><i class="ti ti-plus"></i> Ajouter un point</button>
     <div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="cursusEnregistrerItems()">Enregistrer</button></div>`);
+}
+function cursusBrouillonType(i, v) {
+  const it = window._cursusBrouillon[i];
+  if (v === 'etape') { it.etape = it.etape || 'JSP 1'; it.type = 'coche'; it.grades = []; } else { delete it.etape; it.type = v; }
+  cursusDessinerItems();
 }
 function cursusBrouillonGrade(i, g, v) {
   const it = window._cursusBrouillon[i]; it.grades = (it.grades || []).filter(x => x !== g); if (v) it.grades.push(g);
@@ -4879,6 +4993,229 @@ function cursusBrouillonGrade(i, g, v) {
 function cursusEnregistrerItems() {
   getCursus().items = window._cursusBrouillon.filter(it => (it.label || '').trim()).map(it => ({ ...it, label: it.label.trim() }));
   saveData(); closeModal(); showSection('cursus'); showToast('Points à suivre enregistrés');
+}
+// ══════════════════════════════════════════
+//  FICHES RH ET DOCUMENTS (une fiche par JSP)
+//  Identité, parcours, étapes de formation, dossier de la saison et pièces jointes.
+//  Les pièces jointes (parfois médicales) sont dans la table carnet_docs_rh, lue uniquement par les
+//  fonctions carnet_docs_rh_* : admin ou compte spécial avec l'accès « fiche-rh ». Jamais visibles des familles.
+// ══════════════════════════════════════════
+const DOCS_RH_TYPES = [
+  { key: 'identite', label: "Pièce d'identité", attendu: 1 },
+  { key: 'secu', label: 'Attestation de droits Sécurité sociale', attendu: 1 },
+  { key: 'autorisation', label: 'Autorisation parentale', attendu: 1 },
+  { key: 'certificat', label: 'Certificat médical', attendu: 1 },
+  { key: 'vaccins', label: 'Carnet de vaccination', attendu: 1 },
+  { key: 'psc1', label: 'Attestation PSC1', attendu: 1, etape: 'psc1' },
+  { key: 'natation', label: 'Attestation 50 m natation', attendu: 1, etape: 'nat50' },
+  { key: 'aptitudeSP', label: 'Aptitude médicale (médecin SP)', attendu: 2, etape: 'visiteSP' },
+  { key: 'ficheRH', label: 'Fiche RH SDIS 34 signée', attendu: 3, etape: 'ficheRH' },
+  { key: 'hepb', label: 'Vaccination hépatite B', attendu: 4, etape: 'hepb' },
+  { key: 'pv', label: 'PV / attestation de formation (ARI, SAP, caisson…)', attendu: 4 },
+  { key: 'autre', label: 'Autre document' }
+];
+let rhDocs = null, rhErreur = null, rhCharge = null;
+function peutFicheRH() { return !!currentUser && (currentUser.role === 'admin' || !!(currentUser.acces && currentUser.acces['fiche-rh'])); }
+function rhTypeLabel(k) { const t = DOCS_RH_TYPES.find(x => x.key === k); return t ? t.label : 'Autre document'; }
+function rhErreurTexte(code) {
+  return ({ acces: "Ton compte n'a pas l'accès aux fiches RH.", format: 'Format refusé : seulement PDF, JPG, PNG.', taille: 'Fichier trop lourd (5 Mo maximum).', trop: 'Trop de documents pour ce JSP (40 maximum) : supprime les anciens.', 'hors-ligne': 'Connexion internet nécessaire pour les documents.', introuvable: 'Document introuvable (déjà supprimé ?).' })[code] || 'Le serveur ne répond pas, réessaie dans un moment.';
+}
+async function rhRpc(nom, params) {
+  if (!supabaseClient || !identifiants) throw new Error('hors-ligne');
+  const { data, error } = await supabaseClient.rpc(nom, { p_login: identifiants.login, p_pass: identifiants.pass, ...params });
+  if (error) throw new Error('serveur');
+  if (!data || !data.ok) throw new Error((data && data.erreur) || 'serveur');
+  return data;
+}
+async function rhCharger(force) {
+  if (rhCharge) return rhCharge;
+  if (rhDocs && !force) return;
+  rhCharge = (async () => {
+    try { rhDocs = (await rhRpc('carnet_docs_rh_liste', { p_jsp: null })).docs || []; rhErreur = null; }
+    catch (e) { rhErreur = rhErreurTexte(e.message); }
+  })();
+  try { await rhCharge; } finally { rhCharge = null; }
+  const r = document.getElementById('rhRacine');
+  if (r && currentSection === 'fiche-rh') r.innerHTML = rhHtml();
+}
+function ouvrirFicheRH(id) { window._rhJsp = id; showSection('fiche-rh'); }
+function renderFicheRH() {
+  if (!peutFicheRH()) return '<div class="card"><p>Accès réservé.</p></div>';
+  rhCharger();
+  return '<div id="rhRacine">' + rhHtml() + '</div>';
+}
+function rhDocsJSP(id) { return (rhDocs || []).filter(d => d.jsp == id); }
+// Pièces attendues jusqu'au grade du JSP, et celles déjà déposées
+function rhAttendues(j) {
+  const n = gradeNum(j.promotion), types = new Set(rhDocsJSP(j.id).map(d => d.type));
+  return DOCS_RH_TYPES.filter(t => t.attendu && t.attendu <= Math.max(n, 1)).map(t => ({ t, ok: types.has(t.key) }));
+}
+function rhHtml() {
+  const e = escTexte, j = (DB.jsps || []).find(x => x.id == window._rhJsp);
+  const tete = `<div class="section-header"><h2><i class="ti ti-id-badge-2"></i> Fiches RH${j ? ' — ' + e(j.prenom + ' ' + j.nom) : ''}</h2>
+    ${j ? `<button class="an-btn" onclick="window._rhJsp=null;showSection('fiche-rh')"><i class="ti ti-arrow-left"></i> Tous les JSP</button>` : ''}</div>`;
+  const alerte = rhErreur ? `<div class="card" style="border-left:4px solid var(--orange);margin-bottom:12px"><i class="ti ti-wifi-off"></i> ${e(rhErreur)} <button class="an-btn" onclick="rhCharger(true)">Réessayer</button></div>` : '';
+  if (!j) {
+    const jsps = (DB.jsps || []).slice().sort((a, b) => gradeNum(a.promotion) - gradeNum(b.promotion) || (a.nom || '').localeCompare(b.nom || ''));
+    return tete + alerte + `<p class="an-small an-muted" style="margin:-4px 0 12px"><i class="ti ti-lock"></i> Une fiche par jeune : identité, parcours, étapes de formation et documents scannés. Réservé à l'encadrement : les familles ne voient pas ces documents. Ils sont effacés si le JSP quitte la section.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px">${jsps.map(x => {
+        const et = etapesJSP(x), att = rhDocs ? rhAttendues(x) : [], manq = att.filter(a => !a.ok).length, nbDocs = rhDocsJSP(x.id).length;
+        return `<button class="card" style="text-align:left;cursor:pointer;border:1px solid var(--gris-bord);padding:12px;min-height:44px" onclick="ouvrirFicheRH(${x.id})">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${e(x.prenom)} ${e(x.nom)}</b>${promoBadge(x.promotion)}</div>
+          <div class="an-small" style="margin-top:6px">${rhDocs ? `<i class="ti ti-paperclip"></i> ${nbDocs} document${nbDocs > 1 ? 's' : ''}${manq ? ` · <span style="color:var(--orange)">${manq} pièce${manq > 1 ? 's' : ''} manquante${manq > 1 ? 's' : ''}</span>` : ' · <span style="color:var(--vert)">pièces complètes</span>'}` : '<span class="an-muted">Chargement des documents…</span>'}</div>
+          <div class="an-small" style="margin-top:2px">${et.enRetard.length ? `<span style="color:var(--rouge)">${et.enRetard.length} étape${et.enRetard.length > 1 ? 's' : ''} en retard</span>` : et.aFaire.length ? `<span style="color:var(--orange)">${et.aFaire.length} étape${et.aFaire.length > 1 ? 's' : ''} à valider</span>` : '<span style="color:var(--vert)">Étapes à jour</span>'}</div></button>`;
+      }).join('') || '<p class="an-muted">Aucun JSP.</p>'}</div>`;
+  }
+  const c1 = j.contact1 || {}, c2 = j.contact2 || {};
+  const champ = (l, v) => `<div style="padding:6px 0;border-bottom:1px solid var(--gris-bord)"><div class="an-small an-muted">${l}</div><div style="font-weight:600">${v ? e(v) : '<span class="an-muted" style="font-weight:400">—</span>'}</div></div>`;
+  const parcours = (DB.livretCursus || []).filter(r => r.jspId == j.id).sort((a, b) => (a.annee || '').localeCompare(b.annee || ''));
+  const docs = rhDocsJSP(j.id), att = rhAttendues(j), ds = docsSaison(), dm = ds ? docsManquants(j) : null;
+  const its = getCursus().items.filter(it => it.etape && gradeNum(j.promotion) >= gradeNum(it.etape)), vals = getCursus().valeurs[j.id] || {};
+  return tete + alerte + `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <button class="btn-add" onclick="rhChoisirFichier(${j.id})"><i class="ti ti-upload"></i> Ajouter un document</button>
+    <button class="an-btn" onclick="modalCandidatureJSP(${j.id})"><i class="ti ti-file-type-pdf"></i> Fiche RH SDIS 34 pré-remplie</button>
+    <button class="an-btn" onclick="rhImprimer(${j.id})"><i class="ti ti-printer"></i> Imprimer la fiche</button>
+    <button class="an-btn" onclick="modalEditJSP(${j.id})"><i class="ti ti-pencil"></i> Modifier l'identité</button></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+    <div class="card"><h3 style="margin:0 0 6px;font-size:16px"><i class="ti ti-user"></i> Identité</h3>
+      ${champ('Nom et prénom', (j.nom || '') + ' ' + (j.prenom || ''))}
+      ${champ('Né(e) le', (j.dateNaissance ? fmtDate(j.dateNaissance) : '') + (j.lieuNaissance ? ' à ' + j.lieuNaissance : ''))}
+      ${champ('Adresse', [j.adresse, [j.codePostal, j.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '))}
+      ${champ('N° de sécurité sociale', j.numSecu)}
+      ${champ('Entrée dans la section', j.dateEngagement ? fmtDate(j.dateEngagement) : '')}
+      ${champ('Grade', j.promotion)}
+      ${champ('Contacts', [j.telPere && 'Père ' + j.telPere, j.telMere && 'Mère ' + j.telMere, j.email].filter(Boolean).join(' · '))}
+      ${champ("Contacts d'urgence", [c1.nom && (c1.prenom || '') + ' ' + c1.nom + (c1.lien ? ' (' + c1.lien + ')' : '') + (c1.tel1 ? ' ' + c1.tel1 : ''), c2.nom && (c2.prenom || '') + ' ' + c2.nom + (c2.lien ? ' (' + c2.lien + ')' : '') + (c2.tel1 ? ' ' + c2.tel1 : '')].filter(Boolean).join(' · '))}
+    </div>
+    <div class="card"><h3 style="margin:0 0 6px;font-size:16px"><i class="ti ti-list-check"></i> Étapes de formation</h3>
+      ${its.length ? its.map(it => `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--gris-bord)"><span>${e(it.label)} <span class="an-small an-muted">(${e(it.etape)})</span></span><span>${vals[it.id] ? `<span class="an-small" style="color:var(--vert)">${fmtDate(vals[it.id])}</span>` : ''} ${etapeChip(j, it)}</span></div>`).join('') : '<p class="an-muted">Aucune étape pour ce grade.</p>'}
+      <h3 style="margin:14px 0 6px;font-size:16px"><i class="ti ti-history"></i> Parcours</h3>
+      ${parcours.length ? parcours.map(r => `<div class="an-small" style="padding:3px 0">${e(r.annee || '')} : ${e(r.grade || '')}${r.centre ? ' — ' + e(r.centre) : ''}</div>`).join('') : `<p class="an-small an-muted">Rien de saisi dans le livret. <a href="#" onclick="renderLivretGo(${j.id},'cursus');return false">Compléter le livret</a></p>`}
+      <h3 style="margin:14px 0 6px;font-size:16px"><i class="ti ti-file-check"></i> Dossier ${e(DB.saison || '')}</h3>
+      ${!ds ? '<p class="an-small an-muted">Suivi des pièces de la saison non commencé.</p>' : dm.length ? `<div>${dm.map(p => `<span class="badge badge-rouge" style="margin:2px">✗ ${e(p.court)}</span>`).join('')}</div>` : '<p class="an-small" style="color:var(--vert)">Dossier de la saison complet ✓</p>'}
+    </div>
+    <div class="card" style="grid-column:1/-1"><h3 style="margin:0 0 6px;font-size:16px"><i class="ti ti-paperclip"></i> Documents</h3>
+      ${rhDocs === null ? '<p class="an-muted">Chargement…</p>' : `
+      <div style="margin-bottom:10px">${att.map(a => `<span class="badge ${a.ok ? 'badge-vert' : 'badge-orange'}" style="margin:2px">${a.ok ? '✓' : '○'} ${e(a.t.label)}</span>`).join('')}</div>
+      ${docs.length ? `<div>${docs.map(d => `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--gris-bord)">
+        <i class="ti ${d.mime === 'application/pdf' ? 'ti-file-type-pdf' : 'ti-photo'}" style="font-size:22px;color:var(--bleu)"></i>
+        <div style="flex:1;min-width:180px"><b>${e(rhTypeLabel(d.type))}</b><div class="an-small an-muted">${e(d.nom)} · ${Math.max(1, Math.round(d.taille / 1024))} Ko · ajouté le ${e(new Date(d.le).toLocaleDateString('fr-FR'))}</div></div>
+        <button class="an-btn" style="min-height:44px" onclick="rhOuvrir('${e(d.id)}')"><i class="ti ti-eye"></i> Voir</button>
+        <button class="an-btn" style="min-height:44px" onclick="rhChangerType('${e(d.id)}')" title="Changer le type"><i class="ti ti-tag"></i></button>
+        <button class="an-btn" style="min-height:44px;color:var(--rouge)" onclick="rhSupprimer('${e(d.id)}')" title="Supprimer"><i class="ti ti-trash"></i></button></div>`).join('')}</div>`
+        : '<p class="an-muted">Aucun document. Photographie ou scanne les pièces avec « Ajouter un document ».</p>'}`}
+    </div>
+  </div>`;
+}
+// ── Ajout d'un document (photo ou PDF) ──
+function rhChoisirFichier(jspId) {
+  const e = escTexte;
+  openModal(`<h3><i class="ti ti-upload"></i> Ajouter un document</h3>
+    <div class="form-group"><label>Type de document</label><select id="rh_type" style="min-height:44px">${DOCS_RH_TYPES.map(t => `<option value="${t.key}">${e(t.label)}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Fichier (photo ou PDF, 5 Mo max)</label><input id="rh_fichier" type="file" accept="application/pdf,image/*" multiple style="min-height:44px"></div>
+    <p class="an-small an-muted">Sur la tablette, tu peux prendre la pièce en photo directement. Les photos sont allégées automatiquement.</p>
+    <div id="rh_statut" class="an-small" style="margin:6px 0"></div>
+    <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" id="rh_btn" onclick="rhEnvoyer(${jspId})"><i class="ti ti-upload"></i> Enregistrer</button></div>`);
+}
+function rhLireBase64(blob) {
+  return new Promise((ok, ko) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = ko; r.readAsDataURL(blob); });
+}
+// Photo → JPEG de 2000 px maximum (pièces lisibles, poids réduit)
+function rhAlleger(file) {
+  return new Promise((ok, ko) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 2000 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? ok(b) : ko(new Error('format')), 'image/jpeg', 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); ko(new Error('format')); };
+    img.src = url;
+  });
+}
+async function rhEnvoyer(jspId) {
+  const inp = document.getElementById('rh_fichier'), type = document.getElementById('rh_type').value, st = document.getElementById('rh_statut'), btn = document.getElementById('rh_btn');
+  const fichiers = [...(inp.files || [])];
+  if (!fichiers.length) { st.textContent = 'Choisis un fichier.'; return; }
+  btn.disabled = true; let n = 0;
+  try {
+    for (const f of fichiers) {
+      st.textContent = 'Envoi de « ' + f.name + ' »…';
+      let blob = f, mime = f.type, nom = f.name;
+      if (mime !== 'application/pdf') {
+        if (!/^image\//.test(mime) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(nom)) throw new Error('format');
+        blob = await rhAlleger(f); mime = 'image/jpeg'; nom = nom.replace(/\.[^.]+$/, '') + '.jpg';
+      }
+      if (blob.size > 5 * 1024 * 1024) throw new Error('taille');
+      await rhRpc('carnet_docs_rh_ajouter', { p_jsp: Number(jspId), p_type: type, p_nom: nom, p_mime: mime, p_b64: await rhLireBase64(blob) });
+      n++;
+    }
+  } catch (e) {
+    st.style.color = 'var(--rouge)'; st.textContent = (n ? n + ' document(s) enregistré(s). ' : '') + rhErreurTexte(e.message); btn.disabled = false;
+    rhCharger(true); return;
+  }
+  closeModal(); showToast(n > 1 ? n + ' documents enregistrés' : 'Document enregistré');
+  await rhCharger(true);
+  // La pièce correspond à une étape de formation pas encore validée : on propose de la valider
+  const t = DOCS_RH_TYPES.find(x => x.key === type), j = DB.jsps.find(x => x.id == jspId), C = getCursus();
+  if (t && t.etape && j && !(C.valeurs[j.id] || {})[t.etape]) {
+    const it = C.items.find(x => x.id === t.etape);
+    if (it && gradeNum(j.promotion) >= gradeNum(it.etape) && confirm('Valider aussi l\'étape « ' + it.label + ' » pour ' + j.prenom + ' (date du jour) ?')) {
+      (C.valeurs[j.id] = C.valeurs[j.id] || {})[it.id] = dateISOLocale(new Date()); saveData(); showSection('fiche-rh');
+    }
+  }
+}
+async function rhOuvrir(id) {
+  const w = window.open('', '_blank'); // ouvert tout de suite (sinon bloqué sur tablette)
+  if (w) w.document.write('<p style="font-family:sans-serif;padding:20px">Ouverture du document…</p>');
+  try {
+    const d = await rhRpc('carnet_docs_rh_lire', { p_id: id });
+    const bin = atob(d.b64), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([u8], { type: d.mime }));
+    if (w) w.location.href = url; else { const a = document.createElement('a'); a.href = url; a.download = d.nom; a.click(); }
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  } catch (e) { if (w) w.close(); alert(rhErreurTexte(e.message)); }
+}
+async function rhChangerType(id) {
+  const d = (rhDocs || []).find(x => x.id === id); if (!d) return;
+  const choix = prompt('Nouveau type (numéro) :\n' + DOCS_RH_TYPES.map((t, i) => (i + 1) + '. ' + t.label).join('\n'), String(DOCS_RH_TYPES.findIndex(t => t.key === d.type) + 1));
+  const t = DOCS_RH_TYPES[parseInt(choix, 10) - 1]; if (!t) return;
+  try { await rhRpc('carnet_docs_rh_modifier', { p_id: id, p_type: t.key }); d.type = t.key; showSection('fiche-rh'); }
+  catch (e) { alert(rhErreurTexte(e.message)); }
+}
+async function rhSupprimer(id) {
+  const d = (rhDocs || []).find(x => x.id === id); if (!d) return;
+  if (!confirm('Supprimer définitivement « ' + rhTypeLabel(d.type) + ' » (' + d.nom + ') ?')) return;
+  try { await rhRpc('carnet_docs_rh_supprimer', { p_id: id }); rhDocs = rhDocs.filter(x => x.id !== id); showSection('fiche-rh'); showToast('Document supprimé'); }
+  catch (e) { alert(rhErreurTexte(e.message)); }
+}
+// Fiche imprimable (sans les pièces jointes)
+function rhImprimer(jspId) {
+  const j = DB.jsps.find(x => x.id == jspId); if (!j) return;
+  const e = escTexte, C = getCursus(), v = C.valeurs[j.id] || {}, c1 = j.contact1 || {}, c2 = j.contact2 || {};
+  const its = C.items.filter(it => it.etape);
+  const lig = (l, x) => `<tr><th>${l}</th><td>${x ? e(x) : ''}</td></tr>`;
+  const w = window.open('', '_blank'); if (!w) { alert('Autorise les fenêtres pour imprimer.'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Fiche RH — ${e(j.prenom)} ${e(j.nom)}</title>
+    <style>body{font-family:Arial,sans-serif;margin:24px;color:#111}h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 6px;color:#1e3a5f;border-bottom:2px solid #c8102e}
+    table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #bbb;padding:5px 7px;text-align:left;vertical-align:top}th{width:38%;background:#f3f4f6}</style></head><body>
+    <h1>Fiche RH — ${e(j.prenom)} ${e(j.nom)}</h1><div style="font-size:13px">Section JSP Cruzy-Quarante · ${e(j.promotion || '')} · imprimée le ${new Date().toLocaleDateString('fr-FR')}</div>
+    <h2>Identité</h2><table>${lig('Né(e) le', (j.dateNaissance ? fmtDate(j.dateNaissance) : '') + (j.lieuNaissance ? ' à ' + j.lieuNaissance : ''))}${lig('Adresse', [j.adresse, [j.codePostal, j.ville].filter(Boolean).join(' ')].filter(Boolean).join(', '))}${lig('N° de sécurité sociale', j.numSecu)}${lig('Entrée dans la section', j.dateEngagement ? fmtDate(j.dateEngagement) : '')}${lig('Téléphones', [j.telPere && 'Père ' + j.telPere, j.telMere && 'Mère ' + j.telMere, j.telJSP && 'JSP ' + j.telJSP].filter(Boolean).join(' · '))}${lig('E-mail', j.email)}${lig("Contact d'urgence 1", [c1.prenom, c1.nom, c1.lien && '(' + c1.lien + ')', c1.tel1].filter(Boolean).join(' '))}${lig("Contact d'urgence 2", [c2.prenom, c2.nom, c2.lien && '(' + c2.lien + ')', c2.tel1].filter(Boolean).join(' '))}</table>
+    <h2>Étapes de formation</h2><table>${its.map(it => `<tr><th>${e(it.label)} (${e(it.etape)})</th><td>${v[it.id] ? 'Validée le ' + fmtDate(v[it.id]) : gradeNum(j.promotion) > gradeNum(it.etape) ? '<b>À régulariser</b>' : gradeNum(j.promotion) === gradeNum(it.etape) ? 'À valider cette année' : '—'}</td></tr>`).join('')}</table>
+    <h2>Documents au dossier</h2><table>${DOCS_RH_TYPES.filter(t => t.key !== 'autre').map(t => { const n = rhDocsJSP(j.id).filter(d => d.type === t.key).length; return `<tr><th>${e(t.label)}</th><td>${n ? '✓ ' + (n > 1 ? n + ' fichiers' : 'au dossier') : ''}</td></tr>`; }).join('')}</table>
+    <script>setTimeout(function(){window.print()},300)<\/script></body></html>`);
+  w.document.close();
+}
+// Brevet / fiche RH SDIS 34 : coche d'office les pièces déjà validées dans le Carnet
+function candidaturePrecocher(j) {
+  const v = getCursus().valeurs[j.id] || {}, types = new Set(rhDocsJSP(j.id).map(d => d.type));
+  const map = { pb_natation: v.nat50, pb_ari: v.ari, pb_prompt: v.prompt, pb_vsav: v.sap, pb_caisson: v.caisson, pb_inond: v.inond,
+    pb_cni: types.has('identite'), pb_auth: types.has('autorisation'), pb_certif: types.has('certificat'),
+    pr_cni: types.has('identite'), pr_secu: types.has('secu'), pr_autor: types.has('autorisation') };
+  Object.entries(map).forEach(([id, ok]) => { const el = document.getElementById(id); if (el && ok) el.checked = true; });
 }
 // ══════════════════════════════════════════
 //  RECHERCHE RAPIDE (admin) : JSP et rubriques
@@ -6337,6 +6674,7 @@ function renderDashboard() {
     </div>
     ${carteAnniversaires()}
     ${carteDocuments()}
+    ${carteEtapes()}
     <div class="section-header"><h2><i class="ti ti-calendar-event" aria-hidden="true"></i> Prochains événements</h2></div>
     <div class="planning-grid">
       ${prochains.length ? prochains.map(p => `
@@ -6775,7 +7113,10 @@ function deleteJSP(id) {
   ['icp', 'bilans', 'questionnaireReponses', 'questionnairesAssignes', 'validationsReglement', 'demandesAbsence', 'demandesAttestation', 'attestations'].forEach(k => {
     if (Array.isArray(DB[k])) DB[k] = DB[k].filter(x => x.jspId != id);
   });
+  if (DB.cursusSuivi && DB.cursusSuivi.valeurs) delete DB.cursusSuivi.valeurs[id];
   saveData(); showSection('jsps');
+  // Documents de la fiche RH (stockés à part) : effacés au départ du JSP
+  if (supabaseClient && identifiants) supabaseClient.rpc('carnet_docs_rh_purger', { p_login: identifiants.login, p_pass: identifiants.pass, p_jsp: Number(id) }).then(() => {}, () => {});
 }
 
 
@@ -6921,6 +7262,7 @@ function modalCandidatureJSP(id) {
       <button class="btn-save" style="background:#7c3aed" onclick="genererDossierCandidature(${id})"><i class="ti ti-file-type-pdf"></i> Générer le PDF</button>
     </div>
   `);
+  candidaturePrecocher(j);
 }
 
 async function genererDossierCandidature(jspId) {
